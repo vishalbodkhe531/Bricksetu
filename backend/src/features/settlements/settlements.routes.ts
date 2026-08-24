@@ -81,8 +81,8 @@ export async function settlementsRoutes(fastify: FastifyInstance) {
               u_app.full_name as approved_by_name, u_void.full_name as voided_by_name
        FROM finance.settlements s
        JOIN workers.profiles w ON w.id = s.worker_id
-       LEFT JOIN auth.users u_app ON u_app.id = s.approved_by
-       LEFT JOIN auth.users u_void ON u_void.id = s.voided_by
+       LEFT JOIN app_auth.users u_app ON u_app.id = s.approved_by
+       LEFT JOIN app_auth.users u_void ON u_void.id = s.voided_by
        WHERE s.id = $1 AND s.business_unit_id = $2`,
       [id, user.business_unit_id]
     );

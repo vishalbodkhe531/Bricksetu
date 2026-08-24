@@ -58,8 +58,8 @@ export function buildApp(): FastifyInstance {
 
     const { rows } = await query(
       `SELECT u.id, u.business_unit_id, u.username, u.email, u.full_name, u.role, u.is_active, s.expires_at, bu.name as bu_name
-       FROM auth.sessions s
-       JOIN auth.users u ON u.id = s.user_id
+       FROM app_auth.sessions s
+       JOIN app_auth.users u ON u.id = s.user_id
        JOIN core.business_units bu ON bu.id = u.business_unit_id
        WHERE s.id = $1 AND s.expires_at > clock_timestamp() AND u.is_active = true`,
       [sessionToken]

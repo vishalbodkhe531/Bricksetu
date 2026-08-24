@@ -13,7 +13,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     const { rows } = await query(
       `SELECT u.id, u.business_unit_id, u.username, u.email, u.password_hash, u.full_name, u.role, u.is_active, bu.name as bu_name
-       FROM auth.users u
+       FROM app_auth.users u
        JOIN core.business_units bu ON bu.id = u.business_unit_id
        WHERE u.username = $1`,
       [username]
@@ -38,7 +38,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
     await query(
-      'INSERT INTO auth.sessions (id, user_id, expires_at) VALUES ($1, $2, $3)',
+      'INSERT INTO app_auth.sessions (id, user_id, expires_at) VALUES ($1, $2, $3)',
       [sessionToken, user.id, expiresAt]
     );
 
@@ -67,7 +67,7 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/auth/logout', async (req: FastifyRequest, reply: FastifyReply) => {
     const token = req.cookies.bricksetu_session;
     if (token) {
-      await query('DELETE FROM auth.sessions WHERE id = $1', [token]);
+      await query('DELETE FROM app_auth.sessions WHERE id = $1', [token]);
     }
     reply.clearCookie('bricksetu_session', { path: '/' });
     return { data: { success: true } };
@@ -84,7 +84,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     const currentUser = (req as any).user;
     const { rows } = await query(
       `SELECT id, username, email, full_name, role, is_active, created_at
-       FROM auth.users
+       FROM app_auth.users
        WHERE business_unit_id = $1
        ORDER BY created_at DESC`,
       [currentUser.business_unit_id]
@@ -104,7 +104,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     const hash = await bcrypt.hash(password, salt);
 
     const { rows } = await query(
-      `INSERT INTO auth.users (business_unit_id, username, email, password_hash, full_name, role)
+      `INSERT INTO app_auth.users (business_unit_id, username, email, password_hash, full_name, role)
        VALUES ($1, $2, $3, $4, $5, 'ADMIN')
        RETURNING id, username, email, full_name, role, is_active, created_at`,
       [currentUser.business_unit_id, username, email, hash, full_name]
