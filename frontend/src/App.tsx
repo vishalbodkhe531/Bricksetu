@@ -1,122 +1,102 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import { Sidebar } from './shared/components/Sidebar';
+import { MobileNav } from './shared/components/MobileNav';
+import { QuickEntryModal } from './shared/components/QuickEntryModal';
+import { LoginView } from './features/auth/LoginView';
+import { DashboardView } from './features/dashboard/DashboardView';
+import { ProductionView } from './features/production/ProductionView';
+import { InventoryView } from './features/inventory/InventoryView';
+import { WorkersView } from './features/workers/WorkersView';
+import { MaterialsView } from './features/materials/MaterialsView';
+import { SalesView } from './features/sales/SalesView';
+import { PaymentsView } from './features/payments/PaymentsView';
+import { TransportView } from './features/transport/TransportView';
+import { SettingsView } from './features/settings/SettingsView';
+import { ReportsView } from './features/reports/ReportsView';
+import { apiRequest } from './shared/api/client';
 
-function App() {
-  const [count, setCount] = useState(0)
+export function App() {
+  const [user, setUser] = useState<any>(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+  const [currentTab, setCurrentTab] = useState('dashboard');
+  const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  async function checkAuth() {
+    try {
+      const u = await apiRequest('/auth/me');
+      setUser(u);
+    } catch (err) {
+      setUser(null);
+    } finally {
+      setLoadingAuth(false);
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      await apiRequest('/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error(err);
+    }
+    setUser(null);
+  };
+
+  if (loadingAuth) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', color: 'var(--accent-orange)', fontWeight: 700 }}>
+        Loading BrickSetu Workspace...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginView onLoginSuccess={(u) => setUser(u)} />;
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="app-shell">
+      {/* Desktop Sidebar */}
+      <Sidebar
+        currentTab={currentTab}
+        onSelectTab={(tab) => setCurrentTab(tab)}
+        user={user}
+        onLogout={handleLogout}
+      />
 
-      <div className="ticks"></div>
+      {/* Main View Area */}
+      <main className="main-content" key={refreshKey}>
+        {currentTab === 'dashboard' && <DashboardView onOpenQuickEntry={() => setIsQuickEntryOpen(true)} onNavigate={(t) => setCurrentTab(t)} />}
+        {currentTab === 'production' && <ProductionView />}
+        {currentTab === 'inventory' && <InventoryView />}
+        {currentTab === 'workers' && <WorkersView />}
+        {currentTab === 'materials' && <MaterialsView />}
+        {currentTab === 'sales' && <SalesView />}
+        {currentTab === 'payments' && <PaymentsView />}
+        {currentTab === 'transport' && <TransportView />}
+        {currentTab === 'reports' && <ReportsView />}
+        {currentTab === 'settings' && <SettingsView />}
+      </main>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      {/* Mobile Bottom Navigation */}
+      <MobileNav
+        currentTab={currentTab}
+        onSelectTab={(tab) => setCurrentTab(tab)}
+        onOpenQuickEntry={() => setIsQuickEntryOpen(true)}
+      />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      {/* Quick Entry Daily Action Drawer/Modal */}
+      <QuickEntryModal
+        isOpen={isQuickEntryOpen}
+        onClose={() => setIsQuickEntryOpen(false)}
+        onSuccess={() => setRefreshKey(prev => prev + 1)}
+      />
+    </div>
+  );
 }
 
-export default App
+export default App;
