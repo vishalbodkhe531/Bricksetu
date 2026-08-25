@@ -1,5 +1,6 @@
 import React from 'react';
-import { LayoutDashboard, Flame, Layers, Users, ShoppingCart, PlusCircle } from 'lucide-react';
+import { LayoutDashboard, Flame, Layers, ShoppingCart, PlusCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface MobileNavProps {
   currentTab: string;
@@ -18,25 +19,13 @@ export const MobileNav: React.FC<MobileNavProps> = ({ currentTab, onSelectTab, o
         <Flame size={20} />
         Batches
       </button>
-      <button
+      <Button
         onClick={onOpenQuickEntry}
-        style={{
-          width: '46px',
-          height: '46px',
-          borderRadius: '50%',
-          background: 'linear-gradient(135deg, #f97316, #ea580c)',
-          color: '#fff',
-          border: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 4px 15px rgba(249, 115, 22, 0.4)',
-          transform: 'translateY(-10px)',
-          cursor: 'pointer'
-        }}
+        size="icon"
+        className="size-12 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 shadow-lg shadow-orange-500/40 -translate-y-2 border-2 border-slate-900 hover:scale-105 transition-transform"
       >
-        <PlusCircle size={24} />
-      </button>
+        <PlusCircle className="size-6 text-white" />
+      </Button>
       <button className={`mobile-nav-item ${currentTab === 'inventory' ? 'active' : ''}`} onClick={() => onSelectTab('inventory')}>
         <Layers size={20} />
         Stock

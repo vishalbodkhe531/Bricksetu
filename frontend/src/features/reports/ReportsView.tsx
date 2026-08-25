@@ -3,6 +3,20 @@ import { FileText, Download, Printer, Filter } from 'lucide-react';
 import { apiRequest } from '../../shared/api/client';
 import { formatINR } from '../../shared/utils/formatters';
 import { exportToCSV } from '../../shared/utils/csvExporter';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { PageHeader } from '../../shared/components/PageHeader';
 
 export const ReportsView: React.FC = () => {
   const [reportType, setReportType] = useState<string>('production-damage');
@@ -123,25 +137,26 @@ export const ReportsView: React.FC = () => {
   };
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Reports & Audit Analytics</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Filterable operational reports, batch costing, party ledgers, and printable statements</p>
-        </div>
-        <div style={{ display: 'flex', gap: '10px' }} className="no-print">
-          <button className="btn btn-secondary" onClick={() => window.print()}>
-            <Printer size={18} /> Print Statement
-          </button>
-          <button className="btn btn-primary" onClick={handleExportCSV}>
-            <Download size={18} /> Export CSV
-          </button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      {/* Page Header */}
+      <PageHeader
+        title="Reports & Audit Analytics"
+        description="Filterable operational reports, batch costing, party ledgers, and printable statements"
+        icon={<FileText className="size-5 sm:size-6" />}
+        actions={
+          <div className="flex items-center gap-2 no-print">
+            <Button variant="outline" onClick={() => window.print()} className="border-slate-700 text-slate-200 hover:bg-slate-800 gap-1.5 h-10 px-3.5 text-xs sm:text-sm">
+              <Printer className="size-4" /> Print Statement
+            </Button>
+            <Button onClick={handleExportCSV} className="bg-orange-500 hover:bg-orange-600 text-white font-bold gap-1.5 h-10 px-4 shadow-lg shadow-orange-500/20 text-xs sm:text-sm">
+              <Download className="size-4" /> Export CSV
+            </Button>
+          </div>
+        }
+      />
 
       {/* Report Selector Grid */}
-      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '20px' }} className="no-print">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 no-print">
         {[
           { id: 'production-damage', label: 'Production & Damage' },
           { id: 'stock-movement', label: 'Stock Movement' },
@@ -151,36 +166,40 @@ export const ReportsView: React.FC = () => {
           { id: 'transport-cost', label: 'Transport Costs' },
           { id: 'batch-costing', label: 'Batch Costing & Profit' },
         ].map(r => (
-          <button
+          <Button
             key={r.id}
-            className={`btn ${reportType === r.id ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+            size="sm"
+            variant={reportType === r.id ? "default" : "outline"}
             onClick={() => setReportType(r.id)}
+            className={`whitespace-nowrap font-semibold text-xs h-9 ${
+              reportType === r.id ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-slate-700 text-slate-300 hover:bg-slate-800'
+            }`}
           >
             {r.label}
-          </button>
+          </Button>
         ))}
       </div>
 
       {/* Filters Card */}
-      <div className="glass-card no-print" style={{ padding: '16px', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-          <Filter size={16} color="var(--accent-orange)" />
-          <strong style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Filter Parameters</strong>
+      <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-4 no-print">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className="size-4 text-orange-500" />
+          <strong className="text-xs font-bold uppercase tracking-wider text-slate-300">Filter Parameters</strong>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Start Date</label>
-            <input type="date" className="form-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="space-y-1">
+            <Label className="text-slate-400 text-xs">Start Date</Label>
+            <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
           </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">End Date</label>
-            <input type="date" className="form-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
+          <div className="space-y-1">
+            <Label className="text-slate-400 text-xs">End Date</Label>
+            <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
           </div>
 
           {(reportType === 'production-damage' || reportType === 'material-consumption') && (
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Batch</label>
-              <select className="form-select" value={filterBatch} onChange={e => setFilterBatch(e.target.value)}>
+            <div className="space-y-1">
+              <Label className="text-slate-400 text-xs">Batch</Label>
+              <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={filterBatch} onChange={e => setFilterBatch(e.target.value)}>
                 <option value="">All Batches</option>
                 {batches.map(b => <option key={b.id} value={b.id}>{b.batch_number}</option>)}
               </select>
@@ -188,9 +207,9 @@ export const ReportsView: React.FC = () => {
           )}
 
           {reportType === 'weekly-payments' && (
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Worker</label>
-              <select className="form-select" value={filterWorker} onChange={e => setFilterWorker(e.target.value)}>
+            <div className="space-y-1">
+              <Label className="text-slate-400 text-xs">Worker</Label>
+              <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={filterWorker} onChange={e => setFilterWorker(e.target.value)}>
                 <option value="">All Workers</option>
                 {workers.map(w => <option key={w.id} value={w.id}>{w.full_name}</option>)}
               </select>
@@ -199,17 +218,17 @@ export const ReportsView: React.FC = () => {
 
           {reportType === 'party-ledgers' && (
             <>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Party Type</label>
-                <select className="form-select" value={filterPartyType} onChange={e => { setFilterPartyType(e.target.value); setFilterPartyId(''); }}>
+              <div className="space-y-1">
+                <Label className="text-slate-400 text-xs">Party Type</Label>
+                <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={filterPartyType} onChange={e => { setFilterPartyType(e.target.value); setFilterPartyId(''); }}>
                   <option value="CUSTOMER">Customer</option>
                   <option value="SUPPLIER">Supplier</option>
                   <option value="WORKER">Worker</option>
                 </select>
               </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Select Party</label>
-                <select className="form-select" value={filterPartyId} onChange={e => setFilterPartyId(e.target.value)}>
+              <div className="space-y-1">
+                <Label className="text-slate-400 text-xs">Select Party</Label>
+                <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={filterPartyId} onChange={e => setFilterPartyId(e.target.value)}>
                   <option value="">-- Choose Party --</option>
                   {filterPartyType === 'CUSTOMER' && customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   {filterPartyType === 'SUPPLIER' && suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -219,12 +238,12 @@ export const ReportsView: React.FC = () => {
             </>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* Report Table Display */}
-      <div className="glass-card" style={{ padding: '20px' }}>
-        <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>
+      <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-base font-bold text-white">
             {reportType === 'production-damage' && 'Daily & Monthly Production & Damage Report'}
             {reportType === 'stock-movement' && 'Finished Stock Movement Ledger'}
             {reportType === 'weekly-payments' && 'Worker Weekly Payment Settlements'}
@@ -233,206 +252,221 @@ export const ReportsView: React.FC = () => {
             {reportType === 'transport-cost' && 'Vehicle & Transport Trip Log'}
             {reportType === 'batch-costing' && 'Batch Unit Costing & Operating Profitability'}
           </h3>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Records: {data.length}</span>
+          <span className="text-xs text-slate-400">Records: {data.length}</span>
         </div>
 
-        <div className="table-container">
-          <table className="data-table">
+        <div className="rounded-lg border border-slate-800 overflow-hidden">
+          <Table>
             {reportType === 'production-damage' && (
               <>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Batch</th>
-                    <th>Brick Type</th>
-                    <th>Stage</th>
-                    <th>Input Qty</th>
-                    <th>Good Qty</th>
-                    <th>Damaged Qty</th>
-                  </tr>
-                </thead>
-                <tbody>
+                <TableHeader className="bg-slate-950/60">
+                  <TableRow className="border-slate-800 hover:bg-transparent">
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Date</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Batch</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Brick Type</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Stage</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Input Qty</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Good Qty</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Damaged Qty</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {data.map((r, i) => (
-                    <tr key={i}>
-                      <td>{r.transition_date}</td>
-                      <td><strong>{r.batch_number}</strong></td>
-                      <td>{r.brick_type_name}</td>
-                      <td>{r.from_stage} &rarr; {r.to_stage}</td>
-                      <td>{r.input_quantity.toLocaleString()}</td>
-                      <td>{r.output_good_quantity.toLocaleString()}</td>
-                      <td style={{ color: 'var(--accent-rose)', fontWeight: 700 }}>{r.damaged_quantity.toLocaleString()}</td>
-                    </tr>
+                    <TableRow key={i} className="border-slate-800 hover:bg-slate-800/40">
+                      <TableCell className="text-xs text-slate-400">{r.transition_date}</TableCell>
+                      <TableCell className="font-bold text-slate-100 text-xs sm:text-sm">{r.batch_number}</TableCell>
+                      <TableCell className="text-slate-200 font-medium text-xs sm:text-sm">{r.brick_type_name}</TableCell>
+                      <TableCell className="text-slate-300 text-xs">{r.from_stage} &rarr; {r.to_stage}</TableCell>
+                      <TableCell className="text-xs text-slate-300">{r.input_quantity?.toLocaleString()}</TableCell>
+                      <TableCell className="text-xs text-emerald-400 font-medium">{r.output_good_quantity?.toLocaleString()}</TableCell>
+                      <TableCell className="text-xs text-rose-400 font-bold">{r.damaged_quantity?.toLocaleString()}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
+                </TableBody>
               </>
             )}
 
             {reportType === 'stock-movement' && (
               <>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Transaction</th>
-                    <th>Type & Grade</th>
-                    <th>Qty Change</th>
-                    <th>Balance After</th>
-                    <th>Reason</th>
-                  </tr>
-                </thead>
-                <tbody>
+                <TableHeader className="bg-slate-950/60">
+                  <TableRow className="border-slate-800 hover:bg-transparent">
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Date</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Transaction</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Type & Grade</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Qty Change</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Balance After</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Reason</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {data.map((r, i) => (
-                    <tr key={i}>
-                      <td>{r.transaction_date}</td>
-                      <td><span className="badge badge-blue">{r.transaction_type}</span></td>
-                      <td>{r.brick_type_name} ({r.brick_grade_name || '-'})</td>
-                      <td style={{ color: r.quantity_change >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)', fontWeight: 700 }}>
-                        {r.quantity_change > 0 ? `+${r.quantity_change.toLocaleString()}` : r.quantity_change.toLocaleString()}
-                      </td>
-                      <td>{r.balance_after.toLocaleString()}</td>
-                      <td>{r.reason}</td>
-                    </tr>
+                    <TableRow key={i} className="border-slate-800 hover:bg-slate-800/40">
+                      <TableCell className="text-xs text-slate-400">{r.transaction_date}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="border-blue-500/40 text-blue-400 bg-blue-500/10 text-[10px] font-bold">
+                          {r.transaction_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-slate-300 text-xs">{r.brick_type_name} ({r.brick_grade_name || '-'})</TableCell>
+                      <TableCell className={`font-bold text-xs sm:text-sm ${r.quantity_change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {r.quantity_change > 0 ? `+${r.quantity_change?.toLocaleString()}` : r.quantity_change?.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-xs text-slate-200 font-semibold">{r.balance_after?.toLocaleString()}</TableCell>
+                      <TableCell className="text-xs text-slate-400">{r.reason}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
+                </TableBody>
               </>
             )}
 
             {reportType === 'weekly-payments' && (
               <>
-                <thead>
-                  <tr>
-                    <th>Settlement #</th>
-                    <th>Worker</th>
-                    <th>Period</th>
-                    <th>Total Bricks</th>
-                    <th>Gross Wages</th>
-                    <th>Remaining Due</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
+                <TableHeader className="bg-slate-950/60">
+                  <TableRow className="border-slate-800 hover:bg-transparent">
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Settlement #</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Worker</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Period</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Total Bricks</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Gross Wages</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Remaining Due</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {data.map((r, i) => (
-                    <tr key={i}>
-                      <td><strong>{r.settlement_number}</strong></td>
-                      <td>{r.worker_name}</td>
-                      <td>{r.period_start_date} to {r.period_end_date}</td>
-                      <td>{r.total_bricks.toLocaleString()}</td>
-                      <td>{formatINR(r.gross_amount_paise)}</td>
-                      <td><strong style={{ color: 'var(--accent-rose)' }}>{formatINR(r.remaining_due_paise)}</strong></td>
-                      <td><span className="badge badge-emerald">{r.status}</span></td>
-                    </tr>
+                    <TableRow key={i} className="border-slate-800 hover:bg-slate-800/40">
+                      <TableCell className="font-bold text-slate-100 text-xs sm:text-sm">{r.settlement_number}</TableCell>
+                      <TableCell className="text-slate-200 font-medium text-xs sm:text-sm">{r.worker_name}</TableCell>
+                      <TableCell className="text-xs text-slate-400">{r.period_start_date} to {r.period_end_date}</TableCell>
+                      <TableCell className="text-xs text-slate-300">{r.total_bricks?.toLocaleString()}</TableCell>
+                      <TableCell className="text-xs font-semibold text-slate-200">{formatINR(r.gross_amount_paise)}</TableCell>
+                      <TableCell className="font-bold text-rose-400 text-xs sm:text-sm">{formatINR(r.remaining_due_paise)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="border-emerald-500/40 text-emerald-400 bg-emerald-500/10 text-[10px] font-bold">
+                          {r.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
+                </TableBody>
               </>
             )}
 
             {reportType === 'material-consumption' && (
               <>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Material</th>
-                    <th>Quantity</th>
-                    <th>Batch</th>
-                    <th>Total Cost</th>
-                  </tr>
-                </thead>
-                <tbody>
+                <TableHeader className="bg-slate-950/60">
+                  <TableRow className="border-slate-800 hover:bg-transparent">
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Date</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Material</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Quantity</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Batch</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Total Cost</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {data.map((r, i) => (
-                    <tr key={i}>
-                      <td>{r.consumption_date}</td>
-                      <td>{r.material_name}</td>
-                      <td>{r.quantity} {r.unit_code}</td>
-                      <td>{r.batch_number || 'General Overhead'}</td>
-                      <td><strong>{formatINR(r.cost_paise)}</strong></td>
-                    </tr>
+                    <TableRow key={i} className="border-slate-800 hover:bg-slate-800/40">
+                      <TableCell className="text-xs text-slate-400">{r.consumption_date}</TableCell>
+                      <TableCell className="text-slate-200 font-medium text-xs sm:text-sm">{r.material_name}</TableCell>
+                      <TableCell className="text-xs text-slate-300">{r.quantity} {r.unit_code}</TableCell>
+                      <TableCell className="text-xs text-slate-400">{r.batch_number || 'General Overhead'}</TableCell>
+                      <TableCell className="font-bold text-white text-xs sm:text-sm">{formatINR(r.cost_paise)}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
+                </TableBody>
               </>
             )}
 
             {reportType === 'party-ledgers' && (
               <>
-                <thead>
-                  <tr>
-                    <th>Entry Date</th>
-                    <th>Record Type</th>
-                    <th>Description</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
+                <TableHeader className="bg-slate-950/60">
+                  <TableRow className="border-slate-800 hover:bg-transparent">
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Entry Date</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Record Type</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Description</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Amount</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {data.map((r, i) => (
-                    <tr key={i}>
-                      <td>{r.entry_date}</td>
-                      <td><span className={`badge ${r.record_type === 'PAYMENT' ? 'badge-emerald' : 'badge-amber'}`}>{r.record_type}</span></td>
-                      <td>{r.description}</td>
-                      <td><strong>{formatINR(r.amount_paise)}</strong></td>
-                      <td>{r.status}</td>
-                    </tr>
+                    <TableRow key={i} className="border-slate-800 hover:bg-slate-800/40">
+                      <TableCell className="text-xs text-slate-400">{r.entry_date}</TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant="outline" 
+                          className={`${r.record_type === 'PAYMENT' ? 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10' : 'border-amber-500/40 text-amber-400 bg-amber-500/10'} text-[10px] font-bold`}
+                        >
+                          {r.record_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-slate-300">{r.description}</TableCell>
+                      <TableCell className="font-bold text-white text-xs sm:text-sm">{formatINR(r.amount_paise)}</TableCell>
+                      <TableCell className="text-xs text-slate-400">{r.status}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
+                </TableBody>
               </>
             )}
 
             {reportType === 'transport-cost' && (
               <>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Vehicle</th>
-                    <th>Driver</th>
-                    <th>Route</th>
-                    <th>Distance</th>
-                    <th>Cost</th>
-                  </tr>
-                </thead>
-                <tbody>
+                <TableHeader className="bg-slate-950/60">
+                  <TableRow className="border-slate-800 hover:bg-transparent">
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Date</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Vehicle</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Driver</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Route</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Distance</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Cost</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {data.map((r, i) => (
-                    <tr key={i}>
-                      <td>{r.trip_date}</td>
-                      <td><strong>{r.registration_number}</strong></td>
-                      <td>{r.driver_name || '-'}</td>
-                      <td>{r.origin || 'Yard'} &rarr; {r.destination || 'Site'}</td>
-                      <td>{r.distance_km ? `${r.distance_km} KM` : '-'}</td>
-                      <td><strong>{formatINR(r.cost_paise)}</strong></td>
-                    </tr>
+                    <TableRow key={i} className="border-slate-800 hover:bg-slate-800/40">
+                      <TableCell className="text-xs text-slate-400">{r.trip_date}</TableCell>
+                      <TableCell className="font-bold text-slate-100 text-xs sm:text-sm">{r.registration_number}</TableCell>
+                      <TableCell className="text-xs text-slate-300">{r.driver_name || '-'}</TableCell>
+                      <TableCell className="text-xs text-slate-300">{r.origin || 'Yard'} &rarr; {r.destination || 'Site'}</TableCell>
+                      <TableCell className="text-xs text-slate-400">{r.distance_km ? `${r.distance_km} KM` : '-'}</TableCell>
+                      <TableCell className="font-bold text-white text-xs sm:text-sm">{formatINR(r.cost_paise)}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
+                </TableBody>
               </>
             )}
 
             {reportType === 'batch-costing' && (
               <>
-                <thead>
-                  <tr>
-                    <th>Batch #</th>
-                    <th>Brick Type</th>
-                    <th>Good Bricks</th>
-                    <th>Moulding Cost</th>
-                    <th>Material Cost</th>
-                    <th>Total Cost</th>
-                    <th>Cost / 1,000 Bricks</th>
-                  </tr>
-                </thead>
-                <tbody>
+                <TableHeader className="bg-slate-950/60">
+                  <TableRow className="border-slate-800 hover:bg-transparent">
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Batch #</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Brick Type</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Good Bricks</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Moulding Cost</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Material Cost</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Total Cost</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Cost / 1,000 Bricks</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {data.map((r, i) => (
-                    <tr key={i}>
-                      <td><strong>{r.batch_number}</strong></td>
-                      <td>{r.brick_type_name}</td>
-                      <td>{r.fired_good_quantity.toLocaleString()}</td>
-                      <td>{formatINR(r.moulding_cost_paise)}</td>
-                      <td>{formatINR(r.material_cost_paise)}</td>
-                      <td><strong>{formatINR(r.total_cost_paise)}</strong></td>
-                      <td><strong style={{ color: 'var(--accent-emerald)' }}>{r.cost_per_1000_paise ? formatINR(r.cost_per_1000_paise) : 'N/A'}</strong></td>
-                    </tr>
+                    <TableRow key={i} className="border-slate-800 hover:bg-slate-800/40">
+                      <TableCell className="font-bold text-slate-100 text-xs sm:text-sm">{r.batch_number}</TableCell>
+                      <TableCell className="text-slate-200 font-medium text-xs sm:text-sm">{r.brick_type_name}</TableCell>
+                      <TableCell className="text-xs text-slate-300">{r.fired_good_quantity?.toLocaleString()}</TableCell>
+                      <TableCell className="text-xs text-slate-300">{formatINR(r.moulding_cost_paise)}</TableCell>
+                      <TableCell className="text-xs text-slate-300">{formatINR(r.material_cost_paise)}</TableCell>
+                      <TableCell className="font-bold text-white text-xs sm:text-sm">{formatINR(r.total_cost_paise)}</TableCell>
+                      <TableCell className="font-extrabold text-emerald-400 text-xs sm:text-sm">{r.cost_per_1000_paise ? formatINR(r.cost_per_1000_paise) : 'N/A'}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
+                </TableBody>
               </>
             )}
-          </table>
+          </Table>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

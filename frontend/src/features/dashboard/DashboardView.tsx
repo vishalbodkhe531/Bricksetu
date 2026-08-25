@@ -1,10 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Flame, Layers, ShoppingCart, TrendingUp, AlertTriangle, 
-  ArrowUpRight, ArrowDownRight, Wallet, Users, Plus, Package 
+  LayoutDashboard, Plus, Flame, Layers, Users, ShoppingCart, 
+  Wallet, Truck, Package, ArrowRight, TrendingUp, AlertTriangle 
 } from 'lucide-react';
 import { apiRequest } from '../../shared/api/client';
 import { formatINR } from '../../shared/utils/formatters';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { PageHeader } from '../../shared/components/PageHeader';
 
 interface DashboardViewProps {
   onOpenQuickEntry: () => void;
@@ -12,38 +24,17 @@ interface DashboardViewProps {
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, onNavigate }) => {
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [stockSummary, setStockSummary] = useState<any[]>([]);
-  const [materials, setMaterials] = useState<any[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [workers, setWorkers] = useState<any[]>([]);
-  const [profitData, setProfitData] = useState<any>(null);
-  const [batches, setBatches] = useState<any[]>([]);
 
   useEffect(() => {
     loadDashboardData();
   }, []);
 
   async function loadDashboardData() {
-    setLoading(true);
     try {
-      const [stk, mat, cust, supp, wrk, prof, btc] = await Promise.all([
-        apiRequest('/stock/summary'),
-        apiRequest('/materials'),
-        apiRequest('/customers'),
-        apiRequest('/suppliers'),
-        apiRequest('/workers'),
-        apiRequest('/reports/operating-profit'),
-        apiRequest('/batches'),
-      ]);
-      setStockSummary(stk);
-      setMaterials(mat);
-      setCustomers(cust);
-      setSuppliers(supp);
-      setWorkers(wrk);
-      setProfitData(prof);
-      setBatches(btc);
+      const res = await apiRequest('/dashboard/summary');
+      setData(res);
     } catch (err: any) {
       console.error(err);
     } finally {
@@ -51,161 +42,195 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, 
     }
   }
 
-  // Calculate Aggregates
-  const totalFinishedBricks = stockSummary.reduce((acc, r) => acc + parseInt(r.total_available_quantity, 10), 0);
-  const totalReceivablesPaise = customers.reduce((acc, c) => acc + BigInt(c.receivable_balance_paise), 0n);
-  const totalPayablesPaise = suppliers.reduce((acc, s) => acc + BigInt(s.payable_balance_paise), 0n);
-  const lowStockMaterials = materials.filter(m => parseFloat(m.current_stock) <= parseFloat(m.reorder_level));
-  const activeBatches = batches.filter(b => b.status === 'IN_PROGRESS');
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px] text-orange-500 font-bold text-sm">
+        Loading Kiln Operational Metrics...
+      </div>
+    );
+  }
 
   return (
-    <div>
-      {/* Header & Quick Action Button */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Kiln Operational Dashboard</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Real-time production, stock, ledgers, and profit summary</p>
-        </div>
-        <button className="btn btn-primary" onClick={onOpenQuickEntry}>
-          <Plus size={18} /> Quick Daily Entry
-        </button>
-      </div>
+    <div className="space-y-6">
+      {/* Page Header */}
+      <PageHeader
+        title="Kiln Operations Dashboard"
+        description="Live summary metrics, batch firing status, receivables, finished stock, and quick actions"
+        icon={<LayoutDashboard className="size-5 sm:size-6" />}
+        actions={
+          <Button 
+            onClick={onOpenQuickEntry}
+            className="bg-orange-500 hover:bg-orange-600 text-white font-bold gap-2 h-10 px-4 shadow-lg shadow-orange-500/20 text-xs sm:text-sm"
+          >
+            <Plus className="size-4" /> Quick Daily Entry
+          </Button>
+        }
+      />
 
-      {/* Low Stock Alerts Banner */}
-      {lowStockMaterials.length > 0 && (
-        <div style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 'var(--radius-md)', padding: '14px 18px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <AlertTriangle size={20} color="var(--accent-amber)" />
-          <div style={{ flex: 1 }}>
-            <strong style={{ color: '#fbbf24', fontSize: '0.9rem' }}>Low Material Stock Warning!</strong>
-            <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
-              {lowStockMaterials.map(m => `${m.name} (${m.current_stock} ${m.unit_code} remaining)`).join(', ')}
-            </p>
-          </div>
-          <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('materials')}>View Materials</button>
-        </div>
-      )}
-
-      {/* Key Metric Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '28px' }}>
-        
-        {/* Finished Brick Stock */}
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Finished Stock</span>
-            <div style={{ padding: '8px', borderRadius: '10px', background: 'rgba(249,115,22,0.15)', color: 'var(--accent-orange)' }}>
-              <Layers size={20} />
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        {/* Active Batches */}
+        <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-5 hover:border-slate-700 transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Active Batches</span>
+            <div className="size-9 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center border border-orange-500/20">
+              <Flame className="size-4.5" />
             </div>
           </div>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: '8px 0 4px' }}>{totalFinishedBricks.toLocaleString()}</h2>
-          <span style={{ fontSize: '0.75rem', color: 'var(--accent-emerald)', fontWeight: 600 }}>Good Finished Bricks</span>
-        </div>
+          <div className="mt-3 flex items-baseline justify-between">
+            <span className="text-2xl sm:text-3xl font-extrabold text-white">{data?.active_batches || 0}</span>
+            <Badge variant="outline" className="border-orange-500/40 text-orange-400 bg-orange-500/10 text-[10px] font-bold">
+              In Production
+            </Badge>
+          </div>
+          <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+            <TrendingUp className="size-3 text-emerald-400" /> Active kiln rounds
+          </p>
+        </Card>
 
-        {/* Sales Revenue */}
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Sales Revenue</span>
-            <div style={{ padding: '8px', borderRadius: '10px', background: 'rgba(16,185,129,0.15)', color: 'var(--accent-emerald)' }}>
-              <ShoppingCart size={20} />
+        {/* Finished Ready Bricks */}
+        <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-5 hover:border-slate-700 transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Finished Stock</span>
+            <div className="size-9 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+              <Layers className="size-4.5" />
             </div>
           </div>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: '8px 0 4px' }}>{formatINR(profitData?.total_sales_revenue_paise)}</h2>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Gross Revenue</span>
-        </div>
+          <div className="mt-3 flex items-baseline justify-between">
+            <span className="text-2xl sm:text-3xl font-extrabold text-white">
+              {(data?.finished_stock_total || 0).toLocaleString()}
+            </span>
+            <span className="text-xs text-slate-400 font-semibold">Bricks</span>
+          </div>
+          <p className="text-xs text-slate-400 mt-2">Available for customer dispatch</p>
+        </Card>
 
         {/* Customer Receivables */}
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Receivables</span>
-            <div style={{ padding: '8px', borderRadius: '10px', background: 'rgba(59,130,246,0.15)', color: 'var(--accent-blue)' }}>
-              <ArrowUpRight size={20} />
+        <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-5 hover:border-slate-700 transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Customer Receivables</span>
+            <div className="size-9 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
+              <ShoppingCart className="size-4.5" />
             </div>
           </div>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: '8px 0 4px' }}>{formatINR(totalReceivablesPaise.toString())}</h2>
-          <span style={{ fontSize: '0.75rem', color: 'var(--accent-blue)', fontWeight: 600 }}>Due from Customers</span>
-        </div>
+          <div className="mt-3 flex items-baseline justify-between">
+            <span className="text-2xl sm:text-3xl font-extrabold text-blue-400">
+              {formatINR(data?.customer_receivables_paise || 0)}
+            </span>
+          </div>
+          <p className="text-xs text-slate-400 mt-2">Pending customer collections</p>
+        </Card>
 
         {/* Supplier Payables */}
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Supplier Payables</span>
-            <div style={{ padding: '8px', borderRadius: '10px', background: 'rgba(244,63,94,0.15)', color: 'var(--accent-rose)' }}>
-              <ArrowDownRight size={20} />
+        <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-5 hover:border-slate-700 transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Supplier Payables</span>
+            <div className="size-9 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20">
+              <Wallet className="size-4.5" />
             </div>
           </div>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: '8px 0 4px' }}>{formatINR(totalPayablesPaise.toString())}</h2>
-          <span style={{ fontSize: '0.75rem', color: 'var(--accent-rose)', fontWeight: 600 }}>Material Payables</span>
-        </div>
-
-        {/* Operating Profit */}
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Operating Profit</span>
-            <div style={{ padding: '8px', borderRadius: '10px', background: 'rgba(139,92,246,0.15)', color: 'var(--accent-purple)' }}>
-              <TrendingUp size={20} />
-            </div>
+          <div className="mt-3 flex items-baseline justify-between">
+            <span className="text-2xl sm:text-3xl font-extrabold text-rose-400">
+              {formatINR(data?.supplier_payables_paise || 0)}
+            </span>
           </div>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: '8px 0 4px' }}>{formatINR(profitData?.operating_profit_paise)}</h2>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Revenue - COGS - Expenses</span>
-        </div>
-
+          <p className="text-xs text-slate-400 mt-2">Outstanding vendor dues</p>
+        </Card>
       </div>
 
-      {/* Secondary Dashboard Content Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-        
-        {/* Active Production Batches */}
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Active Production Batches</h3>
-            <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('production')}>View All</button>
-          </div>
-          {activeBatches.length === 0 ? (
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>No active batches in progress.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {activeBatches.map(b => (
-                <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)' }}>
-                  <div>
-                    <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>{b.batch_number}</strong>
-                    <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>{b.brick_type_name}</p>
-                  </div>
-                  <span className={`badge ${b.stage === 'MOULDING' ? 'badge-amber' : b.stage === 'DRYING' ? 'badge-blue' : 'badge-purple'}`}>
-                    {b.stage}
-                  </span>
-                </div>
-              ))}
+      {/* Production & Sales Quick Nav Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
+        {/* Finished Stock Table Card */}
+        <Card className="lg:col-span-2 bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-base font-bold text-white">Finished Stock Ledger</h3>
+              <p className="text-xs text-slate-400">Current quantities ready in yard by grade</p>
             </div>
-          )}
-        </div>
-
-        {/* Finished Stock Grade Breakdown */}
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Stock by Grade & Type</h3>
-            <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('inventory')}>Ledger</button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => onNavigate('inventory')} 
+              className="text-xs border-slate-700 text-slate-300 hover:bg-slate-800 gap-1.5 h-8"
+            >
+              View Full Stock <ArrowRight className="size-3.5" />
+            </Button>
           </div>
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Brick Type</th>
-                  <th>Grade</th>
-                  <th>Stock</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stockSummary.map((s, idx) => (
-                  <tr key={idx}>
-                    <td>{s.brick_type_name}</td>
-                    <td><span className="badge badge-emerald">{s.brick_grade_name}</span></td>
-                    <td><strong>{parseInt(s.total_available_quantity, 10).toLocaleString()}</strong></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
 
+          <div className="rounded-lg border border-slate-800 overflow-hidden">
+            <Table>
+              <TableHeader className="bg-slate-950/60">
+                <TableRow className="border-slate-800 hover:bg-transparent">
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Brick Type</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Grade</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px] text-right">Available Qty</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data?.stock_breakdown?.length > 0 ? (
+                  data.stock_breakdown.map((item: any, idx: number) => (
+                    <TableRow key={idx} className="border-slate-800 hover:bg-slate-800/40">
+                      <TableCell className="font-semibold text-slate-100 text-xs sm:text-sm">{item.brick_type_name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="border-amber-500/40 text-amber-400 bg-amber-500/10 text-[10px] font-bold">
+                          {item.brick_grade_name}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-extrabold text-emerald-400 text-xs sm:text-sm">
+                        {item.quantity.toLocaleString()} bricks
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow className="border-slate-800">
+                    <TableCell colSpan={3} className="text-center text-slate-500 text-xs py-6">
+                      No stock lots recorded yet. Use Quick Entry to log initial stock.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+
+        {/* Operational Modules Shortcut Card */}
+        <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-5 flex flex-col justify-between">
+          <div>
+            <h3 className="text-base font-bold text-white mb-1">Quick Operational Modules</h3>
+            <p className="text-xs text-slate-400 mb-4">Direct access to daily workflow entry views</p>
+
+            <div className="space-y-2.5">
+              {[
+                { label: 'Batches & Production', tab: 'production', icon: Flame, desc: 'Moulding, Drying, Loading, Firing, Unloading' },
+                { label: 'Workers & Settlements', tab: 'workers', icon: Users, desc: 'Paji weekly wages & piece-rate logs' },
+                { label: 'Materials & Suppliers', tab: 'materials', icon: Package, desc: 'Coal, Soil, Fuel, & Vendor ledger' },
+                { label: 'Customers & Sales', tab: 'sales', icon: ShoppingCart, desc: 'Brick dispatch register & receivables' },
+                { label: 'Payments & Expenses', tab: 'payments', icon: Wallet, desc: 'Money transfers & overhead logging' },
+              ].map((m) => {
+                const Icon = m.icon;
+                return (
+                  <Button
+                    key={m.tab}
+                    variant="outline"
+                    onClick={() => onNavigate(m.tab)}
+                    className="w-full justify-between border-slate-800 bg-slate-950/40 hover:bg-slate-800/80 hover:border-slate-700 text-left p-3 h-auto"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="size-8 rounded-md bg-orange-500/10 text-orange-400 flex items-center justify-center shrink-0">
+                        <Icon className="size-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-100 block">{m.label}</span>
+                        <span className="text-[11px] text-slate-400 block font-normal">{m.desc}</span>
+                      </div>
+                    </div>
+                    <ArrowRight className="size-4 text-slate-500 shrink-0" />
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        </Card>
       </div>
     </div>
   );

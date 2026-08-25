@@ -1,7 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Plus, AlertTriangle, Truck } from 'lucide-react';
+import { Package, Plus, Truck, ShoppingBag } from 'lucide-react';
 import { apiRequest } from '../../shared/api/client';
 import { formatINR } from '../../shared/utils/formatters';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { PageHeader } from '../../shared/components/PageHeader';
 
 export const MaterialsView: React.FC = () => {
   const [materials, setMaterials] = useState<any[]>([]);
@@ -9,7 +29,7 @@ export const MaterialsView: React.FC = () => {
   const [purchases, setPurchases] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'materials' | 'suppliers' | 'purchases'>('materials');
 
-  const [isNewSupplierOpen, setIsNewSupplierOpen] = useState(false);
+  const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const [supplierForm, setSupplierForm] = useState<any>({});
 
   useEffect(() => {
@@ -21,7 +41,7 @@ export const MaterialsView: React.FC = () => {
       const [m, s, p] = await Promise.all([
         apiRequest('/materials'),
         apiRequest('/suppliers'),
-        apiRequest('/purchases'),
+        apiRequest('/materials/purchases'),
       ]);
       setMaterials(m);
       setSuppliers(s);
@@ -38,7 +58,8 @@ export const MaterialsView: React.FC = () => {
         method: 'POST',
         body: JSON.stringify(supplierForm),
       });
-      setIsNewSupplierOpen(false);
+      setIsAddSupplierOpen(false);
+      setSupplierForm({});
       loadMaterialsData();
     } catch (err: any) {
       alert(err.message);
@@ -46,171 +67,173 @@ export const MaterialsView: React.FC = () => {
   };
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Materials & Suppliers</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Raw materials inventory (coal, soil, wood), suppliers, and FIFO purchase lots</p>
-        </div>
-        <button className="btn btn-secondary" onClick={() => setIsNewSupplierOpen(true)}>
-          <Plus size={18} /> Add Supplier
-        </button>
-      </div>
+    <div className="space-y-6">
+      {/* Page Header */}
+      <PageHeader
+        title="Raw Materials & Supplier Procurement"
+        description="Coal, soil, sawdust, and firewood inventory, supplier accounts, and purchase logs"
+        icon={<Package className="size-5 sm:size-6" />}
+        actions={
+          <Button 
+            onClick={() => setIsAddSupplierOpen(true)}
+            className="bg-orange-500 hover:bg-orange-600 text-white font-bold gap-2 h-10 px-4 shadow-lg shadow-orange-500/20 text-xs sm:text-sm"
+          >
+            <Plus className="size-4" /> Add Supplier
+          </Button>
+        }
+      />
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-        <button className={`btn ${activeTab === 'materials' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setActiveTab('materials')}>
-          <Package size={14} /> Raw Materials Catalogue ({materials.length})
-        </button>
-        <button className={`btn ${activeTab === 'suppliers' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setActiveTab('suppliers')}>
-          <Truck size={14} /> Suppliers ({suppliers.length})
-        </button>
-        <button className={`btn ${activeTab === 'purchases' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setActiveTab('purchases')}>
-          Purchase Log ({purchases.length})
-        </button>
+      <div className="flex items-center gap-2">
+        <Button 
+          size="sm"
+          variant={activeTab === 'materials' ? "default" : "outline"}
+          onClick={() => setActiveTab('materials')}
+          className={`gap-1.5 font-semibold text-xs h-9 ${
+            activeTab === 'materials' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-slate-700 text-slate-300 hover:bg-slate-800'
+          }`}
+        >
+          <Package className="size-3.5" /> Materials Stock ({materials.length})
+        </Button>
+        <Button 
+          size="sm"
+          variant={activeTab === 'suppliers' ? "default" : "outline"}
+          onClick={() => setActiveTab('suppliers')}
+          className={`gap-1.5 font-semibold text-xs h-9 ${
+            activeTab === 'suppliers' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-slate-700 text-slate-300 hover:bg-slate-800'
+          }`}
+        >
+          <Truck className="size-3.5" /> Suppliers ({suppliers.length})
+        </Button>
+        <Button 
+          size="sm"
+          variant={activeTab === 'purchases' ? "default" : "outline"}
+          onClick={() => setActiveTab('purchases')}
+          className={`gap-1.5 font-semibold text-xs h-9 ${
+            activeTab === 'purchases' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-slate-700 text-slate-300 hover:bg-slate-800'
+          }`}
+        >
+          <ShoppingBag className="size-3.5" /> Purchase Log ({purchases.length})
+        </Button>
       </div>
 
       {activeTab === 'materials' && (
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Material Name</th>
-                  <th>Unit</th>
-                  <th>Current Stock</th>
-                  <th>Reorder Level</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {materials.map((m) => {
-                  const isLow = parseFloat(m.current_stock) <= parseFloat(m.reorder_level);
-                  return (
-                    <tr key={m.id}>
-                      <td><strong>{m.code}</strong></td>
-                      <td>{m.name}</td>
-                      <td>{m.unit_code}</td>
-                      <td><strong style={{ color: isLow ? 'var(--accent-rose)' : 'var(--accent-emerald)' }}>{m.current_stock}</strong></td>
-                      <td>{m.reorder_level}</td>
-                      <td>
-                        {isLow ? (
-                          <span className="badge badge-rose"><AlertTriangle size={12} /> LOW STOCK</span>
-                        ) : (
-                          <span className="badge badge-emerald">HEALTHY</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-5">
+          <div className="rounded-lg border border-slate-800 overflow-hidden">
+            <Table>
+              <TableHeader className="bg-slate-950/60">
+                <TableRow className="border-slate-800 hover:bg-transparent">
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Material Name</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Unit</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Current Stock</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Reorder Threshold</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {materials.map((m) => (
+                  <TableRow key={m.id} className="border-slate-800 hover:bg-slate-800/40">
+                    <TableCell className="font-bold text-slate-100 text-xs sm:text-sm">{m.name}</TableCell>
+                    <TableCell className="text-slate-300 text-xs font-semibold">{m.unit_code}</TableCell>
+                    <TableCell className="font-extrabold text-emerald-400 text-xs sm:text-sm">{m.current_stock?.toLocaleString()} {m.unit_code}</TableCell>
+                    <TableCell className="text-xs text-slate-400">{m.reorder_threshold ? `${m.reorder_threshold} ${m.unit_code}` : '-'}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="border-emerald-500/40 text-emerald-400 bg-emerald-500/10 text-[10px] font-bold">
+                        NORMAL
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
-        </div>
+        </Card>
       )}
 
       {activeTab === 'suppliers' && (
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Supplier Name</th>
-                  <th>Contact Person</th>
-                  <th>Phone</th>
-                  <th>Payable Balance</th>
-                </tr>
-              </thead>
-              <tbody>
+        <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-5">
+          <div className="rounded-lg border border-slate-800 overflow-hidden">
+            <Table>
+              <TableHeader className="bg-slate-950/60">
+                <TableRow className="border-slate-800 hover:bg-transparent">
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Supplier Code</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Supplier Name</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Phone</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Outstanding Payables</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {suppliers.map((s) => (
-                  <tr key={s.id}>
-                    <td><strong>{s.code}</strong></td>
-                    <td>{s.name}</td>
-                    <td>{s.contact_person || '-'}</td>
-                    <td>{s.phone || '-'}</td>
-                    <td><strong style={{ color: 'var(--accent-rose)' }}>{formatINR(s.payable_balance_paise)}</strong></td>
-                  </tr>
+                  <TableRow key={s.id} className="border-slate-800 hover:bg-slate-800/40">
+                    <TableCell className="font-bold text-slate-100 text-xs sm:text-sm">{s.code}</TableCell>
+                    <TableCell className="text-slate-200 font-medium text-xs sm:text-sm">{s.name}</TableCell>
+                    <TableCell className="text-xs text-slate-400">{s.phone || '-'}</TableCell>
+                    <TableCell className="font-bold text-rose-400 text-xs sm:text-sm">{formatINR(s.payable_balance_paise)}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
-        </div>
+        </Card>
       )}
 
       {activeTab === 'purchases' && (
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Purchase #</th>
-                  <th>Date</th>
-                  <th>Supplier</th>
-                  <th>Material</th>
-                  <th>Quantity</th>
-                  <th>Unit Price</th>
-                  <th>Total Amount</th>
-                  <th>Payment Status</th>
-                </tr>
-              </thead>
-              <tbody>
+        <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-5">
+          <div className="rounded-lg border border-slate-800 overflow-hidden">
+            <Table>
+              <TableHeader className="bg-slate-950/60">
+                <TableRow className="border-slate-800 hover:bg-transparent">
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Purchase #</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Date</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Supplier</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Material</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Quantity</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Total Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {purchases.map((p) => (
-                  <tr key={p.id}>
-                    <td><strong>{p.purchase_number}</strong></td>
-                    <td>{p.purchase_date}</td>
-                    <td>{p.supplier_name}</td>
-                    <td>{p.material_name}</td>
-                    <td>{p.quantity} {p.unit_code}</td>
-                    <td>{formatINR(p.unit_price_paise)}</td>
-                    <td><strong>{formatINR(p.total_amount_paise)}</strong></td>
-                    <td>
-                      <span className={`badge ${p.payment_status === 'PAID' ? 'badge-emerald' : p.payment_status === 'PARTIALLY_PAID' ? 'badge-blue' : 'badge-amber'}`}>
-                        {p.payment_status}
-                      </span>
-                    </td>
-                  </tr>
+                  <TableRow key={p.id} className="border-slate-800 hover:bg-slate-800/40">
+                    <TableCell className="font-bold text-slate-100 text-xs sm:text-sm">{p.purchase_number}</TableCell>
+                    <TableCell className="text-xs text-slate-400">{p.purchase_date}</TableCell>
+                    <TableCell className="text-slate-200 font-medium text-xs sm:text-sm">{p.supplier_name}</TableCell>
+                    <TableCell className="text-slate-300 text-xs">{p.material_name}</TableCell>
+                    <TableCell className="text-xs text-slate-300 font-semibold">{p.quantity} {p.unit_code}</TableCell>
+                    <TableCell className="font-bold text-white text-xs sm:text-sm">{formatINR(p.total_amount_paise)}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Add Supplier Modal */}
-      {isNewSupplierOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '16px' }}>Add Supplier Profile</h3>
-            <form onSubmit={handleCreateSupplier}>
-              <div className="form-group">
-                <label className="form-label">Supplier Code</label>
-                <input type="text" className="form-input" placeholder="e.g. SUP-003" value={supplierForm.code || ''} onChange={e => setSupplierForm({ ...supplierForm, code: e.target.value })} required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Supplier Name</label>
-                <input type="text" className="form-input" placeholder="e.g. Bharat Coal Traders" value={supplierForm.name || ''} onChange={e => setSupplierForm({ ...supplierForm, name: e.target.value })} required />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div className="form-group">
-                  <label className="form-label">Contact Person</label>
-                  <input type="text" className="form-input" value={supplierForm.contact_person || ''} onChange={e => setSupplierForm({ ...supplierForm, contact_person: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Phone</label>
-                  <input type="text" className="form-input" value={supplierForm.phone || ''} onChange={e => setSupplierForm({ ...supplierForm, phone: e.target.value })} />
-                </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setIsNewSupplierOpen(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Save Supplier</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <Dialog open={isAddSupplierOpen} onOpenChange={setIsAddSupplierOpen}>
+        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-white">Add Supplier</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateSupplier} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-slate-400">Supplier Code</Label>
+              <Input placeholder="e.g. SUPP-001" value={supplierForm.code || ''} onChange={e => setSupplierForm({ ...supplierForm, code: e.target.value })} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-slate-400">Supplier Name</Label>
+              <Input placeholder="e.g. Bharat Coal Traders" value={supplierForm.name || ''} onChange={e => setSupplierForm({ ...supplierForm, name: e.target.value })} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-slate-400">Phone</Label>
+              <Input placeholder="e.g. +91 9876543210" value={supplierForm.phone || ''} onChange={e => setSupplierForm({ ...supplierForm, phone: e.target.value })} />
+            </div>
+            <div className="flex justify-end gap-2.5 pt-2">
+              <Button type="button" variant="outline" onClick={() => setIsAddSupplierOpen(false)} className="border-slate-700 hover:bg-slate-800">Cancel</Button>
+              <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white font-bold">Save Supplier</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

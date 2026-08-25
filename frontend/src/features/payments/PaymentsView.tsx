@@ -1,7 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Wallet, DollarSign, ArrowUpRight, ArrowDownRight, Layers } from 'lucide-react';
+import { Wallet, DollarSign, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { apiRequest } from '../../shared/api/client';
 import { formatINR } from '../../shared/utils/formatters';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { PageHeader } from '../../shared/components/PageHeader';
 
 export const PaymentsView: React.FC = () => {
   const [payments, setPayments] = useState<any[]>([]);
@@ -71,147 +90,174 @@ export const PaymentsView: React.FC = () => {
   };
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Payments & Operating Expenses</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Incoming/outgoing money transfers, charge allocations, and expense logging</p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      {/* Page Header */}
+      <PageHeader
+        title="Payments & Operating Expenses"
+        description="Incoming/outgoing money transfers, charge allocations, and expense logging"
+        icon={<Wallet className="size-5 sm:size-6" />}
+      />
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-        <button className={`btn ${activeTab === 'payments' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setActiveTab('payments')}>
-          <Wallet size={14} /> Payments Register ({payments.length})
-        </button>
-        <button className={`btn ${activeTab === 'expenses' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setActiveTab('expenses')}>
-          <DollarSign size={14} /> Operating Expenses ({expenses.length})
-        </button>
+      <div className="flex items-center gap-2">
+        <Button 
+          size="sm"
+          variant={activeTab === 'payments' ? "default" : "outline"}
+          onClick={() => setActiveTab('payments')}
+          className={`gap-1.5 font-semibold text-xs h-9 ${
+            activeTab === 'payments' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-slate-700 text-slate-300 hover:bg-slate-800'
+          }`}
+        >
+          <Wallet className="size-3.5" /> Payments Register ({payments.length})
+        </Button>
+        <Button 
+          size="sm"
+          variant={activeTab === 'expenses' ? "default" : "outline"}
+          onClick={() => setActiveTab('expenses')}
+          className={`gap-1.5 font-semibold text-xs h-9 ${
+            activeTab === 'expenses' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-slate-700 text-slate-300 hover:bg-slate-800'
+          }`}
+        >
+          <DollarSign className="size-3.5" /> Operating Expenses ({expenses.length})
+        </Button>
       </div>
 
       {activeTab === 'payments' && (
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Payment #</th>
-                  <th>Date</th>
-                  <th>Direction</th>
-                  <th>Party</th>
-                  <th>Amount</th>
-                  <th>Allocated</th>
-                  <th>Method</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+        <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-5">
+          <div className="rounded-lg border border-slate-800 overflow-hidden">
+            <Table>
+              <TableHeader className="bg-slate-950/60">
+                <TableRow className="border-slate-800 hover:bg-transparent">
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Payment #</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Date</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Direction</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Party</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Amount</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Allocated</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Method</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {payments.map((p) => {
                   const unallocatedPaise = BigInt(p.amount_paise) - BigInt(p.allocated_amount_paise);
                   return (
-                    <tr key={p.id}>
-                      <td><strong>{p.payment_number}</strong></td>
-                      <td>{p.payment_date}</td>
-                      <td>
-                        <span className={`badge ${p.direction === 'INCOMING' ? 'badge-emerald' : 'badge-rose'}`}>
-                          {p.direction === 'INCOMING' ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />} {p.direction}
-                        </span>
-                      </td>
-                      <td>{p.party_name} ({p.party_type})</td>
-                      <td><strong>{formatINR(p.amount_paise)}</strong></td>
-                      <td>{formatINR(p.allocated_amount_paise)}</td>
-                      <td>{p.payment_method_name}</td>
-                      <td>
+                    <TableRow key={p.id} className="border-slate-800 hover:bg-slate-800/40">
+                      <TableCell className="font-bold text-slate-100 text-xs sm:text-sm">{p.payment_number}</TableCell>
+                      <TableCell className="text-xs text-slate-400">{p.payment_date}</TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant="outline" 
+                          className={`${
+                            p.direction === 'INCOMING' ? 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10' : 'border-rose-500/40 text-rose-400 bg-rose-500/10'
+                          } text-[10px] font-bold gap-1`}
+                        >
+                          {p.direction === 'INCOMING' ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />} {p.direction}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-slate-200 text-xs font-medium">{p.party_name} ({p.party_type})</TableCell>
+                      <TableCell className="font-bold text-white text-xs sm:text-sm">{formatINR(p.amount_paise)}</TableCell>
+                      <TableCell className="text-xs text-slate-300">{formatINR(p.allocated_amount_paise)}</TableCell>
+                      <TableCell className="text-xs text-slate-400">{p.payment_method_name}</TableCell>
+                      <TableCell>
                         {unallocatedPaise > 0n && p.party_id && (
-                          <button className="btn btn-secondary btn-sm" onClick={() => openAllocationModal(p)}>
+                          <Button size="xs" variant="outline" onClick={() => openAllocationModal(p)} className="border-slate-700 text-slate-300 hover:bg-slate-800 text-[11px]">
                             Allocate ({formatINR(unallocatedPaise.toString())})
-                          </button>
+                          </Button>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
-        </div>
+        </Card>
       )}
 
       {activeTab === 'expenses' && (
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Category</th>
-                  <th>Payee Name</th>
-                  <th>Batch</th>
-                  <th>Amount</th>
-                  <th>Payment Method</th>
-                </tr>
-              </thead>
-              <tbody>
+        <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-5">
+          <div className="rounded-lg border border-slate-800 overflow-hidden">
+            <Table>
+              <TableHeader className="bg-slate-950/60">
+                <TableRow className="border-slate-800 hover:bg-transparent">
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Date</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Category</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Payee Name</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Batch</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Amount</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Payment Method</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {expenses.map((e) => (
-                  <tr key={e.id}>
-                    <td>{e.expense_date}</td>
-                    <td><span className="badge badge-purple">{e.category_name}</span></td>
-                    <td>{e.payee_name || '-'}</td>
-                    <td>{e.batch_number || 'General Overhead'}</td>
-                    <td><strong>{formatINR(e.amount_paise)}</strong></td>
-                    <td>{e.payment_method_name}</td>
-                  </tr>
+                  <TableRow key={e.id} className="border-slate-800 hover:bg-slate-800/40">
+                    <TableCell className="text-xs text-slate-400">{e.expense_date}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="border-purple-500/40 text-purple-400 bg-purple-500/10 text-[10px] font-bold">
+                        {e.category_name}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-slate-200 font-medium text-xs sm:text-sm">{e.payee_name || '-'}</TableCell>
+                    <TableCell className="text-slate-400 text-xs">{e.batch_number || 'General Overhead'}</TableCell>
+                    <TableCell className="font-bold text-white text-xs sm:text-sm">{formatINR(e.amount_paise)}</TableCell>
+                    <TableCell className="text-xs text-slate-400">{e.payment_method_name}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Payment Allocation Modal */}
-      {isAllocateOpen && selectedPayment && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '16px' }}>Allocate Payment {selectedPayment.payment_number}</h3>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
-              Unallocated Amount: <strong>{formatINR((BigInt(selectedPayment.amount_paise) - BigInt(selectedPayment.allocated_amount_paise)).toString())}</strong>
-            </p>
+      <Dialog open={isAllocateOpen} onOpenChange={setIsAllocateOpen}>
+        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 sm:max-w-[500px]">
+          {selectedPayment && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-lg font-bold text-white">
+                  Allocate Payment {selectedPayment.payment_number}
+                </DialogTitle>
+              </DialogHeader>
+              <p className="text-xs text-slate-400">
+                Unallocated Amount: <strong className="text-emerald-400">{formatINR((BigInt(selectedPayment.amount_paise) - BigInt(selectedPayment.allocated_amount_paise)).toString())}</strong>
+              </p>
 
-            <form onSubmit={handleAllocationSubmit}>
-              <div style={{ marginBottom: '16px' }}>
-                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '10px' }}>Open Unpaid Charges</h4>
-                {unpaidCharges.length === 0 ? (
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No open unpaid charges found for this party.</p>
-                ) : (
-                  unpaidCharges.map(chg => (
-                    <div key={chg.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-surface-hover)', padding: '10px 14px', borderRadius: 'var(--radius-md)', marginBottom: '8px' }}>
-                      <div>
-                        <strong style={{ fontSize: '0.85rem' }}>{chg.description}</strong>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Date: {chg.charge_date} | Due: {formatINR(chg.remaining_unpaid_paise)}</p>
+              <form onSubmit={handleAllocationSubmit} className="space-y-4 mt-2">
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wide">Open Unpaid Charges</h4>
+                  {unpaidCharges.length === 0 ? (
+                    <p className="text-xs text-slate-400 py-2">No open unpaid charges found for this party.</p>
+                  ) : (
+                    unpaidCharges.map(chg => (
+                      <div key={chg.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-800/60 border border-slate-700/50 gap-3">
+                        <div className="flex-1">
+                          <strong className="text-xs text-slate-200 font-bold block">{chg.description}</strong>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Date: {chg.charge_date} | Due: {formatINR(chg.remaining_unpaid_paise)}</p>
+                        </div>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={allocationsForm[chg.id] || ''}
+                          onChange={e => setAllocationsForm({ ...allocationsForm, [chg.id]: e.target.value })}
+                          className="w-28 text-right bg-slate-950/60 border-slate-700 text-xs"
+                        />
                       </div>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="form-input"
-                        style={{ width: '120px' }}
-                        placeholder="0.00"
-                        value={allocationsForm[chg.id] || ''}
-                        onChange={e => setAllocationsForm({ ...allocationsForm, [chg.id]: e.target.value })}
-                      />
-                    </div>
-                  ))
-                )}
-              </div>
+                    ))
+                  )}
+                </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setIsAllocateOpen(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={unpaidCharges.length === 0}>Save Allocation</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                <div className="flex justify-end gap-2.5 pt-2">
+                  <Button type="button" variant="outline" onClick={() => setIsAllocateOpen(false)} className="border-slate-700 hover:bg-slate-800">Cancel</Button>
+                  <Button type="submit" disabled={unpaidCharges.length === 0} className="bg-orange-500 hover:bg-orange-600 text-white font-bold">Save Allocation</Button>
+                </div>
+              </form>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

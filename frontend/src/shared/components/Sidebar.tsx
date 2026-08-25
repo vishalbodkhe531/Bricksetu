@@ -3,6 +3,9 @@ import {
   LayoutDashboard, Flame, Package, Users, Truck, ShoppingCart, 
   Wallet, FileText, Settings, LogOut, Layers, ShieldCheck
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface SidebarProps {
   currentTab: string;
@@ -33,7 +36,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, user,
         </div>
         <div>
           <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>BrickSetu</h2>
-          <span style={{ fontSize: '0.725rem', color: 'var(--accent-orange)', fontWeight: 700, textTransform: 'uppercase' }}>{user?.business_unit_name || 'Main Kiln'}</span>
+          <Badge variant="outline" className="text-orange-500 border-orange-500/30 text-[10px] uppercase font-bold py-0 h-4">
+            {user?.business_unit_name || 'Main Kiln'}
+          </Badge>
         </div>
       </div>
 
@@ -42,47 +47,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, user,
           const Icon = item.icon;
           const isActive = currentTab === item.id;
           return (
-            <button
+            <Button
               key={item.id}
+              variant={isActive ? "secondary" : "ghost"}
               onClick={() => onSelectTab(item.id)}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '12px 14px',
-                borderRadius: 'var(--radius-md)',
-                marginBottom: '4px',
-                background: isActive ? 'var(--accent-orange-glow)' : 'transparent',
-                color: isActive ? 'var(--accent-orange)' : 'var(--text-secondary)',
-                border: isActive ? '1px solid rgba(249, 115, 22, 0.3)' : '1px solid transparent',
-                fontWeight: isActive ? 700 : 500,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.2s ease',
-              }}
+              className={`w-full justify-start gap-3 mb-1 text-sm font-medium h-10 px-3 ${
+                isActive 
+                  ? 'bg-orange-500/10 text-orange-500 border border-orange-500/30 hover:bg-orange-500/20 font-semibold' 
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/50'
+              }`}
             >
-              <Icon size={18} />
-              {item.label}
-            </button>
+              <Icon className="size-4 shrink-0" />
+              <span>{item.label}</span>
+            </Button>
           );
         })}
       </nav>
 
       <div style={{ padding: '16px', borderTop: '1px solid var(--border-color)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
-            <ShieldCheck size={16} />
-          </div>
+          <Avatar className="size-8 border border-slate-700 bg-slate-800">
+            <AvatarFallback className="bg-slate-800 text-slate-300">
+              <ShieldCheck className="size-4" />
+            </AvatarFallback>
+          </Avatar>
           <div style={{ overflow: 'hidden' }}>
             <p style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{user?.full_name}</p>
             <p style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>Administrator</p>
           </div>
         </div>
-        <button className="btn btn-secondary btn-sm" onClick={onLogout} style={{ width: '100%' }}>
-          <LogOut size={14} /> Sign Out
-        </button>
+        <Button variant="outline" size="sm" onClick={onLogout} className="w-full gap-2 border-slate-700 hover:bg-slate-800 text-slate-300">
+          <LogOut className="size-3.5" /> Sign Out
+        </Button>
       </div>
     </aside>
   );

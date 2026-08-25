@@ -1,65 +1,64 @@
 import React, { useState, useEffect } from 'react';
-import { Flame, Plus, ArrowRight, Layers, DollarSign, CheckCircle2 } from 'lucide-react';
+import { Flame, Plus, ChevronRight, AlertCircle, ArrowRight } from 'lucide-react';
 import { apiRequest } from '../../shared/api/client';
-import { formatINR } from '../../shared/utils/formatters';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { PageHeader } from '../../shared/components/PageHeader';
 
 export const ProductionView: React.FC = () => {
   const [batches, setBatches] = useState<any[]>([]);
-  const [selectedBatch, setSelectedBatch] = useState<any>(null);
+  const [masterData, setMasterData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   // Modals state
-  const [isNewBatchOpen, setIsNewBatchOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isTransitionOpen, setIsTransitionOpen] = useState(false);
-  const [brickTypes, setBrickTypes] = useState<any[]>([]);
-  const [brickGrades, setBrickGrades] = useState<any[]>([]);
+  const [selectedBatch, setSelectedBatch] = useState<any>(null);
 
   // Forms
-  const [batchForm, setBatchForm] = useState<any>({
-    start_date: new Date().toISOString().slice(0, 10),
-  });
-
+  const [createForm, setCreateForm] = useState<any>({});
   const [transitionForm, setTransitionForm] = useState<any>({
-    transition_date: new Date().toISOString().slice(0, 10),
-    grades: {},
+    from_stage: '',
+    to_stage: '',
+    input_quantity: '',
+    good_quantity: '',
+    damaged_quantity: '',
+    transition_date: new Date().toISOString().split('T')[0],
   });
 
   useEffect(() => {
-    loadBatches();
-    loadMasterData();
+    loadData();
   }, []);
 
-  async function loadBatches() {
-    setLoading(true);
+  async function loadData() {
     try {
-      const data = await apiRequest('/batches');
-      setBatches(data);
-      if (data.length > 0 && !selectedBatch) {
-        loadBatchDetail(data[0].id);
-      }
+      const [b, m] = await Promise.all([
+        apiRequest('/batches'),
+        apiRequest('/settings/master-data'),
+      ]);
+      setBatches(b);
+      setMasterData(m);
     } catch (err: any) {
       console.error(err);
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function loadMasterData() {
-    try {
-      const master = await apiRequest('/settings/master-data');
-      setBrickTypes(master.brick_types);
-      setBrickGrades(master.brick_grades);
-    } catch (err: any) {
-      console.error(err);
-    }
-  }
-
-  async function loadBatchDetail(id: string) {
-    try {
-      const detail = await apiRequest(`/batches/${id}`);
-      setSelectedBatch(detail);
-    } catch (err: any) {
-      console.error(err);
     }
   }
 
@@ -68,299 +67,237 @@ export const ProductionView: React.FC = () => {
     try {
       await apiRequest('/batches', {
         method: 'POST',
-        body: JSON.stringify(batchForm),
+        body: JSON.stringify(createForm),
       });
-      setIsNewBatchOpen(false);
-      loadBatches();
+      setIsCreateOpen(false);
+      setCreateForm({});
+      loadData();
     } catch (err: any) {
       alert(err.message);
     }
   };
 
-  const handleTransition = async (e: React.FormEvent) => {
+  const openTransitionModal = (batch: any) => {
+    setSelectedBatch(batch);
+    setTransitionForm({
+      from_stage: batch.current_stage,
+      to_stage: getNextStage(batch.current_stage),
+      input_quantity: batch.moulded_quantity || 0,
+      good_quantity: batch.moulded_quantity || 0,
+      damaged_quantity: 0,
+      transition_date: new Date().toISOString().split('T')[0],
+    });
+    setIsTransitionOpen(true);
+  };
+
+  const getNextStage = (curr: string) => {
+    switch (curr) {
+      case 'MOULDING': return 'DRYING';
+      case 'DRYING': return 'KILN_LOADING';
+      case 'KILN_LOADING': return 'FIRING';
+      case 'FIRING': return 'UNLOADING';
+      case 'UNLOADING': return 'COMPLETED';
+      default: return 'COMPLETED';
+    }
+  };
+
+  const handleTransitionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBatch) return;
 
     try {
-      let gradeAllocations = null;
-      if (transitionForm.to_stage === 'UNLOADING') {
-        gradeAllocations = Object.entries(transitionForm.grades).map(([grade_id, qty]) => ({
-          grade_id,
-          quantity: parseInt(qty as string, 10),
-        }));
-      }
-
-      await apiRequest(`/batches/${selectedBatch.id}/transitions`, {
+      await apiRequest(`/batches/${selectedBatch.id}/transition`, {
         method: 'POST',
         body: JSON.stringify({
+          from_stage: transitionForm.from_stage,
           to_stage: transitionForm.to_stage,
           transition_date: transitionForm.transition_date,
           input_quantity: parseInt(transitionForm.input_quantity, 10),
-          output_good_quantity: transitionForm.output_good_quantity ? parseInt(transitionForm.output_good_quantity, 10) : 0,
-          damaged_quantity: transitionForm.damaged_quantity ? parseInt(transitionForm.damaged_quantity, 10) : 0,
-          grade_allocations: gradeAllocations,
-          notes: transitionForm.notes,
+          output_good_quantity: parseInt(transitionForm.good_quantity, 10),
+          damaged_quantity: parseInt(transitionForm.damaged_quantity, 10),
+          output_grade_id: transitionForm.to_stage === 'UNLOADING' ? transitionForm.output_grade_id : undefined,
         }),
       });
-
       setIsTransitionOpen(false);
-      loadBatches();
-      loadBatchDetail(selectedBatch.id);
+      loadData();
     } catch (err: any) {
       alert(err.message);
     }
   };
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Batches & Production Stages</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Track raw moulding, drying, firing, unloading, and lot costing</p>
-        </div>
-        <button className="btn btn-primary" onClick={() => setIsNewBatchOpen(true)}>
-          <Plus size={18} /> New Batch
-        </button>
-      </div>
+    <div className="space-y-6">
+      {/* Page Header */}
+      <PageHeader
+        title="Kiln Batches & Production"
+        description="Track 5-stage lifecycle: Moulding → Drying → Kiln Loading → Firing → Unloading"
+        icon={<Flame className="size-5 sm:size-6" />}
+        actions={
+          <Button 
+            onClick={() => setIsCreateOpen(true)}
+            className="bg-orange-500 hover:bg-orange-600 text-white font-bold gap-2 h-10 px-4 shadow-lg shadow-orange-500/20 text-xs sm:text-sm"
+          >
+            <Plus className="size-4" /> Start New Batch
+          </Button>
+        }
+      />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px' }}>
-        {/* Batches List Sidebar */}
-        <div className="glass-card" style={{ padding: '16px' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '12px' }}>Production Batches</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {batches.map((b) => {
-              const selected = selectedBatch?.id === b.id;
-              return (
-                <div
-                  key={b.id}
-                  onClick={() => loadBatchDetail(b.id)}
-                  style={{
-                    padding: '12px 14px',
-                    borderRadius: 'var(--radius-md)',
-                    background: selected ? 'var(--accent-orange-glow)' : 'var(--bg-surface-hover)',
-                    border: selected ? '1px solid var(--accent-orange)' : '1px solid transparent',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{b.batch_number}</strong>
-                    <span className={`badge ${b.stage === 'MOULDING' ? 'badge-amber' : b.stage === 'DRYING' ? 'badge-blue' : b.stage === 'FIRING' ? 'badge-purple' : 'badge-emerald'}`}>
-                      {b.stage}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    <span>{b.brick_type_name}</span>
-                    <span>Moulded: {parseInt(b.raw_moulded_quantity, 10).toLocaleString()}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      {/* Active Batches Table Card */}
+      <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-bold text-white">Active Production Batches</h3>
+          <span className="text-xs text-slate-400">Total Batches: {batches.length}</span>
         </div>
 
-        {/* Selected Batch Details & Costing Sheet */}
-        {selectedBatch ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div className="glass-card" style={{ padding: '24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Batch {selectedBatch.batch_number}</h2>
-                    <span className="badge badge-amber">{selectedBatch.stage} STAGE</span>
-                  </div>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>Brick Type: {selectedBatch.brick_type_name}</p>
-                </div>
-                {selectedBatch.status === 'IN_PROGRESS' && (
-                  <button className="btn btn-secondary btn-sm" onClick={() => {
-                    let nextStage = 'DRYING';
-                    if (selectedBatch.stage === 'DRYING') nextStage = 'FIRING';
-                    else if (selectedBatch.stage === 'FIRING') nextStage = 'UNLOADING';
-                    setTransitionForm({ ...transitionForm, to_stage: nextStage });
-                    setIsTransitionOpen(true);
-                  }}>
-                    Transition Stage <ArrowRight size={14} />
-                  </button>
-                )}
-              </div>
+        <div className="rounded-lg border border-slate-800 overflow-hidden">
+          <Table>
+            <TableHeader className="bg-slate-950/60">
+              <TableRow className="border-slate-800 hover:bg-transparent">
+                <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Batch #</TableHead>
+                <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Brick Type</TableHead>
+                <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Current Stage</TableHead>
+                <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Moulded Qty</TableHead>
+                <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Fired Good Qty</TableHead>
+                <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Status</TableHead>
+                <TableHead className="text-slate-400 font-bold uppercase text-[11px] text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {batches.map((b) => (
+                <TableRow key={b.id} className="border-slate-800 hover:bg-slate-800/40">
+                  <TableCell className="font-bold text-slate-100 text-xs sm:text-sm">{b.batch_number}</TableCell>
+                  <TableCell className="text-slate-200 font-medium text-xs sm:text-sm">{b.brick_type_name}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="border-orange-500/40 text-orange-400 bg-orange-500/10 text-[10px] font-bold">
+                      {b.current_stage}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-xs text-slate-300">{b.moulded_quantity?.toLocaleString() || '-'}</TableCell>
+                  <TableCell className="text-xs text-emerald-400 font-medium">{b.fired_good_quantity?.toLocaleString() || '-'}</TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant="outline" 
+                      className={`${b.status === 'COMPLETED' ? 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10' : 'border-amber-500/40 text-amber-400 bg-amber-500/10'} text-[10px] font-bold`}
+                    >
+                      {b.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {b.status === 'IN_PROGRESS' && (
+                      <Button 
+                        size="xs" 
+                        onClick={() => openTransitionModal(b)}
+                        className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/30 gap-1 text-[11px] font-bold"
+                      >
+                        Transition <ChevronRight className="size-3" />
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
 
-              {/* Progress Counters */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', background: 'var(--bg-surface)', padding: '16px', borderRadius: 'var(--radius-md)', marginBottom: '20px' }}>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Moulded</span>
-                  <p style={{ fontSize: '1.2rem', fontWeight: 800 }}>{selectedBatch.raw_moulded_quantity.toLocaleString()}</p>
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Drying Good</span>
-                  <p style={{ fontSize: '1.2rem', fontWeight: 800 }}>{selectedBatch.dry_good_quantity.toLocaleString()}</p>
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Fired Good</span>
-                  <p style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-emerald)' }}>{selectedBatch.fired_good_quantity.toLocaleString()}</p>
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Damaged</span>
-                  <p style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-rose)' }}>{selectedBatch.damaged_quantity.toLocaleString()}</p>
-                </div>
-              </div>
+      {/* Start New Batch Modal */}
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-white">Start New Brick Batch</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateBatch} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-slate-400">Batch Number / Identifier</Label>
+              <Input placeholder="e.g. BATCH-2026-08-A" value={createForm.batch_number || ''} onChange={e => setCreateForm({ ...createForm, batch_number: e.target.value })} required />
+            </div>
 
-              {/* Cost Breakdown Sheet */}
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '12px' }}>Batch Financial & Cost Breakdown</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
-                <div style={{ padding: '12px', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Worker Moulding Wages</span>
-                  <p style={{ fontSize: '1.1rem', fontWeight: 700 }}>{formatINR(selectedBatch.cost_breakdown.moulding_cost_paise)}</p>
-                </div>
-                <div style={{ padding: '12px', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Materials (Coal/Soil)</span>
-                  <p style={{ fontSize: '1.1rem', fontWeight: 700 }}>{formatINR(selectedBatch.cost_breakdown.material_cost_paise)}</p>
-                </div>
-                <div style={{ padding: '12px', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Expenses & Transport</span>
-                  <p style={{ fontSize: '1.1rem', fontWeight: 700 }}>
-                    {formatINR((BigInt(selectedBatch.cost_breakdown.expense_cost_paise) + BigInt(selectedBatch.cost_breakdown.transport_cost_paise)).toString())}
-                  </p>
-                </div>
-              </div>
+            <div className="space-y-1.5">
+              <Label className="text-slate-400">Brick Type</Label>
+              <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={createForm.brick_type_id || ''} onChange={e => setCreateForm({ ...createForm, brick_type_id: e.target.value })} required>
+                <option value="">-- Select Brick Type --</option>
+                {masterData?.brick_types?.map((t: any) => (
+                  <option key={t.id} value={t.id}>{t.name} ({t.code})</option>
+                ))}
+              </select>
+            </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: 'var(--accent-orange-glow)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: 'var(--radius-md)' }}>
-                <div>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--accent-orange)', fontWeight: 700 }}>TOTAL BATCH PRODUCTION COST</span>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{formatINR(selectedBatch.cost_breakdown.total_cost_paise)}</h2>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>UNIT COST / 1,000 BRICKS</span>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-emerald)' }}>
-                    {selectedBatch.cost_breakdown.cost_per_1000_paise ? formatINR(selectedBatch.cost_breakdown.cost_per_1000_paise) : 'N/A'}
-                  </h2>
-                </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-slate-400">Moulding Start Date</Label>
+                <Input type="date" value={createForm.start_date || new Date().toISOString().split('T')[0]} onChange={e => setCreateForm({ ...createForm, start_date: e.target.value })} required />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-slate-400">Target Quantity</Label>
+                <Input type="number" placeholder="e.g. 100000" value={createForm.target_quantity || ''} onChange={e => setCreateForm({ ...createForm, target_quantity: e.target.value })} />
               </div>
             </div>
 
-            {/* Stage Transition History Timeline */}
-            <div className="glass-card" style={{ padding: '20px' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '12px' }}>Stage Transition History</h3>
-              <div className="table-container">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Transition</th>
-                      <th>Input Qty</th>
-                      <th>Good Qty</th>
-                      <th>Damaged</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedBatch.stage_transitions.map((t: any) => (
-                      <tr key={t.id}>
-                        <td>{t.transition_date}</td>
-                        <td><strong>{t.from_stage} &rarr; {t.to_stage}</strong></td>
-                        <td>{t.input_quantity.toLocaleString()}</td>
-                        <td>{t.output_good_quantity.toLocaleString()}</td>
-                        <td style={{ color: 'var(--accent-rose)' }}>{t.damaged_quantity.toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="flex justify-end gap-2.5 pt-2">
+              <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} className="border-slate-700 hover:bg-slate-800">Cancel</Button>
+              <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white font-bold">Initialize Batch</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Transition Stage Modal */}
+      <Dialog open={isTransitionOpen} onOpenChange={setIsTransitionOpen}>
+        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-white">
+              Stage Transition: {selectedBatch?.batch_number}
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleTransitionSubmit} className="space-y-4">
+            <div className="p-3 rounded-lg bg-slate-800/60 border border-slate-700/50 flex items-center justify-between text-xs">
+              <span className="text-slate-400">Current: <strong className="text-slate-200">{transitionForm.from_stage}</strong></span>
+              <ArrowRight className="size-4 text-orange-400" />
+              <span className="text-slate-400">Next: <strong className="text-orange-400 font-bold">{transitionForm.to_stage}</strong></span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-slate-400">Transition Date</Label>
+                <Input type="date" value={transitionForm.transition_date} onChange={e => setTransitionForm({ ...transitionForm, transition_date: e.target.value })} required />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-slate-400">Input Qty</Label>
+                <Input type="number" value={transitionForm.input_quantity} onChange={e => setTransitionForm({ ...transitionForm, input_quantity: e.target.value })} required />
               </div>
             </div>
-          </div>
-        ) : null}
-      </div>
 
-      {/* New Batch Modal */}
-      {isNewBatchOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '16px' }}>Create Production Batch</h3>
-            <form onSubmit={handleCreateBatch}>
-              <div className="form-group">
-                <label className="form-label">Batch Number</label>
-                <input type="text" className="form-input" placeholder="e.g. BATCH-2026-001" value={batchForm.batch_number || ''} onChange={e => setBatchForm({ ...batchForm, batch_number: e.target.value })} required />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-slate-400">Good Output Qty</Label>
+                <Input type="number" value={transitionForm.good_quantity} onChange={e => setTransitionForm({ ...transitionForm, good_quantity: e.target.value })} required />
               </div>
-              <div className="form-group">
-                <label className="form-label">Brick Type</label>
-                <select className="form-select" value={batchForm.brick_type_id || ''} onChange={e => setBatchForm({ ...batchForm, brick_type_id: e.target.value })} required>
-                  <option value="">-- Select Brick Type --</option>
-                  {brickTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              <div className="space-y-1.5">
+                <Label className="text-slate-400">Damaged / Wastage Qty</Label>
+                <Input type="number" value={transitionForm.damaged_quantity} onChange={e => setTransitionForm({ ...transitionForm, damaged_quantity: e.target.value })} required />
+              </div>
+            </div>
+
+            {transitionForm.to_stage === 'UNLOADING' && (
+              <div className="space-y-1.5">
+                <Label className="text-slate-400">Finished Output Grade</Label>
+                <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={transitionForm.output_grade_id || ''} onChange={e => setTransitionForm({ ...transitionForm, output_grade_id: e.target.value })} required>
+                  <option value="">-- Select Grade --</option>
+                  {masterData?.brick_grades?.map((g: any) => (
+                    <option key={g.id} value={g.id}>{g.name} ({g.code})</option>
+                  ))}
                 </select>
               </div>
-              <div className="form-group">
-                <label className="form-label">Target Quantity</label>
-                <input type="number" className="form-input" placeholder="e.g. 100000" value={batchForm.target_quantity || ''} onChange={e => setBatchForm({ ...batchForm, target_quantity: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Start Date</label>
-                <input type="date" className="form-input" value={batchForm.start_date || ''} onChange={e => setBatchForm({ ...batchForm, start_date: e.target.value })} required />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setIsNewBatchOpen(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Create Batch</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            )}
 
-      {/* Stage Transition Modal */}
-      {isTransitionOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '16px' }}>
-              Transition Batch to {transitionForm.to_stage}
-            </h3>
-            <form onSubmit={handleTransition}>
-              <div className="form-group">
-                <label className="form-label">Transition Date</label>
-                <input type="date" className="form-input" value={transitionForm.transition_date || ''} onChange={e => setTransitionForm({ ...transitionForm, transition_date: e.target.value })} required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Input Quantity to Stage</label>
-                <input type="number" className="form-input" value={transitionForm.input_quantity || ''} onChange={e => setTransitionForm({ ...transitionForm, input_quantity: e.target.value })} required />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div className="form-group">
-                  <label className="form-label">Good Output Quantity</label>
-                  <input type="number" className="form-input" value={transitionForm.output_good_quantity || ''} onChange={e => setTransitionForm({ ...transitionForm, output_good_quantity: e.target.value })} required />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Damaged / Wastage Quantity</label>
-                  <input type="number" className="form-input" value={transitionForm.damaged_quantity || ''} onChange={e => setTransitionForm({ ...transitionForm, damaged_quantity: e.target.value })} required />
-                </div>
-              </div>
-
-              {/* If UNLOADING (Final Unloading to Finished Stock Lot), allocate by Grade */}
-              {transitionForm.to_stage === 'UNLOADING' && (
-                <div style={{ background: 'var(--bg-surface-hover)', padding: '14px', borderRadius: 'var(--radius-md)', marginBottom: '16px' }}>
-                  <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '10px' }}>Grade Allocation for Stock Lots</h4>
-                  {brickGrades.map(g => (
-                    <div key={g.id} className="form-group" style={{ marginBottom: '8px' }}>
-                      <label className="form-label">{g.name} Quantity</label>
-                      <input
-                        type="number"
-                        className="form-input"
-                        placeholder="0"
-                        value={transitionForm.grades?.[g.id] || ''}
-                        onChange={e => setTransitionForm({
-                          ...transitionForm,
-                          grades: { ...transitionForm.grades, [g.id]: e.target.value },
-                        })}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setIsTransitionOpen(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Complete Transition</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <div className="flex justify-end gap-2.5 pt-2">
+              <Button type="button" variant="outline" onClick={() => setIsTransitionOpen(false)} className="border-slate-700 hover:bg-slate-800">Cancel</Button>
+              <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white font-bold">Record Transition</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

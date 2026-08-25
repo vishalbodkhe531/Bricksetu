@@ -1,5 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
   --bg-primary: #0b0f19;
@@ -30,7 +30,7 @@
   --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
   --shadow-glow: 0 0 25px -5px var(--accent-orange-glow);
 
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
 
@@ -40,17 +40,35 @@
   padding: 0;
 }
 
-body {
+html, body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-sans);
   min-height: 100vh;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 button, input, select, textarea {
   font-family: inherit;
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(11, 15, 25, 0.6);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(249, 115, 22, 0.4);
 }
 
 /* Glassmorphism Card */
@@ -76,7 +94,7 @@ button, input, select, textarea {
   gap: 8px;
   padding: 10px 18px;
   border-radius: var(--radius-md);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   border: none;
@@ -173,12 +191,13 @@ button, input, select, textarea {
 .badge-rose { background: rgba(244, 63, 94, 0.15); color: #f87171; border: 1px solid rgba(244, 63, 94, 0.3); }
 .badge-purple { background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.3); }
 
-/* Table */
+/* Table Container */
 .table-container {
   width: 100%;
   overflow-x: auto;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
+  -webkit-overflow-scrolling: touch;
 }
 
 .data-table {
@@ -197,12 +216,14 @@ button, input, select, textarea {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .data-table td {
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-primary);
+  white-space: nowrap;
 }
 
 .data-table tr:hover td {
@@ -213,6 +234,8 @@ button, input, select, textarea {
 .app-shell {
   display: flex;
   min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .sidebar {
@@ -231,8 +254,18 @@ button, input, select, textarea {
 .main-content {
   flex: 1;
   margin-left: 260px;
-  padding: 28px;
-  padding-bottom: 90px;
+  padding: 32px 36px;
+  padding-bottom: 60px;
+  min-width: 0;
+  max-width: 1600px;
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .main-content {
+    padding: 24px 28px;
+    padding-bottom: 80px;
+  }
 }
 
 @media (max-width: 900px) {
@@ -241,8 +274,15 @@ button, input, select, textarea {
   }
   .main-content {
     margin-left: 0;
-    padding: 16px;
-    padding-bottom: 100px;
+    padding: 16px 20px;
+    padding-bottom: 110px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    padding: 12px 14px;
+    padding-bottom: 110px;
   }
 }
 

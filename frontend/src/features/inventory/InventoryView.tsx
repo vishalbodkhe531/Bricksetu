@@ -1,18 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Plus, History, AlertCircle } from 'lucide-react';
+import { Layers, Plus, History, Scale } from 'lucide-react';
 import { apiRequest } from '../../shared/api/client';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { PageHeader } from '../../shared/components/PageHeader';
 
 export const InventoryView: React.FC = () => {
-  const [stockSummary, setStockSummary] = useState<any[]>([]);
-  const [lots, setLots] = useState<any[]>([]);
+  const [stockLots, setStockLots] = useState<any[]>([]);
   const [ledger, setLedger] = useState<any[]>([]);
+  const [masterData, setMasterData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'lots' | 'ledger'>('lots');
 
-  // Adjustment Modal
-  const [isAdjOpen, setIsAdjOpen] = useState(false);
-  const [adjForm, setAdjForm] = useState<any>({
-    adjustment_type: 'CORRECTION',
-    adjustment_date: new Date().toISOString().slice(0, 10),
+  const [isAdjustOpen, setIsAdjustOpen] = useState(false);
+  const [adjustForm, setAdjustForm] = useState<any>({
+    adjustment_type: 'DAMAGE',
+    quantity: '',
+    reason: '',
   });
 
   useEffect(() => {
@@ -21,14 +41,14 @@ export const InventoryView: React.FC = () => {
 
   async function loadInventoryData() {
     try {
-      const [stk, lts, ldg] = await Promise.all([
-        apiRequest('/stock/summary'),
-        apiRequest('/stock/lots'),
-        apiRequest('/stock/ledger'),
+      const [lots, ledg, m] = await Promise.all([
+        apiRequest('/inventory/lots'),
+        apiRequest('/inventory/ledger'),
+        apiRequest('/settings/master-data'),
       ]);
-      setStockSummary(stk);
-      setLots(lts);
-      setLedger(ldg);
+      setStockLots(lots);
+      setLedger(ledg);
+      setMasterData(m);
     } catch (err: any) {
       console.error(err);
     }
@@ -36,23 +56,20 @@ export const InventoryView: React.FC = () => {
 
   const handleAdjustmentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adjForm.reason || adjForm.reason.trim().length === 0) {
-      alert('Adjustment reason is mandatory.');
-      return;
-    }
-
     try {
-      await apiRequest('/stock/adjustments', {
+      await apiRequest('/inventory/adjust', {
         method: 'POST',
         body: JSON.stringify({
-          finished_lot_id: adjForm.finished_lot_id,
-          adjustment_type: adjForm.adjustment_type,
-          quantity_change: parseInt(adjForm.quantity_change, 10),
-          reason: adjForm.reason,
-          adjustment_date: adjForm.adjustment_date,
+          brick_type_id: adjustForm.brick_type_id,
+          brick_grade_id: adjustForm.brick_grade_id,
+          quantity_change: adjustForm.adjustment_type === 'DAMAGE' || adjustForm.adjustment_type === 'CORRECTION_MINUS' 
+            ? -Math.abs(parseInt(adjustForm.quantity, 10))
+            : Math.abs(parseInt(adjustForm.quantity, 10)),
+          reason: `[${adjustForm.adjustment_type}] ${adjustForm.reason}`,
         }),
       });
-      setIsAdjOpen(false);
+      setIsAdjustOpen(false);
+      setAdjustForm({ adjustment_type: 'DAMAGE', quantity: '', reason: '' });
       loadInventoryData();
     } catch (err: any) {
       alert(err.message);
@@ -60,147 +77,179 @@ export const InventoryView: React.FC = () => {
   };
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Finished Stock & Inventory Ledger</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>FIFO stock lot tracking, audit trail, and manual adjustments</p>
-        </div>
-        <button className="btn btn-secondary" onClick={() => setIsAdjOpen(true)}>
-          <Plus size={18} /> Manual Stock Adjustment
-        </button>
+    <div className="space-y-6">
+      {/* Page Header */}
+      <PageHeader
+        title="Finished Stock & Inventory Ledger"
+        description="Monitor ready brick quantities by type & grade, audit movements, and record adjustments"
+        icon={<Layers className="size-5 sm:size-6" />}
+        actions={
+          <Button 
+            onClick={() => setIsAdjustOpen(true)}
+            className="bg-orange-500 hover:bg-orange-600 text-white font-bold gap-2 h-10 px-4 shadow-lg shadow-orange-500/20 text-xs sm:text-sm"
+          >
+            <Plus className="size-4" /> Stock Adjustment
+          </Button>
+        }
+      />
+
+      {/* Tabs */}
+      <div className="flex items-center gap-2">
+        <Button 
+          size="sm"
+          variant={activeTab === 'lots' ? "default" : "outline"}
+          onClick={() => setActiveTab('lots')}
+          className={`gap-1.5 font-semibold text-xs h-9 ${
+            activeTab === 'lots' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-slate-700 text-slate-300 hover:bg-slate-800'
+          }`}
+        >
+          <Layers className="size-3.5" /> Stock Lots ({stockLots.length})
+        </Button>
+        <Button 
+          size="sm"
+          variant={activeTab === 'ledger' ? "default" : "outline"}
+          onClick={() => setActiveTab('ledger')}
+          className={`gap-1.5 font-semibold text-xs h-9 ${
+            activeTab === 'ledger' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-slate-700 text-slate-300 hover:bg-slate-800'
+          }`}
+        >
+          <History className="size-3.5" /> Audit Ledger ({ledger.length})
+        </Button>
       </div>
 
-      {/* Summary Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        {stockSummary.map((s, idx) => (
-          <div key={idx} className="glass-card" style={{ padding: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{s.brick_type_name}</span>
-              <span className="badge badge-emerald">{s.brick_grade_name}</span>
+      {activeTab === 'lots' && (
+        <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-5">
+          <div className="rounded-lg border border-slate-800 overflow-hidden">
+            <Table>
+              <TableHeader className="bg-slate-950/60">
+                <TableRow className="border-slate-800 hover:bg-transparent">
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Brick Type</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Grade</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Available Quantity</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Avg Unit Cost</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stockLots.map((lot) => (
+                  <TableRow key={lot.id} className="border-slate-800 hover:bg-slate-800/40">
+                    <TableCell className="font-bold text-slate-100 text-xs sm:text-sm">{lot.brick_type_name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="border-amber-500/40 text-amber-400 bg-amber-500/10 text-[10px] font-bold">
+                        {lot.brick_grade_name}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-extrabold text-emerald-400 text-xs sm:text-sm">
+                      {lot.current_quantity?.toLocaleString()} bricks
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-300">
+                      ₹{(lot.avg_unit_cost_paise / 100).toFixed(2)} / brick
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="border-emerald-500/40 text-emerald-400 bg-emerald-500/10 text-[10px] font-bold">
+                        IN_STOCK
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+      )}
+
+      {activeTab === 'ledger' && (
+        <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-5">
+          <div className="rounded-lg border border-slate-800 overflow-hidden">
+            <Table>
+              <TableHeader className="bg-slate-950/60">
+                <TableRow className="border-slate-800 hover:bg-transparent">
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Date</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Type</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Brick Type & Grade</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Qty Change</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Balance After</TableHead>
+                  <TableHead className="text-slate-400 font-bold uppercase text-[11px]">Reason / Reference</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {ledger.map((item) => (
+                  <TableRow key={item.id} className="border-slate-800 hover:bg-slate-800/40">
+                    <TableCell className="text-xs text-slate-400">{item.transaction_date}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="border-blue-500/40 text-blue-400 bg-blue-500/10 text-[10px] font-bold">
+                        {item.transaction_type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-slate-200 font-medium text-xs sm:text-sm">
+                      {item.brick_type_name} ({item.brick_grade_name})
+                    </TableCell>
+                    <TableCell className={`font-bold text-xs sm:text-sm ${item.quantity_change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {item.quantity_change > 0 ? `+${item.quantity_change.toLocaleString()}` : item.quantity_change.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-300 font-semibold">{item.balance_after?.toLocaleString()}</TableCell>
+                    <TableCell className="text-xs text-slate-400">{item.reason || '-'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+      )}
+
+      {/* Stock Adjustment Modal */}
+      <Dialog open={isAdjustOpen} onOpenChange={setIsAdjustOpen}>
+        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-white">Record Stock Adjustment</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAdjustmentSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-slate-400">Adjustment Type</Label>
+              <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={adjustForm.adjustment_type} onChange={e => setAdjustForm({ ...adjustForm, adjustment_type: e.target.value })} required>
+                <option value="DAMAGE">Damage / Breakage (-)</option>
+                <option value="CORRECTION_MINUS">Inventory Audit Correction (-)</option>
+                <option value="CORRECTION_PLUS">Inventory Audit Addition (+)</option>
+              </select>
             </div>
-            <h2 style={{ fontSize: '1.6rem', fontWeight: 800, margin: '10px 0 0', color: 'var(--accent-orange)' }}>
-              {parseInt(s.total_available_quantity, 10).toLocaleString()}
-            </h2>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Available Finished Stock</span>
-          </div>
-        ))}
-      </div>
 
-      {/* Tab Controls */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-        <button className={`btn ${activeTab === 'lots' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setActiveTab('lots')}>
-          <Layers size={14} /> Stock Lots ({lots.length})
-        </button>
-        <button className={`btn ${activeTab === 'ledger' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setActiveTab('ledger')}>
-          <History size={14} /> Stock Ledger Audit Trail
-        </button>
-      </div>
-
-      {/* Stock Lots Table */}
-      {activeTab === 'lots' ? (
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Lot Number</th>
-                  <th>Brick Type</th>
-                  <th>Grade</th>
-                  <th>Batch</th>
-                  <th>Initial Qty</th>
-                  <th>Available Stock</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lots.map((l) => (
-                  <tr key={l.id}>
-                    <td><strong>{l.lot_number}</strong></td>
-                    <td>{l.brick_type_name}</td>
-                    <td><span className="badge badge-emerald">{l.brick_grade_name}</span></td>
-                    <td>{l.batch_number || 'Opening Balance'}</td>
-                    <td>{l.initial_quantity.toLocaleString()}</td>
-                    <td><strong style={{ color: l.available_quantity > 0 ? 'var(--accent-emerald)' : 'var(--text-muted)' }}>{l.available_quantity.toLocaleString()}</strong></td>
-                  </tr>
+            <div className="space-y-1.5">
+              <Label className="text-slate-400">Brick Type</Label>
+              <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={adjustForm.brick_type_id || ''} onChange={e => setAdjustForm({ ...adjustForm, brick_type_id: e.target.value })} required>
+                <option value="">-- Select Type --</option>
+                {masterData?.brick_types?.map((t: any) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        /* Stock Ledger Audit Trail */
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Transaction</th>
-                  <th>Type & Grade</th>
-                  <th>Qty Change</th>
-                  <th>Balance After</th>
-                  <th>Reason / Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ledger.map((sl) => (
-                  <tr key={sl.id}>
-                    <td>{sl.transaction_date}</td>
-                    <td><span className="badge badge-blue">{sl.transaction_type}</span></td>
-                    <td>{sl.brick_type_name} ({sl.brick_grade_name || '-'})</td>
-                    <td style={{ color: sl.quantity_change >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)', fontWeight: 700 }}>
-                      {sl.quantity_change > 0 ? `+${sl.quantity_change.toLocaleString()}` : sl.quantity_change.toLocaleString()}
-                    </td>
-                    <td>{sl.balance_after.toLocaleString()}</td>
-                    <td>{sl.reason}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+              </select>
+            </div>
 
-      {/* Manual Stock Adjustment Modal */}
-      {isAdjOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '16px' }}>Manual Stock Adjustment</h3>
-            <form onSubmit={handleAdjustmentSubmit}>
-              <div className="form-group">
-                <label className="form-label">Stock Lot</label>
-                <select className="form-select" value={adjForm.finished_lot_id || ''} onChange={e => setAdjForm({ ...adjForm, finished_lot_id: e.target.value })} required>
-                  <option value="">-- Select Finished Stock Lot --</option>
-                  {lots.map(l => (
-                    <option key={l.id} value={l.id}>{l.lot_number} - {l.brick_type_name} ({l.brick_grade_name}) [Avail: {l.available_quantity}]</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Adjustment Type</label>
-                <select className="form-select" value={adjForm.adjustment_type || 'CORRECTION'} onChange={e => setAdjForm({ ...adjForm, adjustment_type: e.target.value })}>
-                  <option value="CORRECTION">Physical Stock Correction</option>
-                  <option value="BREAKAGE">Yard Breakage / Loss</option>
-                  <option value="SAMPLE">Sample / Testing Consumption</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Quantity Change (+ to add, - to reduce)</label>
-                <input type="number" className="form-input" placeholder="e.g. -500 or +200" value={adjForm.quantity_change || ''} onChange={e => setAdjForm({ ...adjForm, quantity_change: e.target.value })} required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Mandatory Audit Reason</label>
-                <input type="text" className="form-input" placeholder="Explain reason for manual adjustment..." value={adjForm.reason || ''} onChange={e => setAdjForm({ ...adjForm, reason: e.target.value })} required />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setIsAdjOpen(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Post Adjustment</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <div className="space-y-1.5">
+              <Label className="text-slate-400">Brick Grade</Label>
+              <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={adjustForm.brick_grade_id || ''} onChange={e => setAdjustForm({ ...adjustForm, brick_grade_id: e.target.value })} required>
+                <option value="">-- Select Grade --</option>
+                {masterData?.brick_grades?.map((g: any) => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-slate-400">Quantity (Bricks)</Label>
+              <Input type="number" placeholder="e.g. 500" value={adjustForm.quantity} onChange={e => setAdjustForm({ ...adjustForm, quantity: e.target.value })} required />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-slate-400">Reason / Notes</Label>
+              <Input placeholder="e.g. Broken during yard transit" value={adjustForm.reason} onChange={e => setAdjustForm({ ...adjustForm, reason: e.target.value })} required />
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-2">
+              <Button type="button" variant="outline" onClick={() => setIsAdjustOpen(false)} className="border-slate-700 hover:bg-slate-800">Cancel</Button>
+              <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white font-bold">Commit Adjustment</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

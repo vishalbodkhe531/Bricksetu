@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Layers, Package, Users, Truck, Plus } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { apiRequest } from '../../shared/api/client';
 import { rupeesToPaise } from '../../shared/utils/formatters';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { PageHeader } from '../../shared/components/PageHeader';
 
 export const SettingsView: React.FC = () => {
   const [masterData, setMasterData] = useState<any>(null);
@@ -77,170 +82,190 @@ export const SettingsView: React.FC = () => {
   };
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Opening Balances & Settings</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Initial system setup, stock & party balance initialization, master lookup configuration</p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      {/* Page Header */}
+      <PageHeader
+        title="Opening Balances & Settings"
+        description="Initial system setup, stock & party balance initialization, master lookup configuration"
+        icon={<Settings className="size-5 sm:size-6" />}
+      />
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-        <button className={`btn ${activeTab === 'ob' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setActiveTab('ob')}>
+      <div className="flex items-center gap-2">
+        <Button 
+          size="sm"
+          variant={activeTab === 'ob' ? "default" : "outline"}
+          onClick={() => setActiveTab('ob')}
+          className={`font-semibold text-xs h-9 ${
+            activeTab === 'ob' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-slate-700 text-slate-300 hover:bg-slate-800'
+          }`}
+        >
           Opening Balance Setup Wizard
-        </button>
-        <button className={`btn ${activeTab === 'master' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setActiveTab('master')}>
+        </Button>
+        <Button 
+          size="sm"
+          variant={activeTab === 'master' ? "default" : "outline"}
+          onClick={() => setActiveTab('master')}
+          className={`font-semibold text-xs h-9 ${
+            activeTab === 'master' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-slate-700 text-slate-300 hover:bg-slate-800'
+          }`}
+        >
           Master Data Lookups
-        </button>
+        </Button>
       </div>
 
       {activeTab === 'ob' ? (
-        <div className="glass-card" style={{ padding: '24px', maxWidth: '650px' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '16px' }}>Record Initial Opening Balances</h3>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '20px' }}>
-            {[
-              { id: 'STOCK', label: 'Finished Stock Lot' },
-              { id: 'MATERIAL', label: 'Material Stock Lot' },
-              { id: 'CUSTOMER_RECEIVABLE', label: 'Customer Receivable' },
-              { id: 'SUPPLIER_PAYABLE', label: 'Supplier Payable' },
-            ].map(t => (
-              <button
-                key={t.id}
-                type="button"
-                className={`btn ${obType === t.id ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                onClick={() => { setObType(t.id as any); setObForm({}); }}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+        <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 max-w-2xl p-6">
+          <CardHeader className="p-0 pb-4">
+            <CardTitle className="text-lg font-bold text-white">Record Initial Opening Balances</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 space-y-4">
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'STOCK', label: 'Finished Stock Lot' },
+                { id: 'MATERIAL', label: 'Material Stock Lot' },
+                { id: 'CUSTOMER_RECEIVABLE', label: 'Customer Receivable' },
+                { id: 'SUPPLIER_PAYABLE', label: 'Supplier Payable' },
+              ].map(t => (
+                <Button
+                  key={t.id}
+                  type="button"
+                  size="sm"
+                  variant={obType === t.id ? "default" : "outline"}
+                  onClick={() => { setObType(t.id as any); setObForm({}); }}
+                  className={`text-xs font-semibold ${
+                    obType === t.id ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-slate-800 text-slate-400 hover:bg-slate-800/60'
+                  }`}
+                >
+                  {t.label}
+                </Button>
+              ))}
+            </div>
 
-          <form onSubmit={handleOpeningBalanceSubmit}>
-            {obType === 'STOCK' && (
-              <>
-                <div className="form-group">
-                  <label className="form-label">Brick Type</label>
-                  <select className="form-select" value={obForm.brick_type_id || ''} onChange={e => setObForm({ ...obForm, brick_type_id: e.target.value })} required>
-                    <option value="">-- Select Type --</option>
-                    {masterData?.brick_types.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Brick Grade</label>
-                  <select className="form-select" value={obForm.brick_grade_id || ''} onChange={e => setObForm({ ...obForm, brick_grade_id: e.target.value })} required>
-                    <option value="">-- Select Grade --</option>
-                    {masterData?.brick_grades.map((g: any) => <option key={g.id} value={g.id}>{g.name}</option>)}
-                  </select>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div className="form-group">
-                    <label className="form-label">Quantity</label>
-                    <input type="number" className="form-input" placeholder="e.g. 50000" value={obForm.quantity || ''} onChange={e => setObForm({ ...obForm, quantity: e.target.value })} required />
+            <form onSubmit={handleOpeningBalanceSubmit} className="space-y-4 pt-2">
+              {obType === 'STOCK' && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-400">Brick Type</Label>
+                    <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={obForm.brick_type_id || ''} onChange={e => setObForm({ ...obForm, brick_type_id: e.target.value })} required>
+                      <option value="">-- Select Type --</option>
+                      {masterData?.brick_types.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">Unit Cost (₹ / brick)</label>
-                    <input type="number" step="0.01" className="form-input" placeholder="e.g. 5.50" value={obForm.unit_cost || ''} onChange={e => setObForm({ ...obForm, unit_cost: e.target.value })} required />
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-400">Brick Grade</Label>
+                    <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={obForm.brick_grade_id || ''} onChange={e => setObForm({ ...obForm, brick_grade_id: e.target.value })} required>
+                      <option value="">-- Select Grade --</option>
+                      {masterData?.brick_grades.map((g: any) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                    </select>
                   </div>
-                </div>
-              </>
-            )}
-
-            {obType === 'MATERIAL' && (
-              <>
-                <div className="form-group">
-                  <label className="form-label">Material</label>
-                  <select className="form-select" value={obForm.material_id || ''} onChange={e => setObForm({ ...obForm, material_id: e.target.value })} required>
-                    <option value="">-- Select Material --</option>
-                    {materials.map(m => <option key={m.id} value={m.id}>{m.name} ({m.unit_code})</option>)}
-                  </select>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div className="form-group">
-                    <label className="form-label">Quantity</label>
-                    <input type="number" step="0.01" className="form-input" placeholder="e.g. 45.5" value={obForm.quantity || ''} onChange={e => setObForm({ ...obForm, quantity: e.target.value })} required />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-slate-400">Quantity</Label>
+                      <Input type="number" placeholder="e.g. 50000" value={obForm.quantity || ''} onChange={e => setObForm({ ...obForm, quantity: e.target.value })} required />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-slate-400">Unit Cost (₹ / brick)</Label>
+                      <Input type="number" step="0.01" placeholder="e.g. 5.50" value={obForm.unit_cost || ''} onChange={e => setObForm({ ...obForm, unit_cost: e.target.value })} required />
+                    </div>
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">Unit Cost (₹)</label>
-                    <input type="number" step="0.01" className="form-input" placeholder="e.g. 8500" value={obForm.unit_cost || ''} onChange={e => setObForm({ ...obForm, unit_cost: e.target.value })} required />
+                </>
+              )}
+
+              {obType === 'MATERIAL' && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-400">Material</Label>
+                    <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={obForm.material_id || ''} onChange={e => setObForm({ ...obForm, material_id: e.target.value })} required>
+                      <option value="">-- Select Material --</option>
+                      {materials.map(m => <option key={m.id} value={m.id}>{m.name} ({m.unit_code})</option>)}
+                    </select>
                   </div>
-                </div>
-              </>
-            )}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-slate-400">Quantity</Label>
+                      <Input type="number" step="0.01" placeholder="e.g. 45.5" value={obForm.quantity || ''} onChange={e => setObForm({ ...obForm, quantity: e.target.value })} required />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-slate-400">Unit Cost (₹)</Label>
+                      <Input type="number" step="0.01" placeholder="e.g. 8500" value={obForm.unit_cost || ''} onChange={e => setObForm({ ...obForm, unit_cost: e.target.value })} required />
+                    </div>
+                  </div>
+                </>
+              )}
 
-            {obType === 'CUSTOMER_RECEIVABLE' && (
-              <>
-                <div className="form-group">
-                  <label className="form-label">Customer</label>
-                  <select className="form-select" value={obForm.customer_id || ''} onChange={e => setObForm({ ...obForm, customer_id: e.target.value })} required>
-                    <option value="">-- Select Customer --</option>
-                    {customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Opening Receivable Amount (₹)</label>
-                  <input type="number" step="0.01" className="form-input" placeholder="e.g. 125000" value={obForm.amount || ''} onChange={e => setObForm({ ...obForm, amount: e.target.value })} required />
-                </div>
-              </>
-            )}
+              {obType === 'CUSTOMER_RECEIVABLE' && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-400">Customer</Label>
+                    <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={obForm.customer_id || ''} onChange={e => setObForm({ ...obForm, customer_id: e.target.value })} required>
+                      <option value="">-- Select Customer --</option>
+                      {customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-400">Opening Receivable Amount (₹)</Label>
+                    <Input type="number" step="0.01" placeholder="e.g. 125000" value={obForm.amount || ''} onChange={e => setObForm({ ...obForm, amount: e.target.value })} required />
+                  </div>
+                </>
+              )}
 
-            {obType === 'SUPPLIER_PAYABLE' && (
-              <>
-                <div className="form-group">
-                  <label className="form-label">Supplier</label>
-                  <select className="form-select" value={obForm.supplier_id || ''} onChange={e => setObForm({ ...obForm, supplier_id: e.target.value })} required>
-                    <option value="">-- Select Supplier --</option>
-                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Opening Payable Amount (₹)</label>
-                  <input type="number" step="0.01" className="form-input" placeholder="e.g. 75000" value={obForm.amount || ''} onChange={e => setObForm({ ...obForm, amount: e.target.value })} required />
-                </div>
-              </>
-            )}
+              {obType === 'SUPPLIER_PAYABLE' && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-400">Supplier</Label>
+                    <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={obForm.supplier_id || ''} onChange={e => setObForm({ ...obForm, supplier_id: e.target.value })} required>
+                      <option value="">-- Select Supplier --</option>
+                      {suppliers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-400">Opening Payable Amount (₹)</Label>
+                    <Input type="number" step="0.01" placeholder="e.g. 75000" value={obForm.amount || ''} onChange={e => setObForm({ ...obForm, amount: e.target.value })} required />
+                  </div>
+                </>
+              )}
 
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '16px' }}>
-              Commit Opening Balance Entry
-            </button>
-          </form>
-        </div>
+              <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold h-10 shadow-lg shadow-orange-500/20 mt-2">
+                Commit Opening Balance Entry
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-          <div className="glass-card" style={{ padding: '20px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '12px' }}>Brick Types</h3>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-4">
+            <h3 className="text-sm font-bold text-white mb-3">Brick Types</h3>
+            <ul className="space-y-2">
               {masterData?.brick_types.map((t: any) => (
-                <li key={t.id} style={{ padding: '10px', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-sm)', fontSize: '0.9rem' }}>
-                  <strong>{t.code}</strong> - {t.name}
+                <li key={t.id} className="p-2.5 bg-slate-800/50 rounded-lg text-xs text-slate-200 border border-slate-700/50">
+                  <strong className="text-orange-400 font-bold">{t.code}</strong> - {t.name}
                 </li>
               ))}
             </ul>
-          </div>
+          </Card>
 
-          <div className="glass-card" style={{ padding: '20px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '12px' }}>Brick Grades</h3>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-4">
+            <h3 className="text-sm font-bold text-white mb-3">Brick Grades</h3>
+            <ul className="space-y-2">
               {masterData?.brick_grades.map((g: any) => (
-                <li key={g.id} style={{ padding: '10px', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-sm)', fontSize: '0.9rem' }}>
-                  <strong>{g.code}</strong> - {g.name}
+                <li key={g.id} className="p-2.5 bg-slate-800/50 rounded-lg text-xs text-slate-200 border border-slate-700/50">
+                  <strong className="text-emerald-400 font-bold">{g.code}</strong> - {g.name}
                 </li>
               ))}
             </ul>
-          </div>
+          </Card>
 
-          <div className="glass-card" style={{ padding: '20px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '12px' }}>Expense Categories</h3>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <Card className="bg-slate-900/70 border-slate-800 backdrop-blur-xl shadow-md text-slate-100 p-4">
+            <h3 className="text-sm font-bold text-white mb-3">Expense Categories</h3>
+            <ul className="space-y-2">
               {masterData?.expense_categories.map((c: any) => (
-                <li key={c.id} style={{ padding: '10px', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-sm)', fontSize: '0.9rem' }}>
-                  <strong>{c.code}</strong> - {c.name}
+                <li key={c.id} className="p-2.5 bg-slate-800/50 rounded-lg text-xs text-slate-200 border border-slate-700/50">
+                  <strong className="text-purple-400 font-bold">{c.code}</strong> - {c.name}
                 </li>
               ))}
             </ul>
-          </div>
+          </Card>
         </div>
       )}
     </div>
