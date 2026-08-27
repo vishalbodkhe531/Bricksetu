@@ -48,7 +48,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, 
       label: 'Active Batches', value: data?.active_batches || 0, suffix: '',
       icon: Flame, color: 'orange',
       badge: 'In Production', desc: 'Active kiln rounds',
-      descIcon: <TrendingUp className="size-3 text-emerald-400" />,
+      descIcon: <TrendingUp className="size-3 text-emerald-500 dark:text-emerald-400" />,
     },
     {
       label: 'Finished Stock', value: (data?.finished_stock_total || 0).toLocaleString(), suffix: 'Bricks',
@@ -58,20 +58,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, 
     {
       label: 'Customer Receivables', value: formatINR(data?.customer_receivables_paise || 0), suffix: '',
       icon: ShoppingCart, color: 'blue',
-      desc: 'Pending customer collections', valueColor: 'text-blue-400',
+      desc: 'Pending customer collections', valueColor: 'text-blue-600 dark:text-blue-400',
     },
     {
       label: 'Supplier Payables', value: formatINR(data?.supplier_payables_paise || 0), suffix: '',
       icon: Wallet, color: 'rose',
-      desc: 'Outstanding vendor dues', valueColor: 'text-rose-400',
+      desc: 'Outstanding vendor dues', valueColor: 'text-rose-600 dark:text-rose-400',
     },
   ];
 
   const colorMap: Record<string, { iconBg: string; iconText: string; badgeBg: string; badgeBorder: string; badgeText: string }> = {
-    orange: { iconBg: 'bg-orange-500/10', iconText: 'text-orange-400', badgeBg: 'bg-orange-500/10', badgeBorder: 'border-orange-500/30', badgeText: 'text-orange-400' },
-    emerald: { iconBg: 'bg-emerald-500/10', iconText: 'text-emerald-400', badgeBg: 'bg-emerald-500/10', badgeBorder: 'border-emerald-500/30', badgeText: 'text-emerald-400' },
-    blue: { iconBg: 'bg-blue-500/10', iconText: 'text-blue-400', badgeBg: 'bg-blue-500/10', badgeBorder: 'border-blue-500/30', badgeText: 'text-blue-400' },
-    rose: { iconBg: 'bg-rose-500/10', iconText: 'text-rose-400', badgeBg: 'bg-rose-500/10', badgeBorder: 'border-rose-500/30', badgeText: 'text-rose-400' },
+    orange: { iconBg: 'bg-orange-500/10', iconText: 'text-orange-500 dark:text-orange-400', badgeBg: 'bg-orange-500/10', badgeBorder: 'border-orange-500/30', badgeText: 'text-orange-600 dark:text-orange-400' },
+    emerald: { iconBg: 'bg-emerald-500/10', iconText: 'text-emerald-500 dark:text-emerald-400', badgeBg: 'bg-emerald-500/10', badgeBorder: 'border-emerald-500/30', badgeText: 'text-emerald-600 dark:text-emerald-400' },
+    blue: { iconBg: 'bg-blue-500/10', iconText: 'text-blue-500 dark:text-blue-400', badgeBg: 'bg-blue-500/10', badgeBorder: 'border-blue-500/30', badgeText: 'text-blue-600 dark:text-blue-400' },
+    rose: { iconBg: 'bg-rose-500/10', iconText: 'text-rose-500 dark:text-rose-400', badgeBg: 'bg-rose-500/10', badgeBorder: 'border-rose-500/30', badgeText: 'text-rose-600 dark:text-rose-400' },
   };
 
   return (
@@ -83,7 +83,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, 
         actions={
           <Button 
             onClick={onOpenQuickEntry}
-            className="h-10 bg-orange-500 px-4 text-xs font-bold text-white shadow-lg shadow-orange-500/20 hover:bg-orange-600 sm:text-sm"
+            className="h-10 bg-orange-500 px-4 text-xs font-bold text-white shadow-md shadow-orange-500/20 hover:bg-orange-600 sm:text-sm border-0 cursor-pointer"
           >
             <Plus className="size-4" /> Quick Daily Entry
           </Button>
@@ -96,23 +96,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, 
           const Icon = kpi.icon;
           const colors = colorMap[kpi.color];
           return (
-            <Card key={idx} className="bg-slate-900/60 border-slate-800/60 backdrop-blur-sm shadow-sm text-slate-100 p-5 hover:border-slate-700/80 transition-colors">
+            <Card key={idx} className="bg-card border-border shadow-xs text-card-foreground p-5 hover:border-orange-500/30 transition-colors">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{kpi.label}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{kpi.label}</span>
                 <div className={`size-9 rounded-lg ${colors.iconBg} ${colors.iconText} flex items-center justify-center border border-current/20`}>
                   <Icon className="size-4" />
                 </div>
               </div>
               <div className="mt-3 flex items-baseline justify-between gap-2">
-                <span className={`text-2xl sm:text-3xl font-extrabold ${kpi.valueColor || 'text-white'} tracking-tight`}>{kpi.value}</span>
-                {kpi.suffix && <span className="text-[11px] text-slate-500 font-medium">{kpi.suffix}</span>}
+                <span className={`text-2xl sm:text-3xl font-extrabold ${kpi.valueColor || 'text-foreground'} tracking-tight`}>{kpi.value}</span>
+                {kpi.suffix && <span className="text-[11px] text-muted-foreground font-medium">{kpi.suffix}</span>}
                 {kpi.badge && (
                   <Badge variant="outline" className={`${colors.badgeBorder} ${colors.badgeText} ${colors.badgeBg} text-[10px] font-bold`}>
                     {kpi.badge}
                   </Badge>
                 )}
               </div>
-              <p className="text-[11px] text-slate-500 mt-2 flex items-center gap-1">
+              <p className="text-[11px] text-muted-foreground mt-2 flex items-center gap-1">
                 {kpi.descIcon} {kpi.desc}
               </p>
             </Card>
@@ -123,48 +123,48 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, 
       {/* Production & Sales Quick Nav Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Finished Stock Table Card */}
-        <Card className="lg:col-span-2 bg-slate-900/60 border-slate-800/60 backdrop-blur-sm shadow-sm text-slate-100 p-5">
+        <Card className="lg:col-span-2 bg-card border-border shadow-xs text-card-foreground p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-bold text-white">Finished Stock Ledger</h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">Current quantities ready in yard by grade</p>
+              <h3 className="text-sm font-bold text-foreground">Finished Stock Ledger</h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Current quantities ready in yard by grade</p>
             </div>
             <Button 
               variant="outline" 
               size="sm" 
               onClick={() => onNavigate('inventory')} 
-              className="text-xs border-slate-700/60 text-slate-400 hover:bg-slate-800 hover:text-white gap-1.5 h-8"
+              className="text-xs border-border text-foreground hover:bg-muted gap-1.5 h-8 cursor-pointer"
             >
               View Full Stock <ArrowRight className="size-3.5" />
             </Button>
           </div>
 
-          <div className="rounded-lg border border-slate-800/60 overflow-hidden">
+          <div className="rounded-lg border border-border overflow-hidden">
             <Table>
-              <TableHeader className="bg-slate-950/40">
-                <TableRow className="border-slate-800/60 hover:bg-transparent">
-                  <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Brick Type</TableHead>
-                  <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Grade</TableHead>
-                  <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide text-right">Available Qty</TableHead>
+              <TableHeader className="bg-muted/50">
+                <TableRow className="border-border hover:bg-transparent">
+                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Brick Type</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Grade</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide text-right">Available Qty</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data?.stock_breakdown?.length > 0 ? (
                   data.stock_breakdown.map((item: any, idx: number) => (
-                    <TableRow key={idx} className="border-slate-800/40 hover:bg-slate-800/30">
-                      <TableCell className="font-semibold text-slate-200 text-sm">{item.brick_type_name}</TableCell>
+                    <TableRow key={idx} className="border-border hover:bg-muted/40">
+                      <TableCell className="font-semibold text-foreground text-sm">{item.brick_type_name}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="border-amber-500/30 text-amber-400 bg-amber-500/10 text-[10px] font-bold">
+                        <Badge variant="outline" className="border-amber-500/30 text-amber-600 bg-amber-500/10 text-[10px] font-bold dark:text-amber-400">
                           {item.brick_grade_name}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right font-bold text-emerald-400 text-sm">
+                      <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400 text-sm">
                         {item.quantity.toLocaleString()} bricks
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
-                  <TableRow className="border-slate-800/40">
+                  <TableRow className="border-border">
                     <TableCell colSpan={3}>
                       <EmptyState 
                         title="No stock lots recorded" 
@@ -181,10 +181,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, 
         </Card>
 
         {/* Operational Modules Shortcut Card */}
-        <Card className="bg-slate-900/60 border-slate-800/60 backdrop-blur-sm shadow-sm text-slate-100 p-5 flex flex-col justify-between">
+        <Card className="bg-card border-border shadow-xs text-card-foreground p-5 flex flex-col justify-between">
           <div>
-            <h3 className="text-sm font-bold text-white mb-0.5">Quick Operational Modules</h3>
-            <p className="text-[11px] text-slate-500 mb-4">Direct access to daily workflow entry views</p>
+            <h3 className="text-sm font-bold text-foreground mb-0.5">Quick Operational Modules</h3>
+            <p className="text-[11px] text-muted-foreground mb-4">Direct access to daily workflow entry views</p>
 
             <div className="space-y-2">
               {[
@@ -199,18 +199,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, 
                   <button
                     key={m.tab}
                     onClick={() => onNavigate(m.tab)}
-                    className="w-full flex items-center justify-between border border-slate-800/50 bg-slate-950/30 hover:bg-slate-800/50 hover:border-slate-700/60 rounded-lg p-3 cursor-pointer transition-colors group"
+                    className="w-full flex items-center justify-between border border-border bg-muted/40 hover:bg-muted/80 hover:border-orange-500/40 rounded-lg p-3 cursor-pointer transition-colors group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="size-8 rounded-md bg-orange-500/10 text-orange-400 flex items-center justify-center shrink-0">
+                      <div className="size-8 rounded-md bg-orange-500/10 text-orange-500 dark:text-orange-400 flex items-center justify-center shrink-0">
                         <Icon className="size-4" />
                       </div>
                       <div className="text-left">
-                        <span className="text-xs font-semibold text-slate-200 block">{m.label}</span>
-                        <span className="text-[11px] text-slate-500 block">{m.desc}</span>
+                        <span className="text-xs font-semibold text-foreground block">{m.label}</span>
+                        <span className="text-[11px] text-muted-foreground block">{m.desc}</span>
                       </div>
                     </div>
-                    <ArrowRight className="size-4 text-slate-600 shrink-0 group-hover:text-slate-400 transition-colors" />
+                    <ArrowRight className="size-4 text-muted-foreground shrink-0 group-hover:text-foreground transition-colors" />
                   </button>
                 );
               })}

@@ -50,7 +50,7 @@ export const PaymentsView: React.FC = () => {
     } catch (err: any) { alert(err.message); }
   };
 
-  const tabClasses = (active: boolean) => `gap-1.5 font-semibold text-xs h-8 ${active ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-slate-700/60 text-slate-400 hover:bg-slate-800 hover:text-white'}`;
+  const tabClasses = (active: boolean) => `gap-1.5 font-semibold text-xs h-8 cursor-pointer ${active ? 'bg-orange-500 hover:bg-orange-600 text-white border-transparent' : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'}`;
 
   return (
     <div className="space-y-6">
@@ -62,38 +62,38 @@ export const PaymentsView: React.FC = () => {
       </div>
 
       {activeTab === 'payments' && (
-        <Card className="bg-slate-900/60 border-slate-800/60 backdrop-blur-sm shadow-sm text-slate-100 p-5">
-          <div className="rounded-lg border border-slate-800/60 overflow-x-auto">
+        <Card className="bg-card border-border shadow-xs text-card-foreground p-5">
+          <div className="rounded-lg border border-border overflow-x-auto">
             <Table>
-              <TableHeader className="bg-slate-950/40"><TableRow className="border-slate-800/60 hover:bg-transparent">
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Payment #</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Date</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Direction</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Party</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Amount</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Allocated</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Method</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Actions</TableHead>
+              <TableHeader className="bg-muted/50"><TableRow className="border-border hover:bg-transparent">
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Payment #</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Date</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Direction</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Party</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Amount</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Allocated</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Method</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Actions</TableHead>
               </TableRow></TableHeader>
               <TableBody>
                 {payments.length === 0 ? (<TableRow><TableCell colSpan={8}><EmptyState title="No payments recorded" /></TableCell></TableRow>) : payments.map((p) => {
                   const unallocatedPaise = BigInt(p.amount_paise) - BigInt(p.allocated_amount_paise);
                   return (
-                    <TableRow key={p.id} className="border-slate-800/40 hover:bg-slate-800/30">
-                      <TableCell className="font-semibold text-slate-200 text-sm">{p.payment_number}</TableCell>
-                      <TableCell className="text-sm text-slate-400">{p.payment_date}</TableCell>
+                    <TableRow key={p.id} className="border-border hover:bg-muted/40">
+                      <TableCell className="font-semibold text-foreground text-sm">{p.payment_number}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{p.payment_date}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={`${p.direction === 'INCOMING' ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10' : 'border-rose-500/30 text-rose-400 bg-rose-500/10'} text-[10px] font-bold gap-1`}>
+                        <Badge variant="outline" className={`${p.direction === 'INCOMING' ? 'border-emerald-500/30 text-emerald-600 bg-emerald-500/10 dark:text-emerald-400' : 'border-rose-500/30 text-rose-600 bg-rose-500/10 dark:text-rose-400'} text-[10px] font-bold gap-1`}>
                           {p.direction === 'INCOMING' ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />} {p.direction}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-slate-300 text-sm">{p.party_name} ({p.party_type})</TableCell>
-                      <TableCell className="font-bold text-white text-sm">{formatINR(p.amount_paise)}</TableCell>
-                      <TableCell className="text-sm text-slate-400">{formatINR(p.allocated_amount_paise)}</TableCell>
-                      <TableCell className="text-sm text-slate-500">{p.payment_method_name}</TableCell>
+                      <TableCell className="text-foreground text-sm">{p.party_name} ({p.party_type})</TableCell>
+                      <TableCell className="font-bold text-foreground text-sm">{formatINR(p.amount_paise)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{formatINR(p.allocated_amount_paise)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{p.payment_method_name}</TableCell>
                       <TableCell>
                         {unallocatedPaise > 0n && p.party_id && (
-                          <Button size="xs" variant="outline" onClick={() => openAllocationModal(p)} className="border-slate-700/60 text-slate-400 hover:bg-slate-800 hover:text-white text-[11px]">
+                          <Button size="xs" variant="outline" onClick={() => openAllocationModal(p)} className="border-border text-foreground hover:bg-muted text-[11px] cursor-pointer">
                             Allocate ({formatINR(unallocatedPaise.toString())})
                           </Button>
                         )}
@@ -108,26 +108,26 @@ export const PaymentsView: React.FC = () => {
       )}
 
       {activeTab === 'expenses' && (
-        <Card className="bg-slate-900/60 border-slate-800/60 backdrop-blur-sm shadow-sm text-slate-100 p-5">
-          <div className="rounded-lg border border-slate-800/60 overflow-x-auto">
+        <Card className="bg-card border-border shadow-xs text-card-foreground p-5">
+          <div className="rounded-lg border border-border overflow-x-auto">
             <Table>
-              <TableHeader className="bg-slate-950/40"><TableRow className="border-slate-800/60 hover:bg-transparent">
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Date</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Category</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Payee Name</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Batch</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Amount</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Payment Method</TableHead>
+              <TableHeader className="bg-muted/50"><TableRow className="border-border hover:bg-transparent">
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Date</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Category</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Payee Name</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Batch</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Amount</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Payment Method</TableHead>
               </TableRow></TableHeader>
               <TableBody>
                 {expenses.length === 0 ? (<TableRow><TableCell colSpan={6}><EmptyState title="No expenses recorded" /></TableCell></TableRow>) : expenses.map((e) => (
-                  <TableRow key={e.id} className="border-slate-800/40 hover:bg-slate-800/30">
-                    <TableCell className="text-sm text-slate-400">{e.expense_date}</TableCell>
-                    <TableCell><Badge variant="outline" className="border-purple-500/30 text-purple-400 bg-purple-500/10 text-[10px] font-bold">{e.category_name}</Badge></TableCell>
-                    <TableCell className="text-slate-300 text-sm">{e.payee_name || '-'}</TableCell>
-                    <TableCell className="text-sm text-slate-500">{e.batch_number || 'General Overhead'}</TableCell>
-                    <TableCell className="font-bold text-white text-sm">{formatINR(e.amount_paise)}</TableCell>
-                    <TableCell className="text-sm text-slate-500">{e.payment_method_name}</TableCell>
+                  <TableRow key={e.id} className="border-border hover:bg-muted/40">
+                    <TableCell className="text-sm text-muted-foreground">{e.expense_date}</TableCell>
+                    <TableCell><Badge variant="outline" className="border-purple-500/30 text-purple-600 bg-purple-500/10 text-[10px] font-bold dark:text-purple-400">{e.category_name}</Badge></TableCell>
+                    <TableCell className="text-foreground text-sm">{e.payee_name || '-'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{e.batch_number || 'General Overhead'}</TableCell>
+                    <TableCell className="font-bold text-foreground text-sm">{formatINR(e.amount_paise)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{e.payment_method_name}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -137,31 +137,31 @@ export const PaymentsView: React.FC = () => {
       )}
 
       <Dialog open={isAllocateOpen} onOpenChange={setIsAllocateOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 sm:max-w-[500px]">
+        <DialogContent className="bg-card border-border text-card-foreground sm:max-w-[500px]">
           {selectedPayment && (
             <>
-              <DialogHeader><DialogTitle className="text-lg font-bold text-white">Allocate Payment {selectedPayment.payment_number}</DialogTitle></DialogHeader>
-              <p className="text-xs text-slate-400">
-                Unallocated Amount: <strong className="text-emerald-400">{formatINR((BigInt(selectedPayment.amount_paise) - BigInt(selectedPayment.allocated_amount_paise)).toString())}</strong>
+              <DialogHeader><DialogTitle className="text-lg font-bold text-foreground">Allocate Payment {selectedPayment.payment_number}</DialogTitle></DialogHeader>
+              <p className="text-xs text-muted-foreground">
+                Unallocated Amount: <strong className="text-emerald-600 dark:text-emerald-400">{formatINR((BigInt(selectedPayment.amount_paise) - BigInt(selectedPayment.allocated_amount_paise)).toString())}</strong>
               </p>
               <form onSubmit={handleAllocationSubmit} className="space-y-4 mt-2">
                 <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wide">Open Unpaid Charges</h4>
+                  <h4 className="text-xs font-bold text-foreground uppercase tracking-wide">Open Unpaid Charges</h4>
                   {unpaidCharges.length === 0 ? (
-                    <p className="text-xs text-slate-500 py-2">No open unpaid charges found for this party.</p>
+                    <p className="text-xs text-muted-foreground py-2">No open unpaid charges found for this party.</p>
                   ) : unpaidCharges.map(chg => (
-                    <div key={chg.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-800/40 border border-slate-700/40 gap-3">
+                    <div key={chg.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border gap-3">
                       <div className="flex-1">
-                        <strong className="text-xs text-slate-200 font-semibold block">{chg.description}</strong>
-                        <p className="text-[11px] text-slate-500 mt-0.5">Date: {chg.charge_date} | Due: {formatINR(chg.remaining_unpaid_paise)}</p>
+                        <strong className="text-xs text-foreground font-semibold block">{chg.description}</strong>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Date: {chg.charge_date} | Due: {formatINR(chg.remaining_unpaid_paise)}</p>
                       </div>
-                      <Input type="number" step="0.01" placeholder="0.00" value={allocationsForm[chg.id] || ''} onChange={e => setAllocationsForm({ ...allocationsForm, [chg.id]: e.target.value })} className="w-28 text-right bg-slate-950/40 border-slate-700/60 text-sm" />
+                      <Input type="number" step="0.01" placeholder="0.00" value={allocationsForm[chg.id] || ''} onChange={e => setAllocationsForm({ ...allocationsForm, [chg.id]: e.target.value })} className="w-28 text-right bg-muted/30 border-border text-sm" />
                     </div>
                   ))}
                 </div>
-                <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-800/40">
-                  <Button type="button" variant="outline" onClick={() => setIsAllocateOpen(false)} className="border-slate-700 hover:bg-slate-800 text-slate-300">Cancel</Button>
-                  <Button type="submit" disabled={unpaidCharges.length === 0} className="bg-orange-500 hover:bg-orange-600 text-white font-semibold">Save Allocation</Button>
+                <div className="flex justify-end gap-2.5 pt-3 border-t border-border">
+                  <Button type="button" variant="outline" onClick={() => setIsAllocateOpen(false)} className="border-border hover:bg-muted text-foreground cursor-pointer">Cancel</Button>
+                  <Button type="submit" disabled={unpaidCharges.length === 0} className="bg-orange-500 hover:bg-orange-600 text-white font-semibold cursor-pointer">Save Allocation</Button>
                 </div>
               </form>
             </>

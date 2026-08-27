@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from './ThemeToggle';
 
 interface SidebarProps {
   currentTab: string;
@@ -47,8 +48,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, user,
         aria-current={isActive ? 'page' : undefined}
         className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 cursor-pointer group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/70 ${
           isActive
-            ? 'bg-orange-500/10 text-orange-400 font-semibold'
-            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            ? 'bg-orange-500/10 text-orange-500 font-semibold dark:text-orange-400'
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
         }`}
       >
         {isActive && (
@@ -61,15 +62,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, user,
   };
 
   return (
-    <aside className={cn('flex h-full min-w-0 flex-col bg-slate-950 text-slate-100', className)}>
+    <aside className={cn('flex h-full min-w-0 flex-col bg-card text-card-foreground border-r border-border', className)}>
       {/* Brand Header */}
-      <div className="px-5 py-5 border-b border-slate-800/60 flex items-center gap-3">
-        <div className="size-9 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center text-white text-sm font-extrabold shadow-lg shadow-orange-500/20 shrink-0">
+      <div className="px-5 py-5 border-b border-border flex items-center gap-3">
+        <div className="size-9 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center text-white text-sm font-extrabold shadow-md shadow-orange-500/20 shrink-0">
           BS
         </div>
         <div className="min-w-0">
-          <h2 className="text-[15px] font-extrabold text-white tracking-tight truncate">BrickSetu</h2>
-          <Badge variant="outline" className="text-orange-400 border-orange-500/25 bg-orange-500/5 text-[10px] uppercase font-bold py-0 h-4 mt-0.5">
+          <h2 className="text-[15px] font-extrabold text-foreground tracking-tight truncate">BrickSetu</h2>
+          <Badge variant="outline" className="text-orange-500 border-orange-500/25 bg-orange-500/10 text-[10px] uppercase font-bold py-0 h-4 mt-0.5 dark:text-orange-400">
             {user?.business_unit_name || 'Main Kiln'}
           </Badge>
         </div>
@@ -87,8 +88,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, user,
       </nav>
 
       {/* User Footer */}
-      <div className="px-4 py-4 border-t border-slate-800/60">
-        <div className="flex items-center gap-2.5 mb-3">
+      <div className="px-4 py-4 border-t border-slate-800/60 space-y-2">
+        <div className="flex items-center gap-2.5">
           <Avatar className="size-8 border border-slate-700/60 bg-slate-800">
             <AvatarFallback className="bg-slate-800 text-slate-400 text-xs">
               <ShieldCheck className="size-3.5" />
@@ -99,14 +100,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, user,
             <p className="text-[11px] text-slate-500">Administrator</p>
           </div>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={onLogout} 
-          className="w-full gap-2 border-slate-800 hover:bg-slate-800/80 text-slate-400 hover:text-slate-200 text-xs h-8"
-        >
-          <LogOut className="size-3.5" /> Sign Out
-        </Button>
+        <div className="flex items-center gap-2 pt-1">
+          <ThemeToggle variant="outline" showLabel className="flex-1 justify-center h-8" />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onLogout} 
+            className="gap-1.5 border-slate-800 hover:bg-slate-800/80 text-slate-400 hover:text-slate-200 text-xs h-8 cursor-pointer"
+            title="Sign Out"
+          >
+            <LogOut className="size-3.5" /> Sign Out
+          </Button>
+        </div>
       </div>
     </aside>
   );

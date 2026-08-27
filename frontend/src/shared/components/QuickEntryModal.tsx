@@ -170,13 +170,13 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClos
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[560px] bg-slate-900 border-slate-800 text-slate-100">
+      <DialogContent className="sm:max-w-[560px] bg-card border-border text-card-foreground">
         <DialogHeader className="pb-2">
-          <DialogTitle className="text-lg font-bold tracking-tight text-white">Quick Daily Entry</DialogTitle>
+          <DialogTitle className="text-lg font-bold tracking-tight text-foreground">Quick Daily Entry</DialogTitle>
         </DialogHeader>
 
         {/* Action Tabs */}
-        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-2 border-b border-slate-800/60">
+        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-2 border-b border-border">
           {[
             { id: 'moulding', label: 'Moulding', icon: Flame },
             { id: 'purchase', label: 'Purchase', icon: Package },
@@ -193,10 +193,10 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClos
                 type="button"
                 size="sm"
                 variant={active ? "default" : "outline"}
-                className={`gap-1.5 text-xs font-semibold shrink-0 ${
+                className={`gap-1.5 text-xs font-semibold shrink-0 cursor-pointer ${
                   active 
                     ? 'bg-orange-500 hover:bg-orange-600 text-white border-transparent' 
-                    : 'bg-transparent border-slate-700/60 text-slate-400 hover:bg-slate-800 hover:text-white'
+                    : 'bg-transparent border-border text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
                 onClick={() => { setActiveTab(t.id as any); setError(''); }}
               >

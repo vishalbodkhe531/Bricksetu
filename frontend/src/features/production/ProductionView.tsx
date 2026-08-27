@@ -110,43 +110,43 @@ export const ProductionView: React.FC = () => {
         }
       />
 
-      <Card className="bg-slate-900/60 border-slate-800/60 backdrop-blur-sm shadow-sm text-slate-100 p-5">
+      <Card className="bg-card border-border shadow-xs text-card-foreground p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-white">Active Production Batches</h3>
-          <span className="text-[11px] text-slate-500">Total: {batches.length}</span>
+          <h3 className="text-sm font-bold text-foreground">Active Production Batches</h3>
+          <span className="text-[11px] text-muted-foreground">Total: {batches.length}</span>
         </div>
 
-        <div className="rounded-lg border border-slate-800/60 overflow-x-auto">
+        <div className="rounded-lg border border-border overflow-x-auto">
           <Table>
-            <TableHeader className="bg-slate-950/40">
-              <TableRow className="border-slate-800/60 hover:bg-transparent">
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Batch #</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Brick Type</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Current Stage</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Moulded Qty</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Fired Good Qty</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Status</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide text-right">Actions</TableHead>
+            <TableHeader className="bg-muted/50">
+              <TableRow className="border-border hover:bg-transparent">
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Batch #</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Brick Type</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Current Stage</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Moulded Qty</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Fired Good Qty</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Status</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {batches.length === 0 ? (
                 <TableRow><TableCell colSpan={7}><EmptyState title="No batches created" description="Start a new batch to begin production tracking." actionLabel="Start Batch" onAction={() => setIsCreateOpen(true)} /></TableCell></TableRow>
               ) : batches.map((b) => (
-                <TableRow key={b.id} className="border-slate-800/40 hover:bg-slate-800/30">
-                  <TableCell className="font-semibold text-slate-200 text-sm">{b.batch_number}</TableCell>
-                  <TableCell className="text-slate-300 text-sm">{b.brick_type_name}</TableCell>
+                <TableRow key={b.id} className="border-border hover:bg-muted/40">
+                  <TableCell className="font-semibold text-foreground text-sm">{b.batch_number}</TableCell>
+                  <TableCell className="text-foreground text-sm">{b.brick_type_name}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="border-orange-500/30 text-orange-400 bg-orange-500/10 text-[10px] font-bold">{b.current_stage}</Badge>
+                    <Badge variant="outline" className="border-orange-500/30 text-orange-600 bg-orange-500/10 text-[10px] font-bold dark:text-orange-400">{b.current_stage}</Badge>
                   </TableCell>
-                  <TableCell className="text-sm text-slate-400">{b.moulded_quantity?.toLocaleString() || '-'}</TableCell>
-                  <TableCell className="text-sm text-emerald-400 font-medium">{b.fired_good_quantity?.toLocaleString() || '-'}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{b.moulded_quantity?.toLocaleString() || '-'}</TableCell>
+                  <TableCell className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">{b.fired_good_quantity?.toLocaleString() || '-'}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={`${b.status === 'COMPLETED' ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10' : 'border-amber-500/30 text-amber-400 bg-amber-500/10'} text-[10px] font-bold`}>{b.status}</Badge>
+                    <Badge variant="outline" className={`${b.status === 'COMPLETED' ? 'border-emerald-500/30 text-emerald-600 bg-emerald-500/10 dark:text-emerald-400' : 'border-amber-500/30 text-amber-600 bg-amber-500/10 dark:text-amber-400'} text-[10px] font-bold`}>{b.status}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     {b.status === 'IN_PROGRESS' && (
-                      <Button size="xs" onClick={() => openTransitionModal(b)} className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/25 gap-1 text-[11px] font-semibold">
+                      <Button size="xs" onClick={() => openTransitionModal(b)} className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/25 gap-1 text-[11px] font-semibold cursor-pointer">
                         Transition <ChevronRight className="size-3" />
                       </Button>
                     )}
@@ -160,15 +160,15 @@ export const ProductionView: React.FC = () => {
 
       {/* Start New Batch Modal */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 sm:max-w-[480px]">
-          <DialogHeader><DialogTitle className="text-lg font-bold text-white">Start New Brick Batch</DialogTitle></DialogHeader>
+        <DialogContent className="bg-card border-border text-card-foreground sm:max-w-[480px]">
+          <DialogHeader><DialogTitle className="text-lg font-bold text-foreground">Start New Brick Batch</DialogTitle></DialogHeader>
           <form onSubmit={handleCreateBatch} className="space-y-4">
             <div className="space-y-1.5">
-              <Label className="text-slate-400 text-xs">Batch Number / Identifier</Label>
-              <Input placeholder="e.g. BATCH-2026-08-A" value={createForm.batch_number || ''} onChange={e => setCreateForm({ ...createForm, batch_number: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
+              <Label className="text-muted-foreground text-xs">Batch Number / Identifier</Label>
+              <Input placeholder="e.g. BATCH-2026-08-A" value={createForm.batch_number || ''} onChange={e => setCreateForm({ ...createForm, batch_number: e.target.value })} required className="bg-muted/30 border-border" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-slate-400 text-xs">Brick Type</Label>
+              <Label className="text-muted-foreground text-xs">Brick Type</Label>
               <FormSelect value={createForm.brick_type_id || ''} onChange={e => setCreateForm({ ...createForm, brick_type_id: e.target.value })} required>
                 <option value="">-- Select Brick Type --</option>
                 {masterData?.brick_types?.map((t: any) => (<option key={t.id} value={t.id}>{t.name} ({t.code})</option>))}
@@ -176,17 +176,17 @@ export const ProductionView: React.FC = () => {
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label className="text-slate-400 text-xs">Moulding Start Date</Label>
-                <Input type="date" value={createForm.start_date || new Date().toISOString().split('T')[0]} onChange={e => setCreateForm({ ...createForm, start_date: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
+                <Label className="text-muted-foreground text-xs">Moulding Start Date</Label>
+                <Input type="date" value={createForm.start_date || new Date().toISOString().split('T')[0]} onChange={e => setCreateForm({ ...createForm, start_date: e.target.value })} required className="bg-muted/30 border-border" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-slate-400 text-xs">Target Quantity</Label>
-                <Input type="number" placeholder="e.g. 100000" value={createForm.target_quantity || ''} onChange={e => setCreateForm({ ...createForm, target_quantity: e.target.value })} className="bg-slate-950/40 border-slate-700/60" />
+                <Label className="text-muted-foreground text-xs">Target Quantity</Label>
+                <Input type="number" placeholder="e.g. 100000" value={createForm.target_quantity || ''} onChange={e => setCreateForm({ ...createForm, target_quantity: e.target.value })} className="bg-muted/30 border-border" />
               </div>
             </div>
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-800/40">
-              <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} className="border-slate-700 hover:bg-slate-800 text-slate-300">Cancel</Button>
-              <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white font-semibold">Initialize Batch</Button>
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-border">
+              <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} className="border-border hover:bg-muted text-foreground cursor-pointer">Cancel</Button>
+              <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white font-semibold cursor-pointer">Initialize Batch</Button>
             </div>
           </form>
         </DialogContent>
@@ -194,46 +194,46 @@ export const ProductionView: React.FC = () => {
 
       {/* Transition Stage Modal */}
       <Dialog open={isTransitionOpen} onOpenChange={setIsTransitionOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 sm:max-w-[480px]">
-          <DialogHeader><DialogTitle className="text-lg font-bold text-white">Stage Transition: {selectedBatch?.batch_number}</DialogTitle></DialogHeader>
+        <DialogContent className="bg-card border-border text-card-foreground sm:max-w-[480px]">
+          <DialogHeader><DialogTitle className="text-lg font-bold text-foreground">Stage Transition: {selectedBatch?.batch_number}</DialogTitle></DialogHeader>
           <form onSubmit={handleTransitionSubmit} className="space-y-4">
-            <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/40 flex items-center justify-between text-xs">
-              <span className="text-slate-400">Current: <strong className="text-slate-200">{transitionForm.from_stage}</strong></span>
-              <ArrowRight className="size-4 text-orange-400" />
-              <span className="text-slate-400">Next: <strong className="text-orange-400 font-bold">{transitionForm.to_stage}</strong></span>
+            <div className="p-3 rounded-lg bg-muted/60 border border-border flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Current: <strong className="text-foreground">{transitionForm.from_stage}</strong></span>
+              <ArrowRight className="size-4 text-orange-500 dark:text-orange-400" />
+              <span className="text-muted-foreground">Next: <strong className="text-orange-500 dark:text-orange-400 font-bold">{transitionForm.to_stage}</strong></span>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label className="text-slate-400 text-xs">Transition Date</Label>
-                <Input type="date" value={transitionForm.transition_date} onChange={e => setTransitionForm({ ...transitionForm, transition_date: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
+                <Label className="text-muted-foreground text-xs">Transition Date</Label>
+                <Input type="date" value={transitionForm.transition_date} onChange={e => setTransitionForm({ ...transitionForm, transition_date: e.target.value })} required className="bg-muted/30 border-border" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-slate-400 text-xs">Input Qty</Label>
-                <Input type="number" value={transitionForm.input_quantity} onChange={e => setTransitionForm({ ...transitionForm, input_quantity: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
+                <Label className="text-muted-foreground text-xs">Input Qty</Label>
+                <Input type="number" value={transitionForm.input_quantity} onChange={e => setTransitionForm({ ...transitionForm, input_quantity: e.target.value })} required className="bg-muted/30 border-border" />
               </div>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label className="text-slate-400 text-xs">Good Output Qty</Label>
-                <Input type="number" value={transitionForm.good_quantity} onChange={e => setTransitionForm({ ...transitionForm, good_quantity: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
+                <Label className="text-muted-foreground text-xs">Good Output Qty</Label>
+                <Input type="number" value={transitionForm.good_quantity} onChange={e => setTransitionForm({ ...transitionForm, good_quantity: e.target.value })} required className="bg-muted/30 border-border" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-slate-400 text-xs">Damaged / Wastage Qty</Label>
-                <Input type="number" value={transitionForm.damaged_quantity} onChange={e => setTransitionForm({ ...transitionForm, damaged_quantity: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
+                <Label className="text-muted-foreground text-xs">Damaged / Wastage Qty</Label>
+                <Input type="number" value={transitionForm.damaged_quantity} onChange={e => setTransitionForm({ ...transitionForm, damaged_quantity: e.target.value })} required className="bg-muted/30 border-border" />
               </div>
             </div>
             {transitionForm.to_stage === 'UNLOADING' && (
               <div className="space-y-1.5">
-                <Label className="text-slate-400 text-xs">Finished Output Grade</Label>
+                <Label className="text-muted-foreground text-xs">Finished Output Grade</Label>
                 <FormSelect value={transitionForm.output_grade_id || ''} onChange={e => setTransitionForm({ ...transitionForm, output_grade_id: e.target.value })} required>
                   <option value="">-- Select Grade --</option>
                   {masterData?.brick_grades?.map((g: any) => (<option key={g.id} value={g.id}>{g.name} ({g.code})</option>))}
                 </FormSelect>
               </div>
             )}
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-800/40">
-              <Button type="button" variant="outline" onClick={() => setIsTransitionOpen(false)} className="border-slate-700 hover:bg-slate-800 text-slate-300">Cancel</Button>
-              <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white font-semibold">Record Transition</Button>
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-border">
+              <Button type="button" variant="outline" onClick={() => setIsTransitionOpen(false)} className="border-border hover:bg-muted text-foreground cursor-pointer">Cancel</Button>
+              <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white font-semibold cursor-pointer">Record Transition</Button>
             </div>
           </form>
         </DialogContent>

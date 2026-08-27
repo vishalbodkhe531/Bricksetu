@@ -54,7 +54,7 @@ export const InventoryView: React.FC = () => {
     } catch (err: any) { alert(err.message); }
   };
 
-  const tabClasses = (active: boolean) => `gap-1.5 font-semibold text-xs h-8 ${active ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-slate-700/60 text-slate-400 hover:bg-slate-800 hover:text-white'}`;
+  const tabClasses = (active: boolean) => `gap-1.5 font-semibold text-xs h-8 cursor-pointer ${active ? 'bg-orange-500 hover:bg-orange-600 text-white border-transparent' : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'}`;
 
   return (
     <div className="space-y-6">
@@ -63,7 +63,7 @@ export const InventoryView: React.FC = () => {
         description="Monitor ready brick quantities by type & grade, audit movements, and record adjustments"
         icon={<Layers className="size-5 sm:size-6" />}
         actions={
-          <Button onClick={() => setIsAdjustOpen(true)} className="bg-orange-500 hover:bg-orange-600 text-white font-bold gap-2 h-10 px-4 shadow-lg shadow-orange-500/20 text-xs sm:text-sm">
+          <Button onClick={() => setIsAdjustOpen(true)} className="bg-orange-500 hover:bg-orange-600 text-white font-bold gap-2 h-10 px-4 shadow-md shadow-orange-500/20 text-xs sm:text-sm border-0 cursor-pointer">
             <Plus className="size-4" /> Stock Adjustment
           </Button>
         }
@@ -79,28 +79,28 @@ export const InventoryView: React.FC = () => {
       </div>
 
       {activeTab === 'lots' && (
-        <Card className="bg-slate-900/60 border-slate-800/60 backdrop-blur-sm shadow-sm text-slate-100 p-5">
-          <div className="rounded-lg border border-slate-800/60 overflow-x-auto">
+        <Card className="bg-card border-border shadow-xs text-card-foreground p-5">
+          <div className="rounded-lg border border-border overflow-x-auto">
             <Table>
-              <TableHeader className="bg-slate-950/40">
-                <TableRow className="border-slate-800/60 hover:bg-transparent">
-                  <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Brick Type</TableHead>
-                  <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Grade</TableHead>
-                  <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Available Quantity</TableHead>
-                  <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Avg Unit Cost</TableHead>
-                  <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Status</TableHead>
+              <TableHeader className="bg-muted/50">
+                <TableRow className="border-border hover:bg-transparent">
+                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Brick Type</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Grade</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Available Quantity</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Avg Unit Cost</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {stockLots.length === 0 ? (
                   <TableRow><TableCell colSpan={5}><EmptyState title="No stock lots" description="Stock will appear after batch unloading or opening balance setup." /></TableCell></TableRow>
                 ) : stockLots.map((lot) => (
-                  <TableRow key={lot.id} className="border-slate-800/40 hover:bg-slate-800/30">
-                    <TableCell className="font-semibold text-slate-200 text-sm">{lot.brick_type_name}</TableCell>
-                    <TableCell><Badge variant="outline" className="border-amber-500/30 text-amber-400 bg-amber-500/10 text-[10px] font-bold">{lot.brick_grade_name}</Badge></TableCell>
-                    <TableCell className="font-bold text-emerald-400 text-sm">{lot.current_quantity?.toLocaleString()} bricks</TableCell>
-                    <TableCell className="text-sm text-slate-400">₹{(lot.avg_unit_cost_paise / 100).toFixed(2)} / brick</TableCell>
-                    <TableCell><Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 text-[10px] font-bold">IN_STOCK</Badge></TableCell>
+                  <TableRow key={lot.id} className="border-border hover:bg-muted/40">
+                    <TableCell className="font-semibold text-foreground text-sm">{lot.brick_type_name}</TableCell>
+                    <TableCell><Badge variant="outline" className="border-amber-500/30 text-amber-600 bg-amber-500/10 text-[10px] font-bold dark:text-amber-400">{lot.brick_grade_name}</Badge></TableCell>
+                    <TableCell className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">{lot.current_quantity?.toLocaleString()} bricks</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">₹{(lot.avg_unit_cost_paise / 100).toFixed(2)} / brick</TableCell>
+                    <TableCell><Badge variant="outline" className="border-emerald-500/30 text-emerald-600 bg-emerald-500/10 text-[10px] font-bold dark:text-emerald-400">IN_STOCK</Badge></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -110,32 +110,32 @@ export const InventoryView: React.FC = () => {
       )}
 
       {activeTab === 'ledger' && (
-        <Card className="bg-slate-900/60 border-slate-800/60 backdrop-blur-sm shadow-sm text-slate-100 p-5">
-          <div className="rounded-lg border border-slate-800/60 overflow-x-auto">
+        <Card className="bg-card border-border shadow-xs text-card-foreground p-5">
+          <div className="rounded-lg border border-border overflow-x-auto">
             <Table>
-              <TableHeader className="bg-slate-950/40">
-                <TableRow className="border-slate-800/60 hover:bg-transparent">
-                  <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Date</TableHead>
-                  <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Type</TableHead>
-                  <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Brick Type & Grade</TableHead>
-                  <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Qty Change</TableHead>
-                  <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Balance After</TableHead>
-                  <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Reason / Reference</TableHead>
+              <TableHeader className="bg-muted/50">
+                <TableRow className="border-border hover:bg-transparent">
+                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Date</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Type</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Brick Type & Grade</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Qty Change</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Balance After</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Reason / Reference</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {ledger.length === 0 ? (
                   <TableRow><TableCell colSpan={6}><EmptyState title="No ledger entries" description="Stock movements will appear here as transactions occur." /></TableCell></TableRow>
                 ) : ledger.map((item) => (
-                  <TableRow key={item.id} className="border-slate-800/40 hover:bg-slate-800/30">
-                    <TableCell className="text-sm text-slate-400">{item.transaction_date}</TableCell>
-                    <TableCell><Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10 text-[10px] font-bold">{item.transaction_type}</Badge></TableCell>
-                    <TableCell className="text-slate-300 text-sm">{item.brick_type_name} ({item.brick_grade_name})</TableCell>
-                    <TableCell className={`font-bold text-sm ${item.quantity_change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  <TableRow key={item.id} className="border-border hover:bg-muted/40">
+                    <TableCell className="text-sm text-muted-foreground">{item.transaction_date}</TableCell>
+                    <TableCell><Badge variant="outline" className="border-blue-500/30 text-blue-600 bg-blue-500/10 text-[10px] font-bold dark:text-blue-400">{item.transaction_type}</Badge></TableCell>
+                    <TableCell className="text-foreground text-sm">{item.brick_type_name} ({item.brick_grade_name})</TableCell>
+                    <TableCell className={`font-bold text-sm ${item.quantity_change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                       {item.quantity_change > 0 ? `+${item.quantity_change.toLocaleString()}` : item.quantity_change.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-sm text-slate-300 font-semibold">{item.balance_after?.toLocaleString()}</TableCell>
-                    <TableCell className="text-sm text-slate-500">{item.reason || '-'}</TableCell>
+                    <TableCell className="text-sm text-foreground font-semibold">{item.balance_after?.toLocaleString()}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{item.reason || '-'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -145,11 +145,11 @@ export const InventoryView: React.FC = () => {
       )}
 
       <Dialog open={isAdjustOpen} onOpenChange={setIsAdjustOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 sm:max-w-[480px]">
-          <DialogHeader><DialogTitle className="text-lg font-bold text-white">Record Stock Adjustment</DialogTitle></DialogHeader>
+        <DialogContent className="bg-card border-border text-card-foreground sm:max-w-[480px]">
+          <DialogHeader><DialogTitle className="text-lg font-bold text-foreground">Record Stock Adjustment</DialogTitle></DialogHeader>
           <form onSubmit={handleAdjustmentSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label className="text-slate-400 text-xs">Adjustment Type</Label>
+              <Label className="text-muted-foreground text-xs">Adjustment Type</Label>
               <FormSelect value={adjustForm.adjustment_type} onChange={e => setAdjustForm({ ...adjustForm, adjustment_type: e.target.value })} required>
                 <option value="DAMAGE">Damage / Breakage (-)</option>
                 <option value="CORRECTION_MINUS">Inventory Audit Correction (-)</option>
@@ -157,30 +157,30 @@ export const InventoryView: React.FC = () => {
               </FormSelect>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-slate-400 text-xs">Brick Type</Label>
+              <Label className="text-muted-foreground text-xs">Brick Type</Label>
               <FormSelect value={adjustForm.brick_type_id || ''} onChange={e => setAdjustForm({ ...adjustForm, brick_type_id: e.target.value })} required>
                 <option value="">-- Select Type --</option>
                 {masterData?.brick_types?.map((t: any) => (<option key={t.id} value={t.id}>{t.name}</option>))}
               </FormSelect>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-slate-400 text-xs">Brick Grade</Label>
+              <Label className="text-muted-foreground text-xs">Brick Grade</Label>
               <FormSelect value={adjustForm.brick_grade_id || ''} onChange={e => setAdjustForm({ ...adjustForm, brick_grade_id: e.target.value })} required>
                 <option value="">-- Select Grade --</option>
                 {masterData?.brick_grades?.map((g: any) => (<option key={g.id} value={g.id}>{g.name}</option>))}
               </FormSelect>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-slate-400 text-xs">Quantity (Bricks)</Label>
-              <Input type="number" placeholder="e.g. 500" value={adjustForm.quantity} onChange={e => setAdjustForm({ ...adjustForm, quantity: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
+              <Label className="text-muted-foreground text-xs">Quantity (Bricks)</Label>
+              <Input type="number" placeholder="e.g. 500" value={adjustForm.quantity} onChange={e => setAdjustForm({ ...adjustForm, quantity: e.target.value })} required className="bg-muted/30 border-border" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-slate-400 text-xs">Reason / Notes</Label>
-              <Input placeholder="e.g. Broken during yard transit" value={adjustForm.reason} onChange={e => setAdjustForm({ ...adjustForm, reason: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
+              <Label className="text-muted-foreground text-xs">Reason / Notes</Label>
+              <Input placeholder="e.g. Broken during yard transit" value={adjustForm.reason} onChange={e => setAdjustForm({ ...adjustForm, reason: e.target.value })} required className="bg-muted/30 border-border" />
             </div>
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-800/40">
-              <Button type="button" variant="outline" onClick={() => setIsAdjustOpen(false)} className="border-slate-700 hover:bg-slate-800 text-slate-300">Cancel</Button>
-              <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white font-semibold">Commit Adjustment</Button>
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-border">
+              <Button type="button" variant="outline" onClick={() => setIsAdjustOpen(false)} className="border-border hover:bg-muted text-foreground cursor-pointer">Cancel</Button>
+              <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white font-semibold cursor-pointer">Commit Adjustment</Button>
             </div>
           </form>
         </DialogContent>

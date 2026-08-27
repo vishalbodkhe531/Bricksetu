@@ -41,7 +41,7 @@ export const MaterialsView: React.FC = () => {
     } catch (err: any) { alert(err.message); }
   };
 
-  const tabClasses = (active: boolean) => `gap-1.5 font-semibold text-xs h-8 ${active ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-slate-700/60 text-slate-400 hover:bg-slate-800 hover:text-white'}`;
+  const tabClasses = (active: boolean) => `gap-1.5 font-semibold text-xs h-8 cursor-pointer ${active ? 'bg-orange-500 hover:bg-orange-600 text-white border-transparent' : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'}`;
 
   return (
     <div className="space-y-6">
@@ -50,7 +50,7 @@ export const MaterialsView: React.FC = () => {
         description="Coal, soil, sawdust, and firewood inventory, supplier accounts, and purchase logs"
         icon={<Package className="size-5 sm:size-6" />}
         actions={
-          <Button onClick={() => setIsAddSupplierOpen(true)} className="bg-orange-500 hover:bg-orange-600 text-white font-bold gap-2 h-10 px-4 shadow-lg shadow-orange-500/20 text-xs sm:text-sm">
+          <Button onClick={() => setIsAddSupplierOpen(true)} className="bg-orange-500 hover:bg-orange-600 text-white font-bold gap-2 h-10 px-4 shadow-md shadow-orange-500/20 text-xs sm:text-sm border-0 cursor-pointer">
             <Plus className="size-4" /> Add Supplier
           </Button>
         }
@@ -63,24 +63,24 @@ export const MaterialsView: React.FC = () => {
       </div>
 
       {activeTab === 'materials' && (
-        <Card className="bg-slate-900/60 border-slate-800/60 backdrop-blur-sm shadow-sm text-slate-100 p-5">
-          <div className="rounded-lg border border-slate-800/60 overflow-x-auto">
+        <Card className="bg-card border-border shadow-xs text-card-foreground p-5">
+          <div className="rounded-lg border border-border overflow-x-auto">
             <Table>
-              <TableHeader className="bg-slate-950/40"><TableRow className="border-slate-800/60 hover:bg-transparent">
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Material Name</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Unit</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Current Stock</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Reorder Threshold</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Status</TableHead>
+              <TableHeader className="bg-muted/50"><TableRow className="border-border hover:bg-transparent">
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Material Name</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Unit</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Current Stock</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Reorder Threshold</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Status</TableHead>
               </TableRow></TableHeader>
               <TableBody>
                 {materials.length === 0 ? (<TableRow><TableCell colSpan={5}><EmptyState title="No materials configured" /></TableCell></TableRow>) : materials.map((m) => (
-                  <TableRow key={m.id} className="border-slate-800/40 hover:bg-slate-800/30">
-                    <TableCell className="font-semibold text-slate-200 text-sm">{m.name}</TableCell>
-                    <TableCell className="text-slate-400 text-sm font-medium">{m.unit_code}</TableCell>
-                    <TableCell className="font-bold text-emerald-400 text-sm">{m.current_stock?.toLocaleString()} {m.unit_code}</TableCell>
-                    <TableCell className="text-sm text-slate-500">{m.reorder_threshold ? `${m.reorder_threshold} ${m.unit_code}` : '-'}</TableCell>
-                    <TableCell><Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 text-[10px] font-bold">NORMAL</Badge></TableCell>
+                  <TableRow key={m.id} className="border-border hover:bg-muted/40">
+                    <TableCell className="font-semibold text-foreground text-sm">{m.name}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm font-medium">{m.unit_code}</TableCell>
+                    <TableCell className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">{m.current_stock?.toLocaleString()} {m.unit_code}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{m.reorder_threshold ? `${m.reorder_threshold} ${m.unit_code}` : '-'}</TableCell>
+                    <TableCell><Badge variant="outline" className="border-emerald-500/30 text-emerald-600 bg-emerald-500/10 text-[10px] font-bold dark:text-emerald-400">NORMAL</Badge></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -90,22 +90,22 @@ export const MaterialsView: React.FC = () => {
       )}
 
       {activeTab === 'suppliers' && (
-        <Card className="bg-slate-900/60 border-slate-800/60 backdrop-blur-sm shadow-sm text-slate-100 p-5">
-          <div className="rounded-lg border border-slate-800/60 overflow-x-auto">
+        <Card className="bg-card border-border shadow-xs text-card-foreground p-5">
+          <div className="rounded-lg border border-border overflow-x-auto">
             <Table>
-              <TableHeader className="bg-slate-950/40"><TableRow className="border-slate-800/60 hover:bg-transparent">
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Supplier Code</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Supplier Name</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Phone</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Outstanding Payables</TableHead>
+              <TableHeader className="bg-muted/50"><TableRow className="border-border hover:bg-transparent">
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Supplier Code</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Supplier Name</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Phone</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Outstanding Payables</TableHead>
               </TableRow></TableHeader>
               <TableBody>
                 {suppliers.length === 0 ? (<TableRow><TableCell colSpan={4}><EmptyState title="No suppliers added" actionLabel="Add Supplier" onAction={() => setIsAddSupplierOpen(true)} /></TableCell></TableRow>) : suppliers.map((s) => (
-                  <TableRow key={s.id} className="border-slate-800/40 hover:bg-slate-800/30">
-                    <TableCell className="font-semibold text-slate-200 text-sm">{s.code}</TableCell>
-                    <TableCell className="text-slate-300 text-sm">{s.name}</TableCell>
-                    <TableCell className="text-sm text-slate-500">{s.phone || '-'}</TableCell>
-                    <TableCell className="font-bold text-rose-400 text-sm">{formatINR(s.payable_balance_paise)}</TableCell>
+                  <TableRow key={s.id} className="border-border hover:bg-muted/40">
+                    <TableCell className="font-semibold text-foreground text-sm">{s.code}</TableCell>
+                    <TableCell className="text-foreground text-sm">{s.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{s.phone || '-'}</TableCell>
+                    <TableCell className="font-bold text-rose-600 dark:text-rose-400 text-sm">{formatINR(s.payable_balance_paise)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -115,26 +115,26 @@ export const MaterialsView: React.FC = () => {
       )}
 
       {activeTab === 'purchases' && (
-        <Card className="bg-slate-900/60 border-slate-800/60 backdrop-blur-sm shadow-sm text-slate-100 p-5">
-          <div className="rounded-lg border border-slate-800/60 overflow-x-auto">
+        <Card className="bg-card border-border shadow-xs text-card-foreground p-5">
+          <div className="rounded-lg border border-border overflow-x-auto">
             <Table>
-              <TableHeader className="bg-slate-950/40"><TableRow className="border-slate-800/60 hover:bg-transparent">
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Purchase #</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Date</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Supplier</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Material</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Quantity</TableHead>
-                <TableHead className="text-slate-500 font-semibold uppercase text-[11px] tracking-wide">Total Amount</TableHead>
+              <TableHeader className="bg-muted/50"><TableRow className="border-border hover:bg-transparent">
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Purchase #</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Date</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Supplier</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Material</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Quantity</TableHead>
+                <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Total Amount</TableHead>
               </TableRow></TableHeader>
               <TableBody>
                 {purchases.length === 0 ? (<TableRow><TableCell colSpan={6}><EmptyState title="No purchases recorded" /></TableCell></TableRow>) : purchases.map((p) => (
-                  <TableRow key={p.id} className="border-slate-800/40 hover:bg-slate-800/30">
-                    <TableCell className="font-semibold text-slate-200 text-sm">{p.purchase_number}</TableCell>
-                    <TableCell className="text-sm text-slate-400">{p.purchase_date}</TableCell>
-                    <TableCell className="text-slate-300 text-sm">{p.supplier_name}</TableCell>
-                    <TableCell className="text-slate-400 text-sm">{p.material_name}</TableCell>
-                    <TableCell className="text-sm text-slate-300 font-semibold">{p.quantity} {p.unit_code}</TableCell>
-                    <TableCell className="font-bold text-white text-sm">{formatINR(p.total_amount_paise)}</TableCell>
+                  <TableRow key={p.id} className="border-border hover:bg-muted/40">
+                    <TableCell className="font-semibold text-foreground text-sm">{p.purchase_number}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{p.purchase_date}</TableCell>
+                    <TableCell className="text-foreground text-sm">{p.supplier_name}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{p.material_name}</TableCell>
+                    <TableCell className="text-sm text-foreground font-semibold">{p.quantity} {p.unit_code}</TableCell>
+                    <TableCell className="font-bold text-foreground text-sm">{formatINR(p.total_amount_paise)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -144,15 +144,15 @@ export const MaterialsView: React.FC = () => {
       )}
 
       <Dialog open={isAddSupplierOpen} onOpenChange={setIsAddSupplierOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 sm:max-w-[480px]">
-          <DialogHeader><DialogTitle className="text-lg font-bold text-white">Add Supplier</DialogTitle></DialogHeader>
+        <DialogContent className="bg-card border-border text-card-foreground sm:max-w-[480px]">
+          <DialogHeader><DialogTitle className="text-lg font-bold text-foreground">Add Supplier</DialogTitle></DialogHeader>
           <form onSubmit={handleCreateSupplier} className="space-y-4">
-            <div className="space-y-1.5"><Label className="text-slate-400 text-xs">Supplier Code</Label><Input placeholder="e.g. SUPP-001" value={supplierForm.code || ''} onChange={e => setSupplierForm({ ...supplierForm, code: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" /></div>
-            <div className="space-y-1.5"><Label className="text-slate-400 text-xs">Supplier Name</Label><Input placeholder="e.g. Bharat Coal Traders" value={supplierForm.name || ''} onChange={e => setSupplierForm({ ...supplierForm, name: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" /></div>
-            <div className="space-y-1.5"><Label className="text-slate-400 text-xs">Phone</Label><Input placeholder="e.g. +91 9876543210" value={supplierForm.phone || ''} onChange={e => setSupplierForm({ ...supplierForm, phone: e.target.value })} className="bg-slate-950/40 border-slate-700/60" /></div>
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-800/40">
-              <Button type="button" variant="outline" onClick={() => setIsAddSupplierOpen(false)} className="border-slate-700 hover:bg-slate-800 text-slate-300">Cancel</Button>
-              <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white font-semibold">Save Supplier</Button>
+            <div className="space-y-1.5"><Label className="text-muted-foreground text-xs">Supplier Code</Label><Input placeholder="e.g. SUPP-001" value={supplierForm.code || ''} onChange={e => setSupplierForm({ ...supplierForm, code: e.target.value })} required className="bg-muted/30 border-border" /></div>
+            <div className="space-y-1.5"><Label className="text-muted-foreground text-xs">Supplier Name</Label><Input placeholder="e.g. Bharat Coal Traders" value={supplierForm.name || ''} onChange={e => setSupplierForm({ ...supplierForm, name: e.target.value })} required className="bg-muted/30 border-border" /></div>
+            <div className="space-y-1.5"><Label className="text-muted-foreground text-xs">Phone</Label><Input placeholder="e.g. +91 9876543210" value={supplierForm.phone || ''} onChange={e => setSupplierForm({ ...supplierForm, phone: e.target.value })} className="bg-muted/30 border-border" /></div>
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-border">
+              <Button type="button" variant="outline" onClick={() => setIsAddSupplierOpen(false)} className="border-border hover:bg-muted text-foreground cursor-pointer">Cancel</Button>
+              <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white font-semibold cursor-pointer">Save Supplier</Button>
             </div>
           </form>
         </DialogContent>

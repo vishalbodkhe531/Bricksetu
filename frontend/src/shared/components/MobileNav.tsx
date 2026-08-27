@@ -10,11 +10,11 @@ interface MobileNavProps {
 
 export const MobileNav: React.FC<MobileNavProps> = ({ currentTab, onSelectTab, onOpenQuickEntry }) => {
   const itemClass = (isActive: boolean) => `flex min-w-12 flex-col items-center gap-1 rounded-lg px-1 py-1 text-[10px] font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:outline-none ${
-    isActive ? 'text-orange-400' : 'text-slate-500 hover:text-slate-200'
+    isActive ? 'text-orange-500 dark:text-orange-400' : 'text-muted-foreground hover:text-foreground'
   }`;
 
   return (
-    <nav aria-label="Primary navigation" className="fixed inset-x-0 bottom-0 z-40 flex h-[4.5rem] items-center justify-around border-t border-slate-800/80 bg-slate-950/90 px-2 pb-1 shadow-[0_-12px_30px_rgba(2,6,23,0.24)] backdrop-blur-xl lg:hidden">
+    <nav aria-label="Primary navigation" className="fixed inset-x-0 bottom-0 z-40 flex h-[4.5rem] items-center justify-around border-t border-border bg-card/95 px-2 pb-1 shadow-lg backdrop-blur-xl lg:hidden text-card-foreground">
       <button type="button" aria-label="Dashboard" aria-current={currentTab === 'dashboard' ? 'page' : undefined} className={itemClass(currentTab === 'dashboard')} onClick={() => onSelectTab('dashboard')}>
         <LayoutDashboard size={20} strokeWidth={currentTab === 'dashboard' ? 2.5 : 1.8} />
         Home

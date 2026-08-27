@@ -66,7 +66,7 @@ export function App() {
       contentKey={refreshKey}
       sidebar={
         <Sidebar
-          className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-slate-800/80 bg-slate-950/90 shadow-2xl shadow-slate-950/30 backdrop-blur-xl lg:flex"
+          className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-border bg-card shadow-xl backdrop-blur-xl lg:flex"
           currentTab={currentTab}
           onSelectTab={(tab) => setCurrentTab(tab)}
           user={user}
