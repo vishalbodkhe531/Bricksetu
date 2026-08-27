@@ -1,27 +1,15 @@
 import { useState } from 'react';
 import { Flame, Menu, Plus } from 'lucide-react';
-
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Sidebar } from './Sidebar';
 import { ThemeToggle } from './ThemeToggle';
+import { useAppDispatch } from '@/store/hooks';
+import { openQuickEntry } from '@/store/slices/uiSlice';
 
-interface MobileHeaderProps {
-  currentTab: string;
-  onSelectTab: (tab: string) => void;
-  onOpenQuickEntry: () => void;
-  user: any;
-  onLogout: () => void;
-}
-
-export function MobileHeader({
-  currentTab,
-  onSelectTab,
-  onOpenQuickEntry,
-  user,
-  onLogout,
-}: MobileHeaderProps) {
+export function MobileHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const dispatch = useAppDispatch();
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card/90 px-4 backdrop-blur-xl lg:hidden text-card-foreground">
@@ -37,13 +25,7 @@ export function MobileHeader({
         </SheetTrigger>
         <SheetContent side="left" className="p-0 border-border">
           <SheetTitle className="sr-only">Workspace navigation</SheetTitle>
-          <Sidebar
-            currentTab={currentTab}
-            onSelectTab={onSelectTab}
-            user={user}
-            onLogout={onLogout}
-            onNavigate={() => setIsMenuOpen(false)}
-          />
+          <Sidebar onNavigate={() => setIsMenuOpen(false)} />
         </SheetContent>
       </Sheet>
 
@@ -59,7 +41,7 @@ export function MobileHeader({
         <Button
           type="button"
           size="sm"
-          onClick={onOpenQuickEntry}
+          onClick={() => dispatch(openQuickEntry())}
           className="bg-orange-500 px-2.5 text-white shadow-md shadow-orange-500/20 hover:bg-orange-600 border-0 cursor-pointer"
         >
           <Plus className="size-4" />

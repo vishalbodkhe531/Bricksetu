@@ -12,29 +12,43 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FormSelect } from '@/components/ui/form-select';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { closeQuickEntry, triggerRefresh } from '@/store/slices/uiSlice';
+import { fetchMasterData } from '@/store/slices/masterDataSlice';
 
 interface QuickEntryModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+  onSuccess?: () => void;
 }
 
-export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClose, onSuccess }) => {
+export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({
+  isOpen: propsIsOpen,
+  onClose: propsOnClose,
+  onSuccess: propsOnSuccess,
+}) => {
+  const dispatch = useAppDispatch();
+  const reduxIsOpen = useAppSelector((state) => state.ui.isQuickEntryOpen);
+  const isOpen = propsIsOpen !== undefined ? propsIsOpen : reduxIsOpen;
+
+  const masterData = useAppSelector((state) => state.masterData);
+  const {
+    batches,
+    workers,
+    suppliers,
+    materials,
+    customers,
+    brickTypes,
+    brickGrades,
+    paymentMethods,
+    expenseCategories,
+    vehicles,
+    lastFetched,
+  } = masterData;
+
   const [activeTab, setActiveTab] = useState<'moulding' | 'purchase' | 'sale' | 'payment' | 'expense' | 'trip'>('moulding');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // Master Data State
-  const [batches, setBatches] = useState<any[]>([]);
-  const [workers, setWorkers] = useState<any[]>([]);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [materials, setMaterials] = useState<any[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [brickTypes, setBrickTypes] = useState<any[]>([]);
-  const [brickGrades, setBrickGrades] = useState<any[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
-  const [expenseCategories, setExpenseCategories] = useState<any[]>([]);
-  const [vehicles, setVehicles] = useState<any[]>([]);
 
   // Form Fields
   const [form, setForm] = useState<any>({
@@ -42,36 +56,27 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClos
   });
 
   useEffect(() => {
-    if (isOpen) {
-      loadMasterData();
+    if (isOpen && !lastFetched) {
+      dispatch(fetchMasterData());
     }
-  }, [isOpen]);
+  }, [isOpen, lastFetched, dispatch]);
 
-  async function loadMasterData() {
-    try {
-      const [b, w, s, m, c, master, v] = await Promise.all([
-        apiRequest('/batches'),
-        apiRequest('/workers'),
-        apiRequest('/suppliers'),
-        apiRequest('/materials'),
-        apiRequest('/customers'),
-        apiRequest('/settings/master-data'),
-        apiRequest('/transport/vehicles'),
-      ]);
-      setBatches(b.filter((item: any) => item.stage === 'MOULDING' && item.status === 'IN_PROGRESS'));
-      setWorkers(w.filter((item: any) => item.is_active));
-      setSuppliers(s.filter((item: any) => item.is_active));
-      setMaterials(m.filter((item: any) => item.is_active));
-      setCustomers(c.filter((item: any) => item.is_active));
-      setBrickTypes(master.brick_types);
-      setBrickGrades(master.brick_grades);
-      setPaymentMethods(master.payment_methods);
-      setExpenseCategories(master.expense_categories);
-      setVehicles(v);
-    } catch (err: any) {
-      console.error(err);
+  const handleClose = () => {
+    if (propsOnClose) {
+      propsOnClose();
+    } else {
+      dispatch(closeQuickEntry());
     }
-  }
+  };
+
+  const handleSuccess = () => {
+    if (propsOnSuccess) {
+      propsOnSuccess();
+    } else {
+      dispatch(triggerRefresh());
+      dispatch(closeQuickEntry());
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,8 +164,8 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClos
         });
       }
 
-      onSuccess();
-      onClose();
+      handleSuccess();
+      handleClose();
     } catch (err: any) {
       setError(err.message || 'Operation failed.');
     } finally {
@@ -169,7 +174,7 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClos
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-[560px] bg-card border-border text-card-foreground">
         <DialogHeader className="pb-2">
           <DialogTitle className="text-lg font-bold tracking-tight text-foreground">Quick Daily Entry</DialogTitle>
@@ -404,7 +409,7 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClos
           </div>
 
           <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-800/40">
-            <Button type="button" variant="outline" onClick={onClose} className="border-slate-700 hover:bg-slate-800 text-slate-300">
+            <Button type="button" variant="outline" onClick={handleClose} className="border-slate-700 hover:bg-slate-800 text-slate-300">
               Cancel
             </Button>
             <Button type="submit" disabled={loading} className="bg-orange-500 hover:bg-orange-600 text-white font-semibold min-w-[120px]">

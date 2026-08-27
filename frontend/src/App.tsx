@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Sidebar } from './shared/components/Sidebar';
 import { MobileHeader } from './shared/components/MobileHeader';
@@ -15,40 +15,20 @@ import { PaymentsView } from './features/payments/PaymentsView';
 import { TransportView } from './features/transport/TransportView';
 import { SettingsView } from './features/settings/SettingsView';
 import { ReportsView } from './features/reports/ReportsView';
-import { apiRequest } from './shared/api/client';
 import { LoadingSpinner } from './shared/components/LoadingSpinner';
 
+import { useAppDispatch, useAppSelector } from './store/hooks';
+import { fetchCurrentUser, setUser } from './store/slices/authSlice';
+
 export function App() {
-  const [user, setUser] = useState<any>(null);
-  const [loadingAuth, setLoadingAuth] = useState(true);
-  const [currentTab, setCurrentTab] = useState('dashboard');
-  const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const dispatch = useAppDispatch();
+
+  const { user, loading: loadingAuth } = useAppSelector((state) => state.auth);
+  const { currentTab, isSidebarCollapsed, refreshKey } = useAppSelector((state) => state.ui);
 
   useEffect(() => {
-    checkAuth();
-  }, []);
-
-  async function checkAuth() {
-    try {
-      const u = await apiRequest('/auth/me');
-      setUser(u);
-    } catch (err) {
-      setUser(null);
-    } finally {
-      setLoadingAuth(false);
-    }
-  }
-
-  const handleLogout = async () => {
-    try {
-      await apiRequest('/auth/logout', { method: 'POST' });
-    } catch (err) {
-      console.error(err);
-    }
-    setUser(null);
-  };
+    dispatch(fetchCurrentUser());
+  }, [dispatch]);
 
   if (loadingAuth) {
     return (
@@ -59,7 +39,7 @@ export function App() {
   }
 
   if (!user) {
-    return <LoginView onLoginSuccess={(u) => setUser(u)} />;
+    return <LoginView onLoginSuccess={(u) => dispatch(setUser(u))} />;
   }
 
   return (
@@ -71,32 +51,12 @@ export function App() {
           className={`fixed inset-y-0 left-0 z-40 hidden border-r border-border bg-card shadow-lg transition-all duration-300 lg:flex ${
             isSidebarCollapsed ? 'w-20' : 'w-64'
           }`}
-          currentTab={currentTab}
-          onSelectTab={(tab) => setCurrentTab(tab)}
-          user={user}
-          onLogout={handleLogout}
-          isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         />
       }
-      mobileHeader={
-        <MobileHeader
-          currentTab={currentTab}
-          onSelectTab={(tab) => setCurrentTab(tab)}
-          onOpenQuickEntry={() => setIsQuickEntryOpen(true)}
-          user={user}
-          onLogout={handleLogout}
-        />
-      }
-      mobileNavigation={
-        <MobileNav
-          currentTab={currentTab}
-          onSelectTab={(tab) => setCurrentTab(tab)}
-          onOpenQuickEntry={() => setIsQuickEntryOpen(true)}
-        />
-      }
+      mobileHeader={<MobileHeader />}
+      mobileNavigation={<MobileNav />}
     >
-      {currentTab === 'dashboard' && <DashboardView onOpenQuickEntry={() => setIsQuickEntryOpen(true)} onNavigate={(t) => setCurrentTab(t)} />}
+      {currentTab === 'dashboard' && <DashboardView />}
       {currentTab === 'production' && <ProductionView />}
       {currentTab === 'inventory' && <InventoryView />}
       {currentTab === 'workers' && <WorkersView />}
@@ -106,11 +66,7 @@ export function App() {
       {currentTab === 'transport' && <TransportView />}
       {currentTab === 'reports' && <ReportsView />}
       {currentTab === 'settings' && <SettingsView />}
-      <QuickEntryModal
-        isOpen={isQuickEntryOpen}
-        onClose={() => setIsQuickEntryOpen(false)}
-        onSuccess={() => setRefreshKey(prev => prev + 1)}
-      />
+      <QuickEntryModal />
     </AppLayout>
   );
 }

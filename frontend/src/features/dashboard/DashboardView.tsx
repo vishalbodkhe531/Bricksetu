@@ -15,14 +15,37 @@ import { PageHeader } from '../../shared/components/PageHeader';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { EmptyState } from '../../shared/components/EmptyState';
 
+import { useAppDispatch } from '@/store/hooks';
+import { setCurrentTab, openQuickEntry } from '@/store/slices/uiSlice';
+
 interface DashboardViewProps {
-  onOpenQuickEntry: () => void;
-  onNavigate: (tab: string) => void;
+  onOpenQuickEntry?: () => void;
+  onNavigate?: (tab: string) => void;
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, onNavigate }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({
+  onOpenQuickEntry: propsOnOpenQuickEntry,
+  onNavigate: propsOnNavigate,
+}) => {
+  const dispatch = useAppDispatch();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const handleNavigate = (tab: string) => {
+    if (propsOnNavigate) {
+      propsOnNavigate(tab);
+    } else {
+      dispatch(setCurrentTab(tab));
+    }
+  };
+
+  const handleOpenQuickEntry = () => {
+    if (propsOnOpenQuickEntry) {
+      propsOnOpenQuickEntry();
+    } else {
+      dispatch(openQuickEntry());
+    }
+  };
 
   useEffect(() => {
     loadDashboardData();
@@ -82,7 +105,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, 
         icon={<LayoutDashboard className="size-5 sm:size-6" />}
         actions={
           <Button 
-            onClick={onOpenQuickEntry}
+            onClick={handleOpenQuickEntry}
             className="h-10 bg-orange-500 px-4 text-xs font-bold text-white shadow-md shadow-orange-500/20 hover:bg-orange-600 sm:text-sm border-0 cursor-pointer"
           >
             <Plus className="size-4" /> Quick Daily Entry
@@ -132,7 +155,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, 
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => onNavigate('inventory')} 
+              onClick={() => handleNavigate('inventory')} 
               className="text-xs border-border text-foreground hover:bg-muted gap-1.5 h-8 px-3 cursor-pointer"
             >
               View Full Stock <ArrowRight className="size-3.5" />
@@ -170,7 +193,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, 
                         title="No stock lots recorded" 
                         description="Use Quick Entry to log initial stock."
                         actionLabel="Quick Entry"
-                        onAction={onOpenQuickEntry}
+                        onAction={handleOpenQuickEntry}
                       />
                     </TableCell>
                   </TableRow>
@@ -198,7 +221,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, 
                 return (
                   <button
                     key={m.tab}
-                    onClick={() => onNavigate(m.tab)}
+                    onClick={() => handleNavigate(m.tab)}
                     className="w-full flex items-center justify-between border border-border bg-muted/30 hover:bg-muted/70 hover:border-orange-500/40 rounded-lg p-2.5 cursor-pointer transition-colors group"
                   >
                     <div className="flex items-center gap-2.5">

@@ -5,29 +5,38 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '../context/themeContext';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { setCurrentTab, toggleSidebarCollapse } from '@/store/slices/uiSlice';
+import { logoutUser } from '@/store/slices/authSlice';
 
 interface SidebarProps {
-  currentTab: string;
-  onSelectTab: (tab: string) => void;
-  user: any;
-  onLogout: () => void;
   className?: string;
   onNavigate?: () => void;
-  isCollapsed?: boolean;
-  onToggleCollapse?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
-  currentTab, 
-  onSelectTab, 
-  user, 
-  onLogout, 
   className, 
-  onNavigate,
-  isCollapsed = false,
-  onToggleCollapse
+  onNavigate
 }) => {
+  const dispatch = useAppDispatch();
   const { theme, toggleTheme } = useTheme();
+  
+  const user = useAppSelector((state) => state.auth.user);
+  const currentTab = useAppSelector((state) => state.ui.currentTab);
+  const isCollapsed = useAppSelector((state) => state.ui.isSidebarCollapsed);
+
+  const handleSelectTab = (tabId: string) => {
+    dispatch(setCurrentTab(tabId));
+    onNavigate?.();
+  };
+
+  const handleLogout = () => {
+    dispatch(logoutUser());
+  };
+
+  const handleToggleCollapse = () => {
+    dispatch(toggleSidebarCollapse());
+  };
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -61,17 +70,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        {/* Toggle Collapse Button - Fits neatly inside header */}
-        {onToggleCollapse && (
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            className="size-7 rounded-lg bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer shrink-0"
-            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          >
-            {isCollapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
-          </button>
-        )}
+        {/* Toggle Collapse Button */}
+        <button
+          type="button"
+          onClick={handleToggleCollapse}
+          className="size-7 rounded-lg bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer shrink-0"
+          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          {isCollapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+        </button>
       </div>
 
       {/* Navigation List */}
@@ -84,10 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             return (
               <button
                 key={item.id}
-                onClick={() => {
-                  onSelectTab(item.id);
-                  onNavigate?.();
-                }}
+                onClick={() => handleSelectTab(item.id)}
                 title={item.label}
                 className={`size-9 rounded-xl flex items-center justify-center mx-auto transition-all cursor-pointer ${
                   isActive
@@ -103,10 +107,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           return (
             <button
               key={item.id}
-              onClick={() => {
-                onSelectTab(item.id);
-                onNavigate?.();
-              }}
+              onClick={() => handleSelectTab(item.id)}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all duration-150 cursor-pointer ${
                 isActive
                   ? 'bg-orange-500 text-white font-semibold shadow-md shadow-orange-500/25'
@@ -120,14 +121,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </nav>
 
-      {/* Footer Controls: Logout & Theme Switch in 1 row 2 columns at bottom */}
+      {/* Footer Controls: Logout & Theme Switch */}
       <div className="p-2 border-t border-border">
         {!isCollapsed ? (
           <div className="grid grid-cols-2 gap-1.5">
             {/* Logout Button */}
             <button
               type="button"
-              onClick={onLogout}
+              onClick={handleLogout}
               className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted border border-border/40 transition-colors cursor-pointer"
               title="Sign Out"
             >
@@ -160,7 +161,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* Collapsed Logout Button */}
             <button
               type="button"
-              onClick={onLogout}
+              onClick={handleLogout}
               title="Logout"
               className="size-9 rounded-xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-all cursor-pointer"
             >
