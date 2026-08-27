@@ -12,6 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FormSelect } from '@/components/ui/form-select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '../../shared/components/PageHeader';
 import { EmptyState } from '../../shared/components/EmptyState';
 
@@ -96,7 +97,10 @@ export const ReportsView: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Reports & Audit Analytics" description="Filterable operational reports, batch costing, party ledgers, and printable statements" icon={<FileText className="size-5 sm:size-6" />}
+      <PageHeader
+        title="Reports & Audit Analytics"
+        description="Filterable operational reports, batch costing, party ledgers, and printable statements"
+        icon={<FileText className="size-5 sm:size-6" />}
         actions={
           <div className="flex flex-wrap items-center gap-2 no-print">
             <Button variant="outline" onClick={() => window.print()} className="border-border text-foreground hover:bg-muted gap-1.5 h-10 px-3.5 text-xs sm:text-sm cursor-pointer"><Printer className="size-4" /> Print</Button>
@@ -105,14 +109,15 @@ export const ReportsView: React.FC = () => {
         }
       />
 
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 no-print">
-        {reportTabs.map(r => (
-          <Button key={r.id} size="sm" variant={reportType === r.id ? "default" : "outline"} onClick={() => setReportType(r.id)}
-            className={`whitespace-nowrap font-semibold text-xs h-8 cursor-pointer ${reportType === r.id ? 'bg-orange-500 hover:bg-orange-600 text-white border-transparent' : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-            {r.label}
-          </Button>
-        ))}
-      </div>
+      <Tabs value={reportType} onValueChange={setReportType} className="no-print">
+        <TabsList className="bg-muted p-1 rounded-xl flex flex-wrap h-auto overflow-x-auto">
+          {reportTabs.map(r => (
+            <TabsTrigger key={r.id} value={r.id} className="text-xs font-semibold px-3 py-1.5 rounded-lg cursor-pointer">
+              {r.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {/* Filters */}
       <Card className="bg-card border-border shadow-xs text-card-foreground p-4 no-print">
@@ -121,10 +126,10 @@ export const ReportsView: React.FC = () => {
           <strong className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Filter Parameters</strong>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="space-y-1"><Label className="text-muted-foreground text-xs">Start Date</Label><Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-muted/30 border-border" /></div>
-          <div className="space-y-1"><Label className="text-muted-foreground text-xs">End Date</Label><Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-muted/30 border-border" /></div>
+          <div className="space-y-1"><Label className="text-muted-foreground text-xs font-semibold">Start Date</Label><Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-muted/30 border-border" /></div>
+          <div className="space-y-1"><Label className="text-muted-foreground text-xs font-semibold">End Date</Label><Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-muted/30 border-border" /></div>
           {(reportType === 'production-damage' || reportType === 'material-consumption') && (
-            <div className="space-y-1"><Label className="text-muted-foreground text-xs">Batch</Label>
+            <div className="space-y-1"><Label className="text-muted-foreground text-xs font-semibold">Batch</Label>
               <FormSelect value={filterBatch} onChange={e => setFilterBatch(e.target.value)}>
                 <option value="">All Batches</option>
                 {batches.map(b => <option key={b.id} value={b.id}>{b.batch_number}</option>)}
@@ -132,7 +137,7 @@ export const ReportsView: React.FC = () => {
             </div>
           )}
           {reportType === 'weekly-payments' && (
-            <div className="space-y-1"><Label className="text-muted-foreground text-xs">Worker</Label>
+            <div className="space-y-1"><Label className="text-muted-foreground text-xs font-semibold">Worker</Label>
               <FormSelect value={filterWorker} onChange={e => setFilterWorker(e.target.value)}>
                 <option value="">All Workers</option>
                 {workers.map(w => <option key={w.id} value={w.id}>{w.full_name}</option>)}
@@ -141,14 +146,14 @@ export const ReportsView: React.FC = () => {
           )}
           {reportType === 'party-ledgers' && (
             <>
-              <div className="space-y-1"><Label className="text-muted-foreground text-xs">Party Type</Label>
+              <div className="space-y-1"><Label className="text-muted-foreground text-xs font-semibold">Party Type</Label>
                 <FormSelect value={filterPartyType} onChange={e => { setFilterPartyType(e.target.value); setFilterPartyId(''); }}>
                   <option value="CUSTOMER">Customer</option><option value="SUPPLIER">Supplier</option><option value="WORKER">Worker</option>
                 </FormSelect>
               </div>
-              <div className="space-y-1"><Label className="text-muted-foreground text-xs">Select Party</Label>
+              <div className="space-y-1"><Label className="text-muted-foreground text-xs font-semibold">Select Party</Label>
                 <FormSelect value={filterPartyId} onChange={e => setFilterPartyId(e.target.value)}>
-                  <option value="">-- Choose Party --</option>
+                  <option value="">-- Choose --</option>
                   {filterPartyType === 'CUSTOMER' && customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   {filterPartyType === 'SUPPLIER' && suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   {filterPartyType === 'WORKER' && workers.map(w => <option key={w.id} value={w.id}>{w.full_name}</option>)}
@@ -159,73 +164,70 @@ export const ReportsView: React.FC = () => {
         </div>
       </Card>
 
-      {/* Report Table */}
-      <Card className="bg-card border-border shadow-xs text-card-foreground p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-foreground">
-            {reportType === 'production-damage' && 'Production & Damage Report'}
-            {reportType === 'stock-movement' && 'Stock Movement Ledger'}
-            {reportType === 'weekly-payments' && 'Worker Weekly Settlements'}
-            {reportType === 'material-consumption' && 'Material Consumption & Costing'}
-            {reportType === 'party-ledgers' && 'Party Ledger Statement'}
-            {reportType === 'transport-cost' && 'Transport Trip Log'}
-            {reportType === 'batch-costing' && 'Batch Unit Costing'}
-          </h3>
-          <span className="text-[11px] text-muted-foreground">Records: {data.length}</span>
-        </div>
-
-        <div className="rounded-lg border border-border overflow-x-auto">
-          <Table>
-            {reportType === 'production-damage' && (<>
-              <TableHeader className="bg-muted/50"><TableRow className="border-border hover:bg-transparent"><TableHead className={thClass}>Date</TableHead><TableHead className={thClass}>Batch</TableHead><TableHead className={thClass}>Brick Type</TableHead><TableHead className={thClass}>Stage</TableHead><TableHead className={thClass}>Input</TableHead><TableHead className={thClass}>Good</TableHead><TableHead className={thClass}>Damaged</TableHead></TableRow></TableHeader>
-              <TableBody>{data.length === 0 ? <TableRow><TableCell colSpan={7}><EmptyState title="No data found" description="Adjust filter parameters to widen search criteria." /></TableCell></TableRow> : data.map((r, i) => (
-                <TableRow key={i} className="border-border hover:bg-muted/40"><TableCell className="text-sm text-muted-foreground">{r.transition_date}</TableCell><TableCell className="font-semibold text-foreground text-sm">{r.batch_number}</TableCell><TableCell className="text-foreground text-sm">{r.brick_type_name}</TableCell><TableCell className="text-muted-foreground text-sm">{r.from_stage} &rarr; {r.to_stage}</TableCell><TableCell className="text-sm text-foreground">{r.input_quantity?.toLocaleString()}</TableCell><TableCell className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">{r.output_good_quantity?.toLocaleString()}</TableCell><TableCell className="text-sm text-rose-600 dark:text-rose-400 font-bold">{r.damaged_quantity?.toLocaleString()}</TableCell></TableRow>
-              ))}</TableBody>
-            </>)}
-
-            {reportType === 'stock-movement' && (<>
-              <TableHeader className="bg-muted/50"><TableRow className="border-border hover:bg-transparent"><TableHead className={thClass}>Date</TableHead><TableHead className={thClass}>Transaction</TableHead><TableHead className={thClass}>Type & Grade</TableHead><TableHead className={thClass}>Change</TableHead><TableHead className={thClass}>Balance</TableHead><TableHead className={thClass}>Reason</TableHead></TableRow></TableHeader>
-              <TableBody>{data.length === 0 ? <TableRow><TableCell colSpan={6}><EmptyState title="No data found" /></TableCell></TableRow> : data.map((r, i) => (
-                <TableRow key={i} className="border-border hover:bg-muted/40"><TableCell className="text-sm text-muted-foreground">{r.transaction_date}</TableCell><TableCell><Badge variant="outline" className="border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/10 text-[10px] font-bold">{r.transaction_type}</Badge></TableCell><TableCell className="text-foreground text-sm">{r.brick_type_name} ({r.brick_grade_name || '-'})</TableCell><TableCell className={`font-bold text-sm ${r.quantity_change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{r.quantity_change > 0 ? `+${r.quantity_change?.toLocaleString()}` : r.quantity_change?.toLocaleString()}</TableCell><TableCell className="text-sm text-foreground font-semibold">{r.balance_after?.toLocaleString()}</TableCell><TableCell className="text-sm text-muted-foreground">{r.reason}</TableCell></TableRow>
-              ))}</TableBody>
-            </>)}
-
-            {reportType === 'weekly-payments' && (<>
-              <TableHeader className="bg-muted/50"><TableRow className="border-border hover:bg-transparent"><TableHead className={thClass}>Settlement #</TableHead><TableHead className={thClass}>Worker</TableHead><TableHead className={thClass}>Period</TableHead><TableHead className={thClass}>Bricks</TableHead><TableHead className={thClass}>Gross</TableHead><TableHead className={thClass}>Due</TableHead><TableHead className={thClass}>Status</TableHead></TableRow></TableHeader>
-              <TableBody>{data.length === 0 ? <TableRow><TableCell colSpan={7}><EmptyState title="No data found" /></TableCell></TableRow> : data.map((r, i) => (
-                <TableRow key={i} className="border-border hover:bg-muted/40"><TableCell className="font-semibold text-foreground text-sm">{r.settlement_number}</TableCell><TableCell className="text-foreground text-sm">{r.worker_name}</TableCell><TableCell className="text-sm text-muted-foreground">{r.period_start_date} to {r.period_end_date}</TableCell><TableCell className="text-sm text-foreground">{r.total_bricks?.toLocaleString()}</TableCell><TableCell className="text-sm text-foreground font-semibold">{formatINR(r.gross_amount_paise)}</TableCell><TableCell className="font-bold text-rose-600 dark:text-rose-400 text-sm">{formatINR(r.remaining_due_paise)}</TableCell><TableCell><Badge variant="outline" className="border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 text-[10px] font-bold">{r.status}</Badge></TableCell></TableRow>
-              ))}</TableBody>
-            </>)}
-
-            {reportType === 'material-consumption' && (<>
-              <TableHeader className="bg-muted/50"><TableRow className="border-border hover:bg-transparent"><TableHead className={thClass}>Date</TableHead><TableHead className={thClass}>Material</TableHead><TableHead className={thClass}>Quantity</TableHead><TableHead className={thClass}>Batch</TableHead><TableHead className={thClass}>Cost</TableHead></TableRow></TableHeader>
-              <TableBody>{data.length === 0 ? <TableRow><TableCell colSpan={5}><EmptyState title="No data found" /></TableCell></TableRow> : data.map((r, i) => (
-                <TableRow key={i} className="border-border hover:bg-muted/40"><TableCell className="text-sm text-muted-foreground">{r.consumption_date}</TableCell><TableCell className="text-foreground text-sm">{r.material_name}</TableCell><TableCell className="text-sm text-foreground">{r.quantity} {r.unit_code}</TableCell><TableCell className="text-sm text-muted-foreground">{r.batch_number || 'General'}</TableCell><TableCell className="font-bold text-foreground text-sm">{formatINR(r.cost_paise)}</TableCell></TableRow>
-              ))}</TableBody>
-            </>)}
-
-            {reportType === 'party-ledgers' && (<>
-              <TableHeader className="bg-muted/50"><TableRow className="border-border hover:bg-transparent"><TableHead className={thClass}>Date</TableHead><TableHead className={thClass}>Type</TableHead><TableHead className={thClass}>Description</TableHead><TableHead className={thClass}>Amount</TableHead><TableHead className={thClass}>Status</TableHead></TableRow></TableHeader>
-              <TableBody>{data.length === 0 ? <TableRow><TableCell colSpan={5}><EmptyState title="No data found" description="Select a party to view their ledger." /></TableCell></TableRow> : data.map((r, i) => (
-                <TableRow key={i} className="border-border hover:bg-muted/40"><TableCell className="text-sm text-muted-foreground">{r.entry_date}</TableCell><TableCell><Badge variant="outline" className={`${r.record_type === 'PAYMENT' ? 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10' : 'border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10'} text-[10px] font-bold`}>{r.record_type}</Badge></TableCell><TableCell className="text-sm text-foreground">{r.description}</TableCell><TableCell className="font-bold text-foreground text-sm">{formatINR(r.amount_paise)}</TableCell><TableCell className="text-sm text-muted-foreground">{r.status}</TableCell></TableRow>
-              ))}</TableBody>
-            </>)}
-
-            {reportType === 'transport-cost' && (<>
-              <TableHeader className="bg-muted/50"><TableRow className="border-border hover:bg-transparent"><TableHead className={thClass}>Date</TableHead><TableHead className={thClass}>Vehicle</TableHead><TableHead className={thClass}>Driver</TableHead><TableHead className={thClass}>Route</TableHead><TableHead className={thClass}>Distance</TableHead><TableHead className={thClass}>Cost</TableHead></TableRow></TableHeader>
-              <TableBody>{data.length === 0 ? <TableRow><TableCell colSpan={6}><EmptyState title="No data found" /></TableCell></TableRow> : data.map((r, i) => (
-                <TableRow key={i} className="border-border hover:bg-muted/40"><TableCell className="text-sm text-muted-foreground">{r.trip_date}</TableCell><TableCell className="font-semibold text-foreground text-sm">{r.registration_number}</TableCell><TableCell className="text-sm text-foreground">{r.driver_name || '-'}</TableCell><TableCell className="text-sm text-muted-foreground">{r.origin || 'Yard'} &rarr; {r.destination || 'Site'}</TableCell><TableCell className="text-sm text-muted-foreground">{r.distance_km ? `${r.distance_km} KM` : '-'}</TableCell><TableCell className="font-bold text-foreground text-sm">{formatINR(r.cost_paise)}</TableCell></TableRow>
-              ))}</TableBody>
-            </>)}
-
-            {reportType === 'batch-costing' && (<>
-              <TableHeader className="bg-muted/50"><TableRow className="border-border hover:bg-transparent"><TableHead className={thClass}>Batch #</TableHead><TableHead className={thClass}>Brick Type</TableHead><TableHead className={thClass}>Good Bricks</TableHead><TableHead className={thClass}>Moulding</TableHead><TableHead className={thClass}>Material</TableHead><TableHead className={thClass}>Total Cost</TableHead><TableHead className={thClass}>Cost / 1,000</TableHead></TableRow></TableHeader>
-              <TableBody>{data.length === 0 ? <TableRow><TableCell colSpan={7}><EmptyState title="No data found" /></TableCell></TableRow> : data.map((r, i) => (
-                <TableRow key={i} className="border-border hover:bg-muted/40"><TableCell className="font-semibold text-foreground text-sm">{r.batch_number}</TableCell><TableCell className="text-foreground text-sm">{r.brick_type_name}</TableCell><TableCell className="text-sm text-foreground">{r.fired_good_quantity?.toLocaleString()}</TableCell><TableCell className="text-sm text-muted-foreground">{formatINR(r.moulding_cost_paise)}</TableCell><TableCell className="text-sm text-muted-foreground">{formatINR(r.material_cost_paise)}</TableCell><TableCell className="font-bold text-foreground text-sm">{formatINR(r.total_cost_paise)}</TableCell><TableCell className="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">{r.cost_per_1000_paise ? formatINR(r.cost_per_1000_paise) : 'N/A'}</TableCell></TableRow>
-              ))}</TableBody>
-            </>)}
-          </Table>
-        </div>
+      {/* Report Data Table */}
+      <Card className="bg-card border-border shadow-xs text-card-foreground p-4 sm:p-5">
+        {loading ? (
+          <p className="text-xs text-muted-foreground text-center py-8 font-medium">Generating audit report...</p>
+        ) : (
+          <div className="rounded-lg border border-border overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow className="border-border hover:bg-transparent">
+                  {reportType === 'production-damage' && (
+                    <><TableHead className={thClass}>Date</TableHead><TableHead className={thClass}>Batch</TableHead><TableHead className={thClass}>Brick Type</TableHead><TableHead className={thClass}>From Stage</TableHead><TableHead className={thClass}>To Stage</TableHead><TableHead className={thClass}>Input Qty</TableHead><TableHead className={thClass}>Good Qty</TableHead><TableHead className={thClass}>Damaged Qty</TableHead></>
+                  )}
+                  {reportType === 'stock-movement' && (
+                    <><TableHead className={thClass}>Date</TableHead><TableHead className={thClass}>Transaction</TableHead><TableHead className={thClass}>Brick Type</TableHead><TableHead className={thClass}>Grade</TableHead><TableHead className={thClass}>Qty Change</TableHead><TableHead className={thClass}>Balance After</TableHead><TableHead className={thClass}>Reason / Ref</TableHead></>
+                  )}
+                  {reportType === 'weekly-payments' && (
+                    <><TableHead className={thClass}>Settlement #</TableHead><TableHead className={thClass}>Worker</TableHead><TableHead className={thClass}>Period</TableHead><TableHead className={thClass}>Total Bricks</TableHead><TableHead className={thClass}>Gross Wages</TableHead><TableHead className={thClass}>Net Due</TableHead><TableHead className={thClass}>Status</TableHead></>
+                  )}
+                  {reportType === 'material-consumption' && (
+                    <><TableHead className={thClass}>Date</TableHead><TableHead className={thClass}>Material</TableHead><TableHead className={thClass}>Quantity</TableHead><TableHead className={thClass}>Batch</TableHead><TableHead className={thClass}>Cost</TableHead><TableHead className={thClass}>Notes</TableHead></>
+                  )}
+                  {reportType === 'party-ledgers' && (
+                    <><TableHead className={thClass}>Date</TableHead><TableHead className={thClass}>Record Type</TableHead><TableHead className={thClass}>Description</TableHead><TableHead className={thClass}>Amount</TableHead><TableHead className={thClass}>Status</TableHead></>
+                  )}
+                  {reportType === 'transport-cost' && (
+                    <><TableHead className={thClass}>Date</TableHead><TableHead className={thClass}>Vehicle</TableHead><TableHead className={thClass}>Driver</TableHead><TableHead className={thClass}>Route</TableHead><TableHead className={thClass}>Distance</TableHead><TableHead className={thClass}>Trip Cost</TableHead></>
+                  )}
+                  {reportType === 'batch-costing' && (
+                    <><TableHead className={thClass}>Batch #</TableHead><TableHead className={thClass}>Brick Type</TableHead><TableHead className={thClass}>Good Qty</TableHead><TableHead className={thClass}>Wages</TableHead><TableHead className={thClass}>Materials</TableHead><TableHead className={thClass}>Expenses</TableHead><TableHead className={thClass}>Total Cost</TableHead><TableHead className={thClass}>Cost / 1k</TableHead></>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.length === 0 ? (
+                  <TableRow><TableCell colSpan={8}><EmptyState title="No report data found" description="Adjust your date range or filter criteria above." /></TableCell></TableRow>
+                ) : data.map((r, i) => (
+                  <TableRow key={i} className="border-border hover:bg-muted/40">
+                    {reportType === 'production-damage' && (
+                      <><TableCell className="text-sm text-muted-foreground">{r.transition_date}</TableCell><TableCell className="font-semibold text-foreground text-sm">{r.batch_number}</TableCell><TableCell className="text-sm text-foreground">{r.brick_type_name}</TableCell><TableCell><Badge variant="outline" className="border-orange-500/30 text-orange-600 bg-orange-500/10 text-[10px] font-bold dark:text-orange-400">{r.from_stage}</Badge></TableCell><TableCell><Badge variant="outline" className="border-emerald-500/30 text-emerald-600 bg-emerald-500/10 text-[10px] font-bold dark:text-emerald-400">{r.to_stage}</Badge></TableCell><TableCell className="text-sm text-foreground">{r.input_quantity?.toLocaleString()}</TableCell><TableCell className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{r.output_good_quantity?.toLocaleString()}</TableCell><TableCell className="text-sm font-bold text-rose-600 dark:text-rose-400">{r.damaged_quantity?.toLocaleString()}</TableCell></>
+                    )}
+                    {reportType === 'stock-movement' && (
+                      <><TableCell className="text-sm text-muted-foreground">{r.transaction_date}</TableCell><TableCell><Badge variant="outline" className="border-blue-500/30 text-blue-600 bg-blue-500/10 text-[10px] font-bold dark:text-blue-400">{r.transaction_type}</Badge></TableCell><TableCell className="text-foreground text-sm font-medium">{r.brick_type_name}</TableCell><TableCell className="text-sm text-muted-foreground">{r.brick_grade_name || '-'}</TableCell><TableCell className={`font-bold text-sm ${r.quantity_change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{r.quantity_change > 0 ? `+${r.quantity_change.toLocaleString()}` : r.quantity_change.toLocaleString()}</TableCell><TableCell className="text-sm text-foreground font-semibold">{r.balance_after?.toLocaleString()}</TableCell><TableCell className="text-sm text-muted-foreground">{r.reason || '-'}</TableCell></>
+                    )}
+                    {reportType === 'weekly-payments' && (
+                      <><TableCell className="font-semibold text-foreground text-sm">{r.settlement_number}</TableCell><TableCell className="text-foreground text-sm font-medium">{r.worker_name}</TableCell><TableCell className="text-sm text-muted-foreground">{r.period_start_date} to {r.period_end_date}</TableCell><TableCell className="text-sm font-semibold text-foreground">{r.total_bricks?.toLocaleString()}</TableCell><TableCell className="text-sm text-foreground">{formatINR(r.gross_amount_paise)}</TableCell><TableCell className="font-bold text-rose-600 dark:text-rose-400 text-sm">{formatINR(r.remaining_due_paise)}</TableCell><TableCell><Badge variant="outline" className="border-emerald-500/30 text-emerald-600 bg-emerald-500/10 text-[10px] font-bold dark:text-emerald-400">{r.status}</Badge></TableCell></>
+                    )}
+                    {reportType === 'material-consumption' && (
+                      <><TableCell className="text-sm text-muted-foreground">{r.consumption_date}</TableCell><TableCell className="font-semibold text-foreground text-sm">{r.material_name}</TableCell><TableCell className="text-sm text-foreground font-semibold">{r.quantity} {r.unit_code}</TableCell><TableCell className="text-sm text-muted-foreground">{r.batch_number || 'General'}</TableCell><TableCell className="font-bold text-foreground text-sm">{formatINR(r.cost_paise)}</TableCell><TableCell className="text-sm text-muted-foreground">{r.notes || '-'}</TableCell></>
+                    )}
+                    {reportType === 'party-ledgers' && (
+                      <><TableCell className="text-sm text-muted-foreground">{r.entry_date}</TableCell><TableCell><Badge variant="outline" className="border-purple-500/30 text-purple-600 bg-purple-500/10 text-[10px] font-bold dark:text-purple-400">{r.record_type}</Badge></TableCell><TableCell className="text-foreground text-sm font-medium">{r.description}</TableCell><TableCell className="font-bold text-foreground text-sm">{formatINR(r.amount_paise)}</TableCell><TableCell><Badge variant="outline" className="border-emerald-500/30 text-emerald-600 bg-emerald-500/10 text-[10px] font-bold dark:text-emerald-400">{r.status}</Badge></TableCell></>
+                    )}
+                    {reportType === 'transport-cost' && (
+                      <><TableCell className="text-sm text-muted-foreground">{r.trip_date}</TableCell><TableCell className="font-semibold text-foreground text-sm">{r.registration_number}</TableCell><TableCell className="text-sm text-foreground font-medium">{r.driver_name || '-'}</TableCell><TableCell className="text-sm text-foreground">{r.origin} → {r.destination}</TableCell><TableCell className="text-sm text-muted-foreground">{r.distance_km ? `${r.distance_km} km` : '-'}</TableCell><TableCell className="font-bold text-foreground text-sm">{formatINR(r.cost_paise)}</TableCell></>
+                    )}
+                    {reportType === 'batch-costing' && (
+                      <><TableCell className="font-semibold text-foreground text-sm">{r.batch_number}</TableCell><TableCell className="text-foreground text-sm font-medium">{r.brick_type_name}</TableCell><TableCell className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{r.fired_good_quantity?.toLocaleString()}</TableCell><TableCell className="text-sm text-foreground">{formatINR(r.moulding_cost_paise)}</TableCell><TableCell className="text-sm text-foreground">{formatINR(r.material_cost_paise)}</TableCell><TableCell className="text-sm text-foreground">{formatINR(r.expense_cost_paise)}</TableCell><TableCell className="font-bold text-foreground text-sm">{formatINR(r.total_cost_paise)}</TableCell><TableCell className="font-bold text-orange-600 dark:text-orange-400 text-sm">{r.cost_per_1000_paise ? formatINR(r.cost_per_1000_paise) : '-'}</TableCell></>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </Card>
     </div>
   );
