@@ -91,28 +91,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, 
       />
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         {kpiCards.map((kpi, idx) => {
           const Icon = kpi.icon;
           const colors = colorMap[kpi.color];
           return (
-            <Card key={idx} className="bg-card border-border shadow-xs text-card-foreground p-5 hover:border-orange-500/30 transition-colors">
+            <Card key={idx} className="bg-card border-border shadow-xs text-card-foreground p-4 hover:border-orange-500/30 transition-all duration-200">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{kpi.label}</span>
-                <div className={`size-9 rounded-lg ${colors.iconBg} ${colors.iconText} flex items-center justify-center border border-current/20`}>
+                <div className={`size-8 rounded-lg ${colors.iconBg} ${colors.iconText} flex items-center justify-center border border-current/10 shrink-0`}>
                   <Icon className="size-4" />
                 </div>
               </div>
-              <div className="mt-3 flex items-baseline justify-between gap-2">
-                <span className={`text-2xl sm:text-3xl font-extrabold ${kpi.valueColor || 'text-foreground'} tracking-tight`}>{kpi.value}</span>
+              <div className="mt-2.5 flex items-baseline justify-between gap-2">
+                <span className={`text-xl sm:text-2xl font-extrabold ${kpi.valueColor || 'text-foreground'} tracking-tight`}>{kpi.value}</span>
                 {kpi.suffix && <span className="text-[11px] text-muted-foreground font-medium">{kpi.suffix}</span>}
                 {kpi.badge && (
-                  <Badge variant="outline" className={`${colors.badgeBorder} ${colors.badgeText} ${colors.badgeBg} text-[10px] font-bold`}>
+                  <Badge variant="outline" className={`${colors.badgeBorder} ${colors.badgeText} ${colors.badgeBg} text-[10px] font-bold py-0.5 px-2`}>
                     {kpi.badge}
                   </Badge>
                 )}
               </div>
-              <p className="text-[11px] text-muted-foreground mt-2 flex items-center gap-1">
+              <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1">
                 {kpi.descIcon} {kpi.desc}
               </p>
             </Card>
@@ -121,10 +121,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, 
       </div>
 
       {/* Production & Sales Quick Nav Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Finished Stock Table Card */}
-        <Card className="lg:col-span-2 bg-card border-border shadow-xs text-card-foreground p-5">
-          <div className="flex items-center justify-between mb-4">
+        <Card className="lg:col-span-2 bg-card border-border shadow-xs text-card-foreground p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-3.5">
             <div>
               <h3 className="text-sm font-bold text-foreground">Finished Stock Ledger</h3>
               <p className="text-[11px] text-muted-foreground mt-0.5">Current quantities ready in yard by grade</p>
@@ -133,7 +133,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, 
               variant="outline" 
               size="sm" 
               onClick={() => onNavigate('inventory')} 
-              className="text-xs border-border text-foreground hover:bg-muted gap-1.5 h-8 cursor-pointer"
+              className="text-xs border-border text-foreground hover:bg-muted gap-1.5 h-8 px-3 cursor-pointer"
             >
               View Full Stock <ArrowRight className="size-3.5" />
             </Button>
@@ -143,22 +143,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, 
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Brick Type</TableHead>
-                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide">Grade</TableHead>
-                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide text-right">Available Qty</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide py-2.5">Brick Type</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide py-2.5">Grade</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold uppercase text-[11px] tracking-wide text-right py-2.5">Available Qty</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data?.stock_breakdown?.length > 0 ? (
                   data.stock_breakdown.map((item: any, idx: number) => (
                     <TableRow key={idx} className="border-border hover:bg-muted/40">
-                      <TableCell className="font-semibold text-foreground text-sm">{item.brick_type_name}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-semibold text-foreground text-sm py-2.5">{item.brick_type_name}</TableCell>
+                      <TableCell className="py-2.5">
                         <Badge variant="outline" className="border-amber-500/30 text-amber-600 bg-amber-500/10 text-[10px] font-bold dark:text-amber-400">
                           {item.brick_grade_name}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                      <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400 text-sm py-2.5">
                         {item.quantity.toLocaleString()} bricks
                       </TableCell>
                     </TableRow>
@@ -181,12 +181,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, 
         </Card>
 
         {/* Operational Modules Shortcut Card */}
-        <Card className="bg-card border-border shadow-xs text-card-foreground p-5 flex flex-col justify-between">
+        <Card className="bg-card border-border shadow-xs text-card-foreground p-4 sm:p-5 flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-bold text-foreground mb-0.5">Quick Operational Modules</h3>
-            <p className="text-[11px] text-muted-foreground mb-4">Direct access to daily workflow entry views</p>
+            <p className="text-[11px] text-muted-foreground mb-3">Direct access to daily workflow entry views</p>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {[
                 { label: 'Batches & Production', tab: 'production', icon: Flame, desc: 'Moulding, Drying, Loading, Firing, Unloading' },
                 { label: 'Workers & Settlements', tab: 'workers', icon: Users, desc: 'Paji weekly wages & piece-rate logs' },
@@ -199,18 +199,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry, 
                   <button
                     key={m.tab}
                     onClick={() => onNavigate(m.tab)}
-                    className="w-full flex items-center justify-between border border-border bg-muted/40 hover:bg-muted/80 hover:border-orange-500/40 rounded-lg p-3 cursor-pointer transition-colors group"
+                    className="w-full flex items-center justify-between border border-border bg-muted/30 hover:bg-muted/70 hover:border-orange-500/40 rounded-lg p-2.5 cursor-pointer transition-colors group"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="size-8 rounded-md bg-orange-500/10 text-orange-500 dark:text-orange-400 flex items-center justify-center shrink-0">
-                        <Icon className="size-4" />
+                    <div className="flex items-center gap-2.5">
+                      <div className="size-7 rounded-md bg-orange-500/10 text-orange-500 dark:text-orange-400 flex items-center justify-center shrink-0">
+                        <Icon className="size-3.5" />
                       </div>
                       <div className="text-left">
-                        <span className="text-xs font-semibold text-foreground block">{m.label}</span>
-                        <span className="text-[11px] text-muted-foreground block">{m.desc}</span>
+                        <span className="text-xs font-semibold text-foreground block leading-tight">{m.label}</span>
+                        <span className="text-[10px] text-muted-foreground block leading-tight mt-0.5">{m.desc}</span>
                       </div>
                     </div>
-                    <ArrowRight className="size-4 text-muted-foreground shrink-0 group-hover:text-foreground transition-colors" />
+                    <ArrowRight className="size-3.5 text-muted-foreground shrink-0 group-hover:text-foreground transition-colors" />
                   </button>
                 );
               })}

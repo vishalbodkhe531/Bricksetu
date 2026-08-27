@@ -1,13 +1,10 @@
 import React from 'react';
 import { 
   LayoutDashboard, Flame, Package, Users, Truck, ShoppingCart, 
-  Wallet, FileText, Settings, LogOut, Layers, ShieldCheck
+  Wallet, FileText, Settings, LogOut, Layers, ChevronRight, ChevronLeft, Sun, Moon
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { ThemeToggle } from './ThemeToggle';
+import { useTheme } from '../context/themeContext';
 
 interface SidebarProps {
   currentTab: string;
@@ -16,103 +13,173 @@ interface SidebarProps {
   onLogout: () => void;
   className?: string;
   onNavigate?: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, user, onLogout, className, onNavigate }) => {
-  const mainNavItems = [
+export const Sidebar: React.FC<SidebarProps> = ({ 
+  currentTab, 
+  onSelectTab, 
+  user, 
+  onLogout, 
+  className, 
+  onNavigate,
+  isCollapsed = false,
+  onToggleCollapse
+}) => {
+  const { theme, toggleTheme } = useTheme();
+
+  const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'production', label: 'Batches & Production', icon: Flame },
     { id: 'inventory', label: 'Stock & Inventory', icon: Layers },
-    { id: 'workers', label: 'Workers & Settlements', icon: Users },
-    { id: 'materials', label: 'Materials & Suppliers', icon: Package },
+    { id: 'workers', label: 'Workers & Wages', icon: Users },
+    { id: 'materials', label: 'Materials & Vendors', icon: Package },
     { id: 'sales', label: 'Customers & Sales', icon: ShoppingCart },
-    { id: 'payments', label: 'Payments & Expenses', icon: Wallet },
+    { id: 'payments', label: 'Payments & Overhead', icon: Wallet },
     { id: 'transport', label: 'Transport & Trips', icon: Truck },
-  ];
-
-  const secondaryNavItems = [
     { id: 'reports', label: 'Reports & Analytics', icon: FileText },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
-  const renderNavItem = (item: { id: string; label: string; icon: any }) => {
-    const Icon = item.icon;
-    const isActive = currentTab === item.id;
-    return (
-      <button
-        key={item.id}
-        onClick={() => {
-          onSelectTab(item.id);
-          onNavigate?.();
-        }}
-        aria-current={isActive ? 'page' : undefined}
-        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 cursor-pointer group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/70 ${
-          isActive
-            ? 'bg-orange-500/10 text-orange-500 font-semibold dark:text-orange-400'
-            : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
-        }`}
-      >
-        {isActive && (
-          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-orange-500" />
-        )}
-        <Icon className={`size-[18px] shrink-0 transition-transform duration-150 ${isActive ? '' : 'group-hover:translate-x-0.5'}`} />
-        <span className="truncate">{item.label}</span>
-      </button>
-    );
-  };
-
   return (
-    <aside className={cn('flex h-full min-w-0 flex-col bg-card text-card-foreground border-r border-border', className)}>
-      {/* Brand Header */}
-      <div className="px-5 py-5 border-b border-border flex items-center gap-3">
-        <div className="size-9 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center text-white text-sm font-extrabold shadow-md shadow-orange-500/20 shrink-0">
-          BS
+    <aside className={cn('flex h-full flex-col bg-card text-card-foreground border-r border-border transition-all duration-300 relative select-none', className)}>
+      
+      {/* Brand Header & Integrated Toggle Button */}
+      <div className={`p-3.5 border-b border-border flex items-center ${isCollapsed ? 'justify-center flex-col gap-2' : 'justify-between'}`}>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="size-9 bg-orange-500 rounded-xl flex items-center justify-center text-white font-extrabold shadow-md shadow-orange-500/25 shrink-0">
+            <Flame className="size-4.5" />
+          </div>
+          {!isCollapsed && (
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-extrabold text-foreground tracking-tight leading-none">BrickSetu</h2>
+              <p className="text-[10px] text-muted-foreground font-medium mt-1 truncate">
+                {user?.business_unit_name || 'Kiln Management'}
+              </p>
+            </div>
+          )}
         </div>
-        <div className="min-w-0">
-          <h2 className="text-[15px] font-extrabold text-foreground tracking-tight truncate">BrickSetu</h2>
-          <Badge variant="outline" className="text-orange-500 border-orange-500/25 bg-orange-500/10 text-[10px] uppercase font-bold py-0 h-4 mt-0.5 dark:text-orange-400">
-            {user?.business_unit_name || 'Main Kiln'}
-          </Badge>
-        </div>
+
+        {/* Toggle Collapse Button - Fits neatly inside header */}
+        {onToggleCollapse && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="size-7 rounded-lg bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer shrink-0"
+            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {isCollapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+          </button>
+        )}
       </div>
 
-      {/* Main Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 px-3 mb-2">Operations</p>
-        {mainNavItems.map(renderNavItem)}
+      {/* Navigation List */}
+      <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-3 scrollbar-thin">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = currentTab === item.id;
+          
+          if (isCollapsed) {
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  onSelectTab(item.id);
+                  onNavigate?.();
+                }}
+                title={item.label}
+                className={`size-9 rounded-xl flex items-center justify-center mx-auto transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                }`}
+              >
+                <Icon className="size-4.5" />
+              </button>
+            );
+          }
 
-        <div className="h-px bg-slate-800/50 my-3 mx-2" />
-
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 px-3 mb-2">Insights</p>
-        {secondaryNavItems.map(renderNavItem)}
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                onSelectTab(item.id);
+                onNavigate?.();
+              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all duration-150 cursor-pointer ${
+                isActive
+                  ? 'bg-orange-500 text-white font-semibold shadow-md shadow-orange-500/25'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/60 font-medium'
+              }`}
+            >
+              <Icon className="size-4 shrink-0" />
+              <span className="truncate">{item.label}</span>
+            </button>
+          );
+        })}
       </nav>
 
-      {/* User Footer */}
-      <div className="px-4 py-4 border-t border-slate-800/60 space-y-2">
-        <div className="flex items-center gap-2.5">
-          <Avatar className="size-8 border border-slate-700/60 bg-slate-800">
-            <AvatarFallback className="bg-slate-800 text-slate-400 text-xs">
-              <ShieldCheck className="size-3.5" />
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-semibold text-slate-200 truncate">{user?.full_name}</p>
-            <p className="text-[11px] text-slate-500">Administrator</p>
+      {/* Footer Controls: Logout & Theme Switch in 1 row 2 columns at bottom */}
+      <div className="p-2 border-t border-border">
+        {!isCollapsed ? (
+          <div className="grid grid-cols-2 gap-1.5">
+            {/* Logout Button */}
+            <button
+              type="button"
+              onClick={onLogout}
+              className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted border border-border/40 transition-colors cursor-pointer"
+              title="Sign Out"
+            >
+              <LogOut className="size-3.5 shrink-0" />
+              <span>Logout</span>
+            </button>
+
+            {/* Theme Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted border border-border/40 transition-colors cursor-pointer"
+              title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {theme === 'dark' ? (
+                <>
+                  <Moon className="size-3.5 text-orange-400 shrink-0" />
+                  <span>Dark</span>
+                </>
+              ) : (
+                <>
+                  <Sun className="size-3.5 text-orange-500 shrink-0" />
+                  <span>Light</span>
+                </>
+              )}
+            </button>
           </div>
-        </div>
-        <div className="flex items-center gap-2 pt-1">
-          <ThemeToggle variant="outline" showLabel className="flex-1 justify-center h-8" />
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onLogout} 
-            className="gap-1.5 border-slate-800 hover:bg-slate-800/80 text-slate-400 hover:text-slate-200 text-xs h-8 cursor-pointer"
-            title="Sign Out"
-          >
-            <LogOut className="size-3.5" /> Sign Out
-          </Button>
-        </div>
+        ) : (
+          <div className="flex flex-col gap-1.5 items-center">
+            {/* Collapsed Logout Button */}
+            <button
+              type="button"
+              onClick={onLogout}
+              title="Logout"
+              className="size-9 rounded-xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-all cursor-pointer"
+            >
+              <LogOut className="size-4" />
+            </button>
+
+            {/* Collapsed Theme Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              className="size-9 bg-muted/50 hover:bg-muted rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            >
+              {theme === 'dark' ? <Moon className="size-4 text-orange-400" /> : <Sun className="size-4 text-orange-500" />}
+            </button>
+          </div>
+        )}
       </div>
+
     </aside>
   );
 };

@@ -24,6 +24,7 @@ export function App() {
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -64,13 +65,18 @@ export function App() {
   return (
     <AppLayout
       contentKey={refreshKey}
+      isSidebarCollapsed={isSidebarCollapsed}
       sidebar={
         <Sidebar
-          className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-border bg-card shadow-xl backdrop-blur-xl lg:flex"
+          className={`fixed inset-y-0 left-0 z-40 hidden border-r border-border bg-card shadow-lg transition-all duration-300 lg:flex ${
+            isSidebarCollapsed ? 'w-20' : 'w-64'
+          }`}
           currentTab={currentTab}
           onSelectTab={(tab) => setCurrentTab(tab)}
           user={user}
           onLogout={handleLogout}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         />
       }
       mobileHeader={
