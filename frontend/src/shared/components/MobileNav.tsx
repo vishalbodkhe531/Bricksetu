@@ -9,29 +9,34 @@ interface MobileNavProps {
 }
 
 export const MobileNav: React.FC<MobileNavProps> = ({ currentTab, onSelectTab, onOpenQuickEntry }) => {
+  const itemClass = (isActive: boolean) => `flex min-w-12 flex-col items-center gap-1 rounded-lg px-1 py-1 text-[10px] font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:outline-none ${
+    isActive ? 'text-orange-400' : 'text-slate-500 hover:text-slate-200'
+  }`;
+
   return (
-    <nav className="mobile-nav">
-      <button className={`mobile-nav-item ${currentTab === 'dashboard' ? 'active' : ''}`} onClick={() => onSelectTab('dashboard')}>
-        <LayoutDashboard size={20} />
+    <nav aria-label="Primary navigation" className="fixed inset-x-0 bottom-0 z-40 flex h-[4.5rem] items-center justify-around border-t border-slate-800/80 bg-slate-950/90 px-2 pb-1 shadow-[0_-12px_30px_rgba(2,6,23,0.24)] backdrop-blur-xl lg:hidden">
+      <button type="button" aria-label="Dashboard" aria-current={currentTab === 'dashboard' ? 'page' : undefined} className={itemClass(currentTab === 'dashboard')} onClick={() => onSelectTab('dashboard')}>
+        <LayoutDashboard size={20} strokeWidth={currentTab === 'dashboard' ? 2.5 : 1.8} />
         Home
       </button>
-      <button className={`mobile-nav-item ${currentTab === 'production' ? 'active' : ''}`} onClick={() => onSelectTab('production')}>
-        <Flame size={20} />
+      <button type="button" aria-label="Production batches" aria-current={currentTab === 'production' ? 'page' : undefined} className={itemClass(currentTab === 'production')} onClick={() => onSelectTab('production')}>
+        <Flame size={20} strokeWidth={currentTab === 'production' ? 2.5 : 1.8} />
         Batches
       </button>
       <Button
         onClick={onOpenQuickEntry}
         size="icon"
-        className="size-12 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 shadow-lg shadow-orange-500/40 -translate-y-2 border-2 border-slate-900 hover:scale-105 transition-transform"
+        aria-label="Open quick daily entry"
+        className="size-12 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/30 -translate-y-3 border-2 border-background hover:scale-105 active:scale-95 transition-transform"
       >
         <PlusCircle className="size-6 text-white" />
       </Button>
-      <button className={`mobile-nav-item ${currentTab === 'inventory' ? 'active' : ''}`} onClick={() => onSelectTab('inventory')}>
-        <Layers size={20} />
+      <button type="button" aria-label="Stock and inventory" aria-current={currentTab === 'inventory' ? 'page' : undefined} className={itemClass(currentTab === 'inventory')} onClick={() => onSelectTab('inventory')}>
+        <Layers size={20} strokeWidth={currentTab === 'inventory' ? 2.5 : 1.8} />
         Stock
       </button>
-      <button className={`mobile-nav-item ${currentTab === 'sales' ? 'active' : ''}`} onClick={() => onSelectTab('sales')}>
-        <ShoppingCart size={20} />
+      <button type="button" aria-label="Sales" aria-current={currentTab === 'sales' ? 'page' : undefined} className={itemClass(currentTab === 'sales')} onClick={() => onSelectTab('sales')}>
+        <ShoppingCart size={20} strokeWidth={currentTab === 'sales' ? 2.5 : 1.8} />
         Sales
       </button>
     </nav>

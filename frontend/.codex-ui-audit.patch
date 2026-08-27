@@ -1,0 +1,775 @@
+diff --git a/frontend/src/index.css b/frontend/src/index.css
+index 2827d41..100a001 100644
+--- a/frontend/src/index.css
++++ b/frontend/src/index.css
+@@ -1 +1,119 @@
+ @import "tailwindcss";
++
++@theme inline {
++  --color-background: var(--background);
++  --color-foreground: var(--foreground);
++  --color-card: var(--card);
++  --color-card-foreground: var(--card-foreground);
++  --color-popover: var(--popover);
++  --color-popover-foreground: var(--popover-foreground);
++  --color-primary: var(--primary);
++  --color-primary-foreground: var(--primary-foreground);
++  --color-secondary: var(--secondary);
++  --color-secondary-foreground: var(--secondary-foreground);
++  --color-muted: var(--muted);
++  --color-muted-foreground: var(--muted-foreground);
++  --color-accent: var(--accent);
++  --color-accent-foreground: var(--accent-foreground);
++  --color-destructive: var(--destructive);
++  --color-border: var(--border);
++  --color-input: var(--input);
++  --color-ring: var(--ring);
++  --font-sans: var(--font-app);
++  --radius-sm: calc(var(--radius) - 4px);
++  --radius-md: calc(var(--radius) - 2px);
++  --radius-lg: var(--radius);
++  --radius-xl: calc(var(--radius) + 4px);
++}
++
++:root {
++  color-scheme: dark;
++  --background: #090f1e;
++  --foreground: #f8fafc;
++  --card: #111a2d;
++  --card-foreground: #f8fafc;
++  --popover: #121c30;
++  --popover-foreground: #f8fafc;
++  --primary: #f97316;
++  --primary-foreground: #ffffff;
++  --secondary: #1e293b;
++  --secondary-foreground: #e2e8f0;
++  --muted: #182237;
++  --muted-foreground: #94a3b8;
++  --accent: #243148;
++  --accent-foreground: #f8fafc;
++  --destructive: #ef4444;
++  --border: rgba(148, 163, 184, 0.16);
++  --input: rgba(148, 163, 184, 0.24);
++  --ring: #fb923c;
++  --radius: 0.75rem;
++  --font-app: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
++}
++
++* {
++  box-sizing: border-box;
++}
++
++html {
++  min-width: 320px;
++  background: var(--background);
++}
++
++body {
++  min-width: 320px;
++  min-height: 100vh;
++  margin: 0;
++  background:
++    radial-gradient(circle at 50% -20%, rgba(249, 115, 22, 0.12), transparent 34rem),
++    var(--background);
++  color: var(--foreground);
++  font-family: var(--font-app);
++  -webkit-font-smoothing: antialiased;
++  text-rendering: optimizeLegibility;
++}
++
++button,
++input,
++select,
++textarea {
++  font: inherit;
++}
++
++button,
++a,
++select {
++  -webkit-tap-highlight-color: transparent;
++}
++
++::selection {
++  background: rgba(249, 115, 22, 0.35);
++  color: #fff;
++}
++
++::-webkit-scrollbar {
++  width: 0.5rem;
++  height: 0.5rem;
++}
++
++::-webkit-scrollbar-track {
++  background: rgba(9, 15, 30, 0.72);
++}
++
++::-webkit-scrollbar-thumb {
++  border: 2px solid transparent;
++  border-radius: 999px;
++  background: rgba(148, 163, 184, 0.35);
++  background-clip: padding-box;
++}
++
++::-webkit-scrollbar-thumb:hover {
++  background: rgba(251, 146, 60, 0.7);
++  background-clip: padding-box;
++}
++
++@media print {
++  body {
++    background: #fff !important;
++    color: #000 !important;
++  }
++
++  .no-print,
++  nav,
++  aside,
++  header {
++    display: none !important;
++  }
++}
+diff --git a/frontend/src/components/layout/AppLayout.tsx b/frontend/src/components/layout/AppLayout.tsx
+new file mode 100644
+--- /dev/null
++++ b/frontend/src/components/layout/AppLayout.tsx
+@@ -0,0 +1,29 @@
++import type { ReactNode } from 'react';
++
++interface AppLayoutProps {
++  children: ReactNode;
++  sidebar: ReactNode;
++  mobileHeader: ReactNode;
++  mobileNavigation: ReactNode;
++  contentKey?: number;
++}
++
++export function AppLayout({
++  children,
++  sidebar,
++  mobileHeader,
++  mobileNavigation,
++  contentKey,
++}: AppLayoutProps) {
++  return (
++    <div className="min-h-[100dvh] bg-background text-foreground">
++      {sidebar}
++      <div className="min-w-0 lg:pl-72">
++        {mobileHeader}
++        <main key={contentKey} className="min-w-0 px-4 py-5 pb-28 sm:px-6 sm:py-6 lg:px-8 lg:py-8 lg:pb-10 2xl:px-10">
++          <div className="mx-auto w-full max-w-[1600px]">{children}</div>
++        </main>
++      </div>
++      {mobileNavigation}
++    </div>
++  );
++}
+diff --git a/frontend/src/components/ui/sheet.tsx b/frontend/src/components/ui/sheet.tsx
+new file mode 100644
+--- /dev/null
++++ b/frontend/src/components/ui/sheet.tsx
+@@ -0,0 +1,92 @@
++import * as React from 'react';
++import { XIcon } from 'lucide-react';
++import { Dialog as SheetPrimitive } from 'radix-ui';
++
++import { cn } from '@/lib/utils';
++
++function Sheet(props: React.ComponentProps<typeof SheetPrimitive.Root>) {
++  return <SheetPrimitive.Root data-slot="sheet" {...props} />;
++}
++
++function SheetTrigger(props: React.ComponentProps<typeof SheetPrimitive.Trigger>) {
++  return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />;
++}
++
++function SheetClose(props: React.ComponentProps<typeof SheetPrimitive.Close>) {
++  return <SheetPrimitive.Close data-slot="sheet-close" {...props} />;
++}
++
++function SheetPortal(props: React.ComponentProps<typeof SheetPrimitive.Portal>) {
++  return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />;
++}
++
++function SheetOverlay({ className, ...props }: React.ComponentProps<typeof SheetPrimitive.Overlay>) {
++  return (
++    <SheetPrimitive.Overlay
++      data-slot="sheet-overlay"
++      className={cn('fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm', className)}
++      {...props}
++    />
++  );
++}
++
++type SheetSide = 'top' | 'right' | 'bottom' | 'left';
++
++function SheetContent({
++  className,
++  children,
++  side = 'right',
++  ...props
++}: React.ComponentProps<typeof SheetPrimitive.Content> & { side?: SheetSide }) {
++  const sideClasses: Record<SheetSide, string> = {
++    top: 'inset-x-0 top-0 border-b',
++    right: 'inset-y-0 right-0 h-full w-[88vw] border-l sm:w-[22rem]',
++    bottom: 'inset-x-0 bottom-0 border-t',
++    left: 'inset-y-0 left-0 h-full w-[88vw] border-r sm:w-[22rem]',
++  };
++
++  return (
++    <SheetPortal>
++      <SheetOverlay />
++      <SheetPrimitive.Content
++        data-slot="sheet-content"
++        className={cn(
++          'fixed z-50 flex flex-col bg-slate-950 text-slate-100 shadow-2xl outline-none',
++          sideClasses[side],
++          className,
++        )}
++        {...props}
++      >
++        {children}
++        <SheetPrimitive.Close
++          data-slot="sheet-close"
++          className="absolute top-4 right-4 inline-flex size-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-800 hover:text-white focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:outline-none"
++        >
++          <XIcon className="size-4" />
++          <span className="sr-only">Close navigation</span>
++        </SheetPrimitive.Close>
++      </SheetPrimitive.Content>
++    </SheetPortal>
++  );
++}
++
++function SheetTitle(props: React.ComponentProps<typeof SheetPrimitive.Title>) {
++  return <SheetPrimitive.Title data-slot="sheet-title" {...props} />;
++}
++
++function SheetDescription(props: React.ComponentProps<typeof SheetPrimitive.Description>) {
++  return <SheetPrimitive.Description data-slot="sheet-description" {...props} />;
++}
++
++export {
++  Sheet,
++  SheetClose,
++  SheetContent,
++  SheetDescription,
++  SheetPortal,
++  SheetTitle,
++  SheetTrigger,
++};
+diff --git a/frontend/src/shared/components/MobileHeader.tsx b/frontend/src/shared/components/MobileHeader.tsx
+new file mode 100644
+--- /dev/null
++++ b/frontend/src/shared/components/MobileHeader.tsx
+@@ -0,0 +1,73 @@
++import { useState } from 'react';
++import { Flame, Menu, Plus } from 'lucide-react';
++
++import { Button } from '@/components/ui/button';
++import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
++import { Sidebar } from './Sidebar';
++
++interface MobileHeaderProps {
++  currentTab: string;
++  onSelectTab: (tab: string) => void;
++  onOpenQuickEntry: () => void;
++  user: any;
++  onLogout: () => void;
++}
++
++export function MobileHeader({
++  currentTab,
++  onSelectTab,
++  onOpenQuickEntry,
++  user,
++  onLogout,
++}: MobileHeaderProps) {
++  const [isMenuOpen, setIsMenuOpen] = useState(false);
++
++  return (
++    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-800/80 bg-slate-950/85 px-4 backdrop-blur-xl lg:hidden">
++      <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
++        <SheetTrigger asChild>
++          <button
++            type="button"
++            aria-label="Open navigation menu"
++            className="inline-flex size-10 items-center justify-center rounded-lg border border-slate-800 bg-slate-900/70 text-slate-300 transition-colors hover:bg-slate-800 hover:text-white focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:outline-none"
++          >
++            <Menu className="size-5" />
++          </button>
++        </SheetTrigger>
++        <SheetContent side="left" className="p-0">
++          <SheetTitle className="sr-only">Workspace navigation</SheetTitle>
++          <Sidebar
++            currentTab={currentTab}
++            onSelectTab={onSelectTab}
++            user={user}
++            onLogout={onLogout}
++            onNavigate={() => setIsMenuOpen(false)}
++          />
++        </SheetContent>
++      </Sheet>
++
++      <div className="flex items-center gap-2.5">
++        <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/20">
++          <Flame className="size-4" />
++        </div>
++        <span className="text-sm font-extrabold tracking-tight text-white">BrickSetu</span>
++      </div>
++
++      <Button
++        type="button"
++        size="sm"
++        onClick={onOpenQuickEntry}
++        className="bg-orange-500 px-2.5 text-white shadow-lg shadow-orange-500/20 hover:bg-orange-600"
++      >
++        <Plus className="size-4" />
++        <span>Entry</span>
++      </Button>
++    </header>
++  );
++}
+diff --git a/frontend/src/App.tsx b/frontend/src/App.tsx
+--- a/frontend/src/App.tsx
++++ b/frontend/src/App.tsx
+@@ -1,5 +1,7 @@
+ import React, { useState, useEffect } from 'react';
++import { AppLayout } from '@/components/layout/AppLayout';
+ import { Sidebar } from './shared/components/Sidebar';
++import { MobileHeader } from './shared/components/MobileHeader';
+ import { MobileNav } from './shared/components/MobileNav';
+@@ -60,38 +62,46 @@ export function App() {
+   }
+ 
+   return (
+-    <div className="app-shell">
+-      {/* Desktop Sidebar */}
+-      <Sidebar
+-        currentTab={currentTab}
+-        onSelectTab={(tab) => setCurrentTab(tab)}
+-        user={user}
+-        onLogout={handleLogout}
+-      />
+-
+-      {/* Main View Area */}
+-      <main className="main-content" key={refreshKey}>
++    <AppLayout
++      contentKey={refreshKey}
++      sidebar={
++        <Sidebar
++          className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-slate-800/80 bg-slate-950/90 shadow-2xl shadow-slate-950/30 backdrop-blur-xl lg:flex"
++          currentTab={currentTab}
++          onSelectTab={(tab) => setCurrentTab(tab)}
++          user={user}
++          onLogout={handleLogout}
++        />
++      }
++      mobileHeader={
++        <MobileHeader
++          currentTab={currentTab}
++          onSelectTab={(tab) => setCurrentTab(tab)}
++          onOpenQuickEntry={() => setIsQuickEntryOpen(true)}
++          user={user}
++          onLogout={handleLogout}
++        />
++      }
++      mobileNavigation={
++        <MobileNav
++          currentTab={currentTab}
++          onSelectTab={(tab) => setCurrentTab(tab)}
++          onOpenQuickEntry={() => setIsQuickEntryOpen(true)}
++        />
++      }
++    >
+         {currentTab === 'dashboard' && <DashboardView onOpenQuickEntry={() => setIsQuickEntryOpen(true)} onNavigate={(t) => setCurrentTab(t)} />}
+         {currentTab === 'production' && <ProductionView />}
+         {currentTab === 'inventory' && <InventoryView />}
+@@ -104,20 +114,11 @@ export function App() {
+         {currentTab === 'transport' && <TransportView />}
+         {currentTab === 'reports' && <ReportsView />}
+         {currentTab === 'settings' && <SettingsView />}
+-      </main>
+-
+-      {/* Mobile Bottom Navigation */}
+-      <MobileNav
+-        currentTab={currentTab}
+-        onSelectTab={(tab) => setCurrentTab(tab)}
+-        onOpenQuickEntry={() => setIsQuickEntryOpen(true)}
+-      />
+-
+-      {/* Quick Entry Daily Action Drawer/Modal */}
+       <QuickEntryModal
+         isOpen={isQuickEntryOpen}
+         onClose={() => setIsQuickEntryOpen(false)}
+         onSuccess={() => setRefreshKey(prev => prev + 1)}
+       />
+-    </div>
++    </AppLayout>
+   );
+ }
+diff --git a/frontend/src/shared/components/Sidebar.tsx b/frontend/src/shared/components/Sidebar.tsx
+--- a/frontend/src/shared/components/Sidebar.tsx
++++ b/frontend/src/shared/components/Sidebar.tsx
+@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button';
+ import { Badge } from '@/components/ui/badge';
+ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
++import { cn } from '@/lib/utils';
+ 
+ interface SidebarProps {
+   currentTab: string;
+   onSelectTab: (tab: string) => void;
+   user: any;
+   onLogout: () => void;
++  className?: string;
++  onNavigate?: () => void;
+ }
+ 
+-export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, user, onLogout }) => {
++export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, user, onLogout, className, onNavigate }) => {
+@@ -36,9 +38,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, user
+     return (
+       <button
+         key={item.id}
+-        onClick={() => onSelectTab(item.id)}
+-        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 cursor-pointer group relative ${
++        onClick={() => {
++          onSelectTab(item.id);
++          onNavigate?.();
++        }}
++        aria-current={isActive ? 'page' : undefined}
++        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 cursor-pointer group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/70 ${
+           isActive
+             ? 'bg-orange-500/10 text-orange-400 font-semibold'
+             : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+@@ -54,7 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, user
+   };
+ 
+   return (
+-    <aside className="sidebar">
++    <aside className={cn('flex h-full min-w-0 flex-col bg-slate-950 text-slate-100', className)}>
+       {/* Brand Header */}
+       <div className="px-5 py-5 border-b border-slate-800/60 flex items-center gap-3">
+         <div className="size-9 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center text-white text-sm font-extrabold shadow-lg shadow-orange-500/20 shrink-0">
+diff --git a/frontend/src/shared/components/MobileNav.tsx b/frontend/src/shared/components/MobileNav.tsx
+--- a/frontend/src/shared/components/MobileNav.tsx
++++ b/frontend/src/shared/components/MobileNav.tsx
+@@ -9,13 +9,18 @@ interface MobileNavProps {
+ }
+ 
+ export const MobileNav: React.FC<MobileNavProps> = ({ currentTab, onSelectTab, onOpenQuickEntry }) => {
++  const itemClass = (isActive: boolean) => `flex min-w-12 flex-col items-center gap-1 rounded-lg px-1 py-1 text-[10px] font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:outline-none ${
++    isActive ? 'text-orange-400' : 'text-slate-500 hover:text-slate-200'
++  }`;
++
+   return (
+-    <nav className="mobile-nav">
+-      <button className={`mobile-nav-item ${currentTab === 'dashboard' ? 'active' : ''}`} onClick={() => onSelectTab('dashboard')}>
++    <nav aria-label="Primary navigation" className="fixed inset-x-0 bottom-0 z-40 flex h-[4.5rem] items-center justify-around border-t border-slate-800/80 bg-slate-950/90 px-2 pb-1 shadow-[0_-12px_30px_rgba(2,6,23,0.24)] backdrop-blur-xl lg:hidden">
++      <button type="button" aria-label="Dashboard" aria-current={currentTab === 'dashboard' ? 'page' : undefined} className={itemClass(currentTab === 'dashboard')} onClick={() => onSelectTab('dashboard')}>
+         <LayoutDashboard size={20} strokeWidth={currentTab === 'dashboard' ? 2.5 : 1.8} />
+         Home
+       </button>
+-      <button className={`mobile-nav-item ${currentTab === 'production' ? 'active' : ''}`} onClick={() => onSelectTab('production')}>
++      <button type="button" aria-label="Production batches" aria-current={currentTab === 'production' ? 'page' : undefined} className={itemClass(currentTab === 'production')} onClick={() => onSelectTab('production')}>
+         <Flame size={20} strokeWidth={currentTab === 'production' ? 2.5 : 1.8} />
+         Batches
+@@ -26,11 +31,11 @@ export const MobileNav: React.FC<MobileNavProps> = ({ currentTab, onSelectTab,
+         <PlusCircle className="size-6 text-white" />
+       </Button>
+      
+-      <button className={`mobile-nav-item ${currentTab === 'inventory' ? 'active' : ''}`} onClick={() => onSelectTab('inventory')}>
++      <button type="button" aria-label="Stock and inventory" aria-current={currentTab === 'inventory' ? 'page' : undefined} className={itemClass(currentTab === 'inventory')} onClick={() => onSelectTab('inventory')}>
+         <Layers size={20} strokeWidth={currentTab === 'inventory' ? 2.5 : 1.8} />
+         Stock
+       </button>
+-      <button className={`mobile-nav-item ${currentTab === 'sales' ? 'active' : ''}`} onClick={() => onSelectTab('sales')}>
++      <button type="button" aria-label="Sales" aria-current={currentTab === 'sales' ? 'page' : undefined} className={itemClass(currentTab === 'sales')} onClick={() => onSelectTab('sales')}>
+         <ShoppingCart size={20} strokeWidth={currentTab === 'sales' ? 2.5 : 1.8} />
+         Sales
+       </button>
+diff --git a/frontend/src/features/dashboard/DashboardView.tsx b/frontend/src/features/dashboard/DashboardView.tsx
+--- a/frontend/src/features/dashboard/DashboardView.tsx
++++ b/frontend/src/features/dashboard/DashboardView.tsx
+@@ -86,8 +86,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickEntry,
+       <PageHeader
+         title="Kiln Operations Dashboard"
+         description="Live summary metrics, batch firing status, receivables, finished stock, and quick actions"
+         icon={<LayoutDashboard className="size-5 sm:size-6" />}
+         actions={
+           <Button 
+             onClick={onOpenQuickEntry}
+-            // className="bg-orange-500 hover:bg-orange-600 text-white font-bold gap-2 h-10 px-4 shadow-lg shadow-orange-500/20 text-xs sm:text-sm"
+-            className=" p-2"
++            className="h-10 bg-orange-500 px-4 text-xs font-bold text-white shadow-lg shadow-orange-500/20 hover:bg-orange-600 sm:text-sm"
+           >
+             <Plus className="size-4" /> Quick Daily Entry
+           </Button>
+diff --git a/frontend/src/shared/components/QuickEntryModal.tsx b/frontend/src/shared/components/QuickEntryModal.tsx
+--- a/frontend/src/shared/components/QuickEntryModal.tsx
++++ b/frontend/src/shared/components/QuickEntryModal.tsx
+@@ -265,7 +265,7 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClo
+                   {materials.map(m => (
+                     <option key={m.id} value={m.id}>{m.name} ({m.unit_code})</option>
+                   ))}
+                 </FormSelect>
+               </div>
+-              <div className="grid grid-cols-2 gap-3">
++              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                 <div className="space-y-1.5">
+                   <Label className="text-slate-400 text-xs">Quantity</Label>
+                   <Input type="number" step="0.01" placeholder="e.g. 20" value={form.quantity || ''} onChange={e => setForm({ ...form, quantity: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
+@@ -289,7 +289,7 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClo
+                   <option value="">-- Select Grade --</option>
+                   {brickGrades.map(g => (<option key={g.id} value={g.id}>{g.name}</option>))}
+                 </FormSelect>
+               </div>
+-              <div className="grid grid-cols-2 gap-3">
++              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                 <div className="space-y-1.5">
+                   <Label className="text-slate-400 text-xs">Quantity (Bricks)</Label>
+                   <Input type="number" placeholder="e.g. 5000" value={form.quantity || ''} onChange={e => setForm({ ...form, quantity: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
+@@ -305,7 +305,7 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClo
+                   </FormSelect>
+                 </div>
+               )}
+-              <div className="grid grid-cols-2 gap-3">
++              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                 <div className="space-y-1.5">
+                   <Label className="text-slate-400 text-xs">Payment Direction</Label>
+                   <FormSelect value={form.direction || 'INCOMING'} onChange={e => setForm({ ...form, direction: e.target.value })} required>
+@@ -320,7 +320,7 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClo
+                   <option value="SUPPLIER">Supplier</option>
+                 </FormSelect>
+               </div>
+-              <div className="grid grid-cols-2 gap-3">
++              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                 <div className="space-y-1.5">
+                   <Label className="text-slate-400 text-xs">Party</Label>
+                   <FormSelect value={form.party_id || ''} onChange={e => setForm({ ...form, party_id: e.target.value })} required>
+@@ -360,7 +360,7 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClo
+                   {paymentMethods.map(pm => (<option key={pm.id} value={pm.id}>{pm.name}</option>))}
+                 </FormSelect>
+               </div>
+-              <div className="grid grid-cols-2 gap-3">
++              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                 <div className="space-y-1.5">
+                   <Label className="text-slate-400 text-xs">Amount (â‚¹)</Label>
+                   <Input type="number" step="0.01" placeholder="e.g. 15000" value={form.amount || ''} onChange={e => setForm({ ...form, amount: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
+@@ -385,7 +385,7 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClo
+                   {batches.map(b => (<option key={b.id} value={b.id}>{b.batch_number}</option>))}
+                 </FormSelect>
+               </div>
+-              <div className="grid grid-cols-2 gap-3">
++              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                 <div className="space-y-1.5">
+                   <Label className="text-slate-400 text-xs">Origin</Label>
+                   <Input placeholder="e.g. Main Kiln" value={form.origin || ''} onChange={e => setForm({ ...form, origin: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
+diff --git a/frontend/src/features/production/ProductionView.tsx b/frontend/src/features/production/ProductionView.tsx
+--- a/frontend/src/features/production/ProductionView.tsx
++++ b/frontend/src/features/production/ProductionView.tsx
+@@ -174,7 +174,7 @@ export const ProductionView: React.FC = () => {
+                 <option value="">-- Select Brick Type --</option>
+                 {masterData?.brick_types?.map((t: any) => (<option key={t.id} value={t.id}>{t.name} ({t.code})</option>))}
+               </FormSelect>
+             </div>
+-            <div className="grid grid-cols-2 gap-3">
++            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+               <div className="space-y-1.5">
+                 <Label className="text-slate-400 text-xs">Moulding Start Date</Label>
+                 <Input type="date" value={createForm.start_date || new Date().toISOString().split('T')[0]} onChange={e => setCreateForm({ ...createForm, start_date: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
+@@ -202,7 +202,7 @@ export const ProductionView: React.FC = () => {
+               <span className="text-slate-400">Next: <strong className="text-orange-400 font-bold">{transitionForm.to_stage}</strong></span>
+             </div>
+-            <div className="grid grid-cols-2 gap-3">
++            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+               <div className="space-y-1.5">
+                 <Label className="text-slate-400 text-xs">Transition Date</Label>
+                 <Input type="date" value={transitionForm.transition_date} onChange={e => setTransitionForm({ ...transitionForm, transition_date: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
+@@ -212,7 +212,7 @@ export const ProductionView: React.FC = () => {
+                 <Input type="number" value={transitionForm.input_quantity} onChange={e => setTransitionForm({ ...transitionForm, input_quantity: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
+               </div>
+             </div>
+-            <div className="grid grid-cols-2 gap-3">
++            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+               <div className="space-y-1.5">
+                 <Label className="text-slate-400 text-xs">Good Output Qty</Label>
+                 <Input type="number" value={transitionForm.good_quantity} onChange={e => setTransitionForm({ ...transitionForm, good_quantity: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
+diff --git a/frontend/src/features/sales/SalesView.tsx b/frontend/src/features/sales/SalesView.tsx
+--- a/frontend/src/features/sales/SalesView.tsx
++++ b/frontend/src/features/sales/SalesView.tsx
+@@ -45,7 +45,7 @@ export const SalesView: React.FC = () => {
+       <PageHeader title="Customers & Brick Sales" description="Customer accounts, sales orders, automatic FIFO stock deduction, and receivables" icon={<ShoppingCart className="size-5 sm:size-6" />}
+         actions={<Button onClick={() => setIsNewCustomerOpen(true)} className="bg-orange-500 hover:bg-orange-600 text-white font-bold gap-2 h-10 px-4 shadow-lg shadow-orange-500/20 text-xs sm:text-sm"><Plus className="size-4" /> Add Customer</Button>} />
+ 
+-      <div className="flex items-center gap-2">
++      <div className="flex flex-wrap items-center gap-2">
+         <Button size="sm" variant={activeTab === 'sales' ? "default" : "outline"} onClick={() => setActiveTab('sales')} className={tabClasses(activeTab === 'sales')}><ShoppingCart className="size-3.5" /> Sales Register ({sales.length})</Button>
+         <Button size="sm" variant={activeTab === 'customers' ? "default" : "outline"} onClick={() => setActiveTab('customers')} className={tabClasses(activeTab === 'customers')}><Users className="size-3.5" /> Customer Accounts ({customers.length})</Button>
+       </div>
+@@ -122,7 +122,7 @@ export const SalesView: React.FC = () => {
+             <div className="space-y-1.5"><Label className="text-slate-400 text-xs">Customer Name</Label><Input placeholder="e.g. Sharma Traders" value={customerForm.name || ''} onChange={e => setCustomerForm({ ...customerForm, name: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" /></div>
+             <div className="space-y-1.5"><Label className="text-slate-400 text-xs">Phone Number</Label><Input placeholder="e.g. 9876543210" value={customerForm.phone || ''} onChange={e => setCustomerForm({ ...customerForm, phone: e.target.value })} className="bg-slate-950/40 border-slate-700/60" /></div>
+             <div className="space-y-1.5"><Label className="text-slate-400 text-xs">Address</Label><Input placeholder="e.g. Village / City" value={customerForm.address || ''} onChange={e => setCustomerForm({ ...customerForm, address: e.target.value })} className="bg-slate-950/40 border-slate-700/60" /></div>
+-            <div className="grid grid-cols-2 gap-3">
++            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+               <div className="space-y-1.5"><Label className="text-slate-400 text-xs">Customer Code</Label><Input placeholder="e.g. CUST-001" value={customerForm.code || ''} onChange={e => setCustomerForm({ ...customerForm, code: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" /></div>
+               <div className="space-y-1.5"><Label className="text-slate-400 text-xs">Credit Limit (â‚¹)</Label><Input type="number" placeholder="e.g. 500000" value={customerForm.credit_limit || ''} onChange={e => setCustomerForm({ ...customerForm, credit_limit: e.target.value })} className="bg-slate-950/40 border-slate-700/60" /></div>
+             </div>
+diff --git a/frontend/src/features/workers/WorkersView.tsx b/frontend/src/features/workers/WorkersView.tsx
+--- a/frontend/src/features/workers/WorkersView.tsx
++++ b/frontend/src/features/workers/WorkersView.tsx
+@@ -60,7 +60,7 @@ export const WorkersView: React.FC = () => {
+         <Button onClick={() => setIsAddWorkerOpen(true)} className="bg-orange-500 hover:bg-orange-600 text-white font-bold gap-2 h-10 px-4 shadow-lg shadow-orange-500/20 text-xs sm:text-sm"><Plus className="size-4" /> Add Worker</Button>
+         <Button variant="outline" onClick={() => setIsSettleOpen(true)} className="border-slate-700/60 text-slate-400 hover:bg-slate-800 hover:text-white font-semibold gap-2 h-10 text-xs sm:text-sm"><Calculator className="size-4" /> Settle Paji</Button>
+       </div>
+-      <div className="flex items-center gap-2">
++      <div className="flex flex-wrap items-center gap-2">
+         <Button size="sm" variant={activeTab === 'workers' ? "default" : "outline"} onClick={() => setActiveTab('workers')} className={tabClasses(activeTab === 'workers')}><Users className="size-3.5" /> Workers ({workers.length})</Button>
+         <Button size="sm" variant={activeTab === 'settlements' ? "default" : "outline"} onClick={() => setActiveTab('settlements')} className={tabClasses(activeTab === 'settlements')}><Wallet className="size-3.5" /> Settlements ({settlements.length})</Button>
+       </div>
+@@ -71,7 +71,7 @@ export const WorkersView: React.FC = () => {
+       {activeTab === 'workers' && (
+         <Card className="bg-slate-900/60 border-slate-800/60 backdrop-blur-sm shadow-sm text-slate-100 p-5">
+           <div className="flex items-center justify-between mb-4">
+-            <div className="flex items-center gap-2">
++            <div className="flex flex-wrap items-center gap-2">
+               <h3 className="text-sm font-bold text-white">Active Worker Registry</h3>
+               <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 text-[10px] font-bold">ACTIVE</Badge>
+             </div>
+@@ -154,7 +154,7 @@ export const WorkersView: React.FC = () => {
+           <form onSubmit={handleCreateWorker} className="space-y-4">
+             <div className="space-y-1.5"><Label className="text-slate-400 text-xs">Worker Code</Label><Input placeholder="e.g. WRK-001" value={workerForm.code || ''} onChange={e => setWorkerForm({ ...workerForm, code: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" /></div>
+             <div className="space-y-1.5"><Label className="text-slate-400 text-xs">Full Name</Label><Input placeholder="e.g. Ramesh Kumar" value={workerForm.full_name || ''} onChange={e => setWorkerForm({ ...workerForm, full_name: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" /></div>
+-            <div className="grid grid-cols-2 gap-3">
++            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+               <div className="space-y-1.5">
+                 <Label className="text-slate-400 text-xs">Role</Label>
+                 <FormSelect value={workerForm.role || 'MOULDER'} onChange={e => setWorkerForm({ ...workerForm, role: e.target.value })}>
+@@ -182,7 +182,7 @@ export const WorkersView: React.FC = () => {
+                 {workers.map(w => (<option key={w.id} value={w.id}>{w.full_name} ({w.code})</option>))}
+               </FormSelect>
+             </div>
+-            <div className="grid grid-cols-2 gap-3">
++            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+               <div className="space-y-1.5"><Label className="text-slate-400 text-xs">Period Start Date</Label><Input type="date" value={settleForm.period_start_date} onChange={e => setSettleForm({ ...settleForm, period_start_date: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" /></div>
+               <div className="space-y-1.5"><Label className="text-slate-400 text-xs">Period End Date</Label><Input type="date" value={settleForm.period_end_date} onChange={e => setSettleForm({ ...settleForm, period_end_date: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" /></div>
+             </div>
+diff --git a/frontend/src/features/settings/SettingsView.tsx b/frontend/src/features/settings/SettingsView.tsx
+--- a/frontend/src/features/settings/SettingsView.tsx
++++ b/frontend/src/features/settings/SettingsView.tsx
+@@ -48,7 +48,7 @@ export const SettingsView: React.FC = () => {
+     <div className="space-y-6">
+       <PageHeader title="Opening Balances & Settings" description="Initial system setup, stock & party balance initialization, master lookup configuration" icon={<Settings className="size-5 sm:size-6" />} />
+ 
+-      <div className="flex items-center gap-2">
++      <div className="flex flex-wrap items-center gap-2">
+         <Button size="sm" variant={activeTab === 'ob' ? "default" : "outline"} onClick={() => setActiveTab('ob')} className={tabClasses(activeTab === 'ob')}>Opening Balance Wizard</Button>
+         <Button size="sm" variant={activeTab === 'master' ? "default" : "outline"} onClick={() => setActiveTab('master')}>Master Data Lookups</Button>
+       </div>
+@@ -57,7 +57,7 @@ export const SettingsView: React.FC = () => {
+         <Card className="bg-slate-900/60 border-slate-800/60 backdrop-blur-sm shadow-sm text-slate-100 max-w-2xl p-6">
+           <CardHeader className="p-0 pb-4"><CardTitle className="text-base font-bold text-white">Record Initial Opening Balances</CardTitle></CardHeader>
+           <CardContent className="p-0 space-y-4">
+-            <div className="grid grid-cols-2 gap-2">
++            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+               {[
+                 { id: 'STOCK', label: 'Finished Stock Lot' },
+                 { id: 'MATERIAL', label: 'Material Stock Lot' },
+@@ -78,7 +78,7 @@ export const SettingsView: React.FC = () => {
+                   <FormSelect value={obForm.brick_type_id || ''} onChange={e => setObForm({ ...obForm, brick_type_id: e.target.value })} required><option value="">-- Select Type --</option>{masterData?.brick_types.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}</FormSelect></div>
+                 <div className="space-y-1.5"><Label className="text-slate-400 text-xs">Brick Grade</Label>
+                   <FormSelect value={obForm.brick_grade_id || ''} onChange={e => setObForm({ ...obForm, brick_grade_id: e.target.value })} required><option value="">-- Select Grade --</option>{masterData?.brick_grades.map((g: any) => <option key={g.id} value={g.id}>{g.name}</option>)}</FormSelect></div>
+-                <div className="grid grid-cols-2 gap-3">
++                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                   <div className="space-y-1.5"><Label className="text-slate-400 text-xs">Quantity</Label><Input type="number" placeholder="e.g. 50000" value={obForm.quantity || ''} onChange={e => setObForm({ ...obForm, quantity: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" /></div>
+                   <div className="space-y-1.5"><Label className="text-slate-400 text-xs">Unit Cost (â‚¹ / brick)</Label><Input type="number" step="0.01" placeholder="e.g. 5.50" value={obForm.unit_cost || ''} onChange={e => setObForm({ ...obForm, unit_cost: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" /></div>
+                 </div>
+@@ -87,7 +87,7 @@ export const SettingsView: React.FC = () => {
+               {obType === 'MATERIAL' && (<>
+                 <div className="space-y-1.5"><Label className="text-slate-400 text-xs">Material</Label>
+                   <FormSelect value={obForm.material_id || ''} onChange={e => setObForm({ ...obForm, material_id: e.target.value })} required><option value="">-- Select Material --</option>{materials.map(m => <option key={m.id} value={m.id}>{m.name} ({m.unit_code})</option>)}</FormSelect></div>
+-                <div className="grid grid-cols-2 gap-3">
++                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                   <div className="space-y-1.5"><Label className="text-slate-400 text-xs">Quantity</Label><Input type="number" step="0.01" placeholder="e.g. 45.5" value={obForm.quantity || ''} onChange={e => setObForm({ ...obForm, quantity: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" /></div>
+                   <div className="space-y-1.5"><Label className="text-slate-400 text-xs">Unit Cost (â‚¹)</Label><Input type="number" step="0.01" placeholder="e.g. 8500" value={obForm.unit_cost || ''} onChange={e => setObForm({ ...obForm, unit_cost: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" /></div>
+                 </div>
+diff --git a/frontend/src/features/inventory/InventoryView.tsx b/frontend/src/features/inventory/InventoryView.tsx
+--- a/frontend/src/features/inventory/InventoryView.tsx
++++ b/frontend/src/features/inventory/InventoryView.tsx
+@@ -69,7 +69,7 @@ export const InventoryView: React.FC = () => {
+         }
+       />
+ 
+-      <div className="flex items-center gap-2">
++      <div className="flex flex-wrap items-center gap-2">
+         <Button size="sm" variant={activeTab === 'lots' ? "default" : "outline"} onClick={() => setActiveTab('lots')} className={tabClasses(activeTab === 'lots')}>
+           <Layers className="size-3.5" /> Stock Lots ({stockLots.length})
+         </Button>
+diff --git a/frontend/src/features/materials/MaterialsView.tsx b/frontend/src/features/materials/MaterialsView.tsx
+--- a/frontend/src/features/materials/MaterialsView.tsx
++++ b/frontend/src/features/materials/MaterialsView.tsx
+@@ -56,7 +56,7 @@ export const MaterialsView: React.FC = () => {
+       <PageHeader title="Materials & Suppliers" description="Manage raw material procurement, supplier directories, and purchase register" icon={<Package className="size-5 sm:size-6" />}
+         actions={<Button onClick={() => setIsNewSupplierOpen(true)} className="bg-orange-500 hover:bg-orange-600 text-white font-bold gap-2 h-10 px-4 shadow-lg shadow-orange-500/20 text-xs sm:text-sm"><Plus className="size-4" /> Add Supplier</Button>} />
+ 
+-      <div className="flex items-center gap-2 overflow-x-auto">
++      <div className="flex flex-wrap items-center gap-2">
+         <Button size="sm" variant={activeTab === 'materials' ? "default" : "outline"} onClick={() => setActiveTab('materials')} className={tabClasses(activeTab === 'materials')}><Package className="size-3.5" /> Material Catalog ({materials.length})</Button>
+         <Button size="sm" variant={activeTab === 'suppliers' ? "default" : "outline"} onClick={() => setActiveTab('suppliers')} className={tabClasses(activeTab === 'suppliers')}><Users className="size-3.5" /> Suppliers ({suppliers.length})</Button>
+         <Button size="sm" variant={activeTab === 'purchases' ? "default" : "outline"} onClick={() => setActiveTab('purchases')} className={tabClasses(activeTab === 'purchases')}><History className="size-3.5" /> Purchases ({purchases.length})</Button>
+diff --git a/frontend/src/features/payments/PaymentsView.tsx b/frontend/src/features/payments/PaymentsView.tsx
+--- a/frontend/src/features/payments/PaymentsView.tsx
++++ b/frontend/src/features/payments/PaymentsView.tsx
+@@ -56,7 +56,7 @@ export const PaymentsView: React.FC = () => {
+         actions={<Button onClick={() => setIsExpenseOpen(true)} className="bg-orange-500 hover:bg-orange-600 text-white font-bold gap-2 h-10 px-4 shadow-lg shadow-orange-500/20 text-xs sm:text-sm"><Plus className="size-4" /> Log Expense</Button>}
+       />
+ 
+-      <div className="flex items-center gap-2">
++      <div className="flex flex-wrap items-center gap-2">
+         <Button size="sm" variant={activeTab === 'payments' ? "default" : "outline"} onClick={() => setActiveTab('payments')} className={tabClasses(activeTab === 'payments')}><Wallet className="size-3.5" /> Payments ({payments.length})</Button>
+         <Button size="sm" variant={activeTab === 'expenses' ? "default" : "outline"} onClick={() => setActiveTab('expenses')} className={tabClasses(activeTab === 'expenses')}><Receipt className="size-3.5" /> Expenses ({expenses.length})</Button>
+       </div>
+diff --git a/frontend/src/features/transport/TransportView.tsx b/frontend/src/features/transport/TransportView.tsx
+--- a/frontend/src/features/transport/TransportView.tsx
++++ b/frontend/src/features/transport/TransportView.tsx
+@@ -45,7 +45,7 @@ export const TransportView: React.FC = () => {
+         actions={<Button onClick={() => setIsNewVehicleOpen(true)} className="bg-orange-500 hover:bg-orange-600 text-white font-bold gap-2 h-10 px-4 shadow-lg shadow-orange-500/20 text-xs sm:text-sm"><Plus className="size-4" /> Add Vehicle</Button>}
+       />
+ 
+-      <div className="flex items-center gap-2">
++      <div className="flex flex-wrap items-center gap-2">
+         <Button size="sm" variant={activeTab === 'vehicles' ? "default" : "outline"} onClick={() => setActiveTab('vehicles')} className={tabClasses(activeTab === 'vehicles')}><Truck className="size-3.5" /> Fleet Vehicles ({vehicles.length})</Button>
+         <Button size="sm" variant={activeTab === 'trips' ? "default" : "outline"} onClick={() => setActiveTab('trips')} className={tabClasses(activeTab === 'trips')}><MapPin className="size-3.5" /> Trip Register ({trips.length})</Button>
+       </div>
+diff --git a/frontend/src/features/reports/ReportsView.tsx b/frontend/src/features/reports/ReportsView.tsx
+--- a/frontend/src/features/reports/ReportsView.tsx
++++ b/frontend/src/features/reports/ReportsView.tsx
+@@ -98,7 +98,7 @@ export const ReportsView: React.FC = () => {
+           <div>
+             <h3 className="text-sm font-bold text-white">{currentReport?.label || 'Report'}</h3>
+             <p className="text-[11px] text-slate-500 mt-0.5">Generated from live transactional data</p>
+           </div>
+-          <div className="flex items-center gap-2 no-print">
++          <div className="flex flex-wrap items-center gap-2 no-print">
+             <Button size="sm" variant="outline" onClick={exportCSV} className="border-slate-700/60 text-slate-400 hover:bg-slate-800 hover:text-white text-xs gap-1.5"><Download className="size-3.5" /> Export CSV</Button>
+             <Button size="sm" variant="outline" onClick={() => window.print()} className="border-slate-700/60 text-slate-400 hover:bg-slate-800 hover:text-white text-xs gap-1.5"><Printer className="size-3.5" /> Print</Button>
+           </div>
+diff --git a/frontend/vite.config.ts b/frontend/vite.config.ts
+--- a/frontend/vite.config.ts
++++ b/frontend/vite.config.ts
+@@ -1,6 +1,7 @@
+ import { defineConfig } from 'vite'
+ import tailwindcss from '@tailwindcss/vite'
+-import { fileURLToPath } from 'url'
++import react from '@vitejs/plugin-react'
++import { fileURLToPath, URL } from 'node:url'
+ 
+ export default defineConfig({
+   plugins: [
+@@ -8,6 +9,7 @@ export default defineConfig({
+   plugins: [
++    react(),
+     tailwindcss(),
+   ],
+    resolve: {

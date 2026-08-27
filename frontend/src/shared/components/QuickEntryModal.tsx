@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { FormSelect } from '@/components/ui/form-select';
 
 interface QuickEntryModalProps {
   isOpen: boolean;
@@ -171,11 +172,11 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClos
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[560px] bg-slate-900 border-slate-800 text-slate-100">
         <DialogHeader className="pb-2">
-          <DialogTitle className="text-xl font-bold tracking-tight text-white">Quick Daily Entry</DialogTitle>
+          <DialogTitle className="text-lg font-bold tracking-tight text-white">Quick Daily Entry</DialogTitle>
         </DialogHeader>
 
         {/* Action Tabs */}
-        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-2 border-b border-slate-800">
+        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-2 border-b border-slate-800/60">
           {[
             { id: 'moulding', label: 'Moulding', icon: Flame },
             { id: 'purchase', label: 'Purchase', icon: Package },
@@ -195,7 +196,7 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClos
                 className={`gap-1.5 text-xs font-semibold shrink-0 ${
                   active 
                     ? 'bg-orange-500 hover:bg-orange-600 text-white border-transparent' 
-                    : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800 hover:text-white'
+                    : 'bg-transparent border-slate-700/60 text-slate-400 hover:bg-slate-800 hover:text-white'
                 }`}
                 onClick={() => { setActiveTab(t.id as any); setError(''); }}
               >
@@ -206,72 +207,72 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClos
         </div>
 
         {error && (
-          <div className="bg-rose-500/10 border border-rose-500/30 text-rose-400 px-3.5 py-2.5 rounded-md text-xs font-medium mb-2">
+          <div className="bg-rose-500/10 border border-rose-500/30 text-rose-400 px-3.5 py-2.5 rounded-lg text-xs font-medium mb-2">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
-          <div className="space-y-1">
-            <Label className="text-slate-400">Date</Label>
-            <Input type="date" value={form.date || ''} onChange={e => setForm({ ...form, date: e.target.value })} required />
+          <div className="space-y-1.5">
+            <Label className="text-slate-400 text-xs">Date</Label>
+            <Input type="date" value={form.date || ''} onChange={e => setForm({ ...form, date: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
           </div>
 
           {activeTab === 'moulding' && (
             <>
-              <div className="space-y-1">
-                <Label className="text-slate-400">Batch</Label>
-                <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={form.batch_id || ''} onChange={e => setForm({ ...form, batch_id: e.target.value })} required>
+              <div className="space-y-1.5">
+                <Label className="text-slate-400 text-xs">Batch</Label>
+                <FormSelect value={form.batch_id || ''} onChange={e => setForm({ ...form, batch_id: e.target.value })} required>
                   <option value="">-- Select Active Moulding Batch --</option>
                   {batches.map(b => (
                     <option key={b.id} value={b.id}>{b.batch_number} ({b.brick_type_name})</option>
                   ))}
-                </select>
+                </FormSelect>
               </div>
-              <div className="space-y-1">
-                <Label className="text-slate-400">Worker</Label>
-                <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={form.worker_id || ''} onChange={e => setForm({ ...form, worker_id: e.target.value })} required>
+              <div className="space-y-1.5">
+                <Label className="text-slate-400 text-xs">Worker</Label>
+                <FormSelect value={form.worker_id || ''} onChange={e => setForm({ ...form, worker_id: e.target.value })} required>
                   <option value="">-- Select Worker --</option>
                   {workers.map(w => (
                     <option key={w.id} value={w.id}>{w.full_name} ({w.code})</option>
                   ))}
-                </select>
+                </FormSelect>
               </div>
-              <div className="space-y-1">
-                <Label className="text-slate-400">Bricks Moulded (Count)</Label>
-                <Input type="number" placeholder="e.g. 1500" value={form.bricks_moulded || ''} onChange={e => setForm({ ...form, bricks_moulded: e.target.value })} required min="1" />
+              <div className="space-y-1.5">
+                <Label className="text-slate-400 text-xs">Bricks Moulded (Count)</Label>
+                <Input type="number" placeholder="e.g. 1500" value={form.bricks_moulded || ''} onChange={e => setForm({ ...form, bricks_moulded: e.target.value })} required min="1" className="bg-slate-950/40 border-slate-700/60" />
               </div>
             </>
           )}
 
           {activeTab === 'purchase' && (
             <>
-              <div className="space-y-1">
-                <Label className="text-slate-400">Supplier</Label>
-                <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={form.supplier_id || ''} onChange={e => setForm({ ...form, supplier_id: e.target.value })} required>
+              <div className="space-y-1.5">
+                <Label className="text-slate-400 text-xs">Supplier</Label>
+                <FormSelect value={form.supplier_id || ''} onChange={e => setForm({ ...form, supplier_id: e.target.value })} required>
                   <option value="">-- Select Supplier --</option>
                   {suppliers.map(s => (
                     <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
                   ))}
-                </select>
+                </FormSelect>
               </div>
-              <div className="space-y-1">
-                <Label className="text-slate-400">Material</Label>
-                <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={form.material_id || ''} onChange={e => setForm({ ...form, material_id: e.target.value })} required>
+              <div className="space-y-1.5">
+                <Label className="text-slate-400 text-xs">Material</Label>
+                <FormSelect value={form.material_id || ''} onChange={e => setForm({ ...form, material_id: e.target.value })} required>
                   <option value="">-- Select Material --</option>
                   {materials.map(m => (
                     <option key={m.id} value={m.id}>{m.name} ({m.unit_code})</option>
                   ))}
-                </select>
+                </FormSelect>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-slate-400">Quantity</Label>
-                  <Input type="number" step="0.001" placeholder="e.g. 10.5" value={form.quantity || ''} onChange={e => setForm({ ...form, quantity: e.target.value })} required />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-slate-400 text-xs">Quantity</Label>
+                  <Input type="number" step="0.001" placeholder="e.g. 10.5" value={form.quantity || ''} onChange={e => setForm({ ...form, quantity: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-slate-400">Unit Price (₹)</Label>
-                  <Input type="number" step="0.01" placeholder="e.g. 1200" value={form.unit_price || ''} onChange={e => setForm({ ...form, unit_price: e.target.value })} required />
+                <div className="space-y-1.5">
+                  <Label className="text-slate-400 text-xs">Unit Price (₹)</Label>
+                  <Input type="number" step="0.01" placeholder="e.g. 1200" value={form.unit_price || ''} onChange={e => setForm({ ...form, unit_price: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
                 </div>
               </div>
             </>
@@ -279,39 +280,39 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClos
 
           {activeTab === 'sale' && (
             <>
-              <div className="space-y-1">
-                <Label className="text-slate-400">Customer</Label>
-                <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={form.customer_id || ''} onChange={e => setForm({ ...form, customer_id: e.target.value })} required>
+              <div className="space-y-1.5">
+                <Label className="text-slate-400 text-xs">Customer</Label>
+                <FormSelect value={form.customer_id || ''} onChange={e => setForm({ ...form, customer_id: e.target.value })} required>
                   <option value="">-- Select Customer --</option>
                   {customers.map(c => (
                     <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
                   ))}
-                </select>
+                </FormSelect>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-slate-400">Brick Type</Label>
-                  <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={form.brick_type_id || ''} onChange={e => setForm({ ...form, brick_type_id: e.target.value })} required>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-slate-400 text-xs">Brick Type</Label>
+                  <FormSelect value={form.brick_type_id || ''} onChange={e => setForm({ ...form, brick_type_id: e.target.value })} required>
                     <option value="">-- Type --</option>
                     {brickTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                  </select>
+                  </FormSelect>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-slate-400">Brick Grade</Label>
-                  <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={form.brick_grade_id || ''} onChange={e => setForm({ ...form, brick_grade_id: e.target.value })} required>
+                <div className="space-y-1.5">
+                  <Label className="text-slate-400 text-xs">Brick Grade</Label>
+                  <FormSelect value={form.brick_grade_id || ''} onChange={e => setForm({ ...form, brick_grade_id: e.target.value })} required>
                     <option value="">-- Grade --</option>
                     {brickGrades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                  </select>
+                  </FormSelect>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-slate-400">Quantity (Bricks)</Label>
-                  <Input type="number" placeholder="e.g. 5000" value={form.quantity || ''} onChange={e => setForm({ ...form, quantity: e.target.value })} required min="1" />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-slate-400 text-xs">Quantity (Bricks)</Label>
+                  <Input type="number" placeholder="e.g. 5000" value={form.quantity || ''} onChange={e => setForm({ ...form, quantity: e.target.value })} required min="1" className="bg-slate-950/40 border-slate-700/60" />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-slate-400">Unit Rate (₹ / Brick)</Label>
-                  <Input type="number" step="0.01" placeholder="e.g. 8.50" value={form.unit_price || ''} onChange={e => setForm({ ...form, unit_price: e.target.value })} required />
+                <div className="space-y-1.5">
+                  <Label className="text-slate-400 text-xs">Unit Rate (₹ / Brick)</Label>
+                  <Input type="number" step="0.01" placeholder="e.g. 8.50" value={form.unit_price || ''} onChange={e => setForm({ ...form, unit_price: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
                 </div>
               </div>
             </>
@@ -319,57 +320,57 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClos
 
           {activeTab === 'payment' && (
             <>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-slate-400">Direction</Label>
-                  <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={form.direction || 'INCOMING'} onChange={e => setForm({ ...form, direction: e.target.value })}>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-slate-400 text-xs">Direction</Label>
+                  <FormSelect value={form.direction || 'INCOMING'} onChange={e => setForm({ ...form, direction: e.target.value })}>
                     <option value="INCOMING">INCOMING (Received)</option>
                     <option value="OUTGOING">OUTGOING (Paid)</option>
-                  </select>
+                  </FormSelect>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-slate-400">Party Type</Label>
-                  <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={form.party_type || 'CUSTOMER'} onChange={e => setForm({ ...form, party_type: e.target.value })}>
+                <div className="space-y-1.5">
+                  <Label className="text-slate-400 text-xs">Party Type</Label>
+                  <FormSelect value={form.party_type || 'CUSTOMER'} onChange={e => setForm({ ...form, party_type: e.target.value })}>
                     <option value="CUSTOMER">Customer</option>
                     <option value="SUPPLIER">Supplier</option>
                     <option value="WORKER">Worker</option>
-                  </select>
+                  </FormSelect>
                 </div>
               </div>
-              <div className="space-y-1">
-                <Label className="text-slate-400">Amount (₹)</Label>
-                <Input type="number" step="0.01" placeholder="e.g. 25000" value={form.amount || ''} onChange={e => setForm({ ...form, amount: e.target.value })} required />
+              <div className="space-y-1.5">
+                <Label className="text-slate-400 text-xs">Amount (₹)</Label>
+                <Input type="number" step="0.01" placeholder="e.g. 25000" value={form.amount || ''} onChange={e => setForm({ ...form, amount: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
               </div>
-              <div className="space-y-1">
-                <Label className="text-slate-400">Payment Method</Label>
-                <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={form.payment_method_id || ''} onChange={e => setForm({ ...form, payment_method_id: e.target.value })} required>
+              <div className="space-y-1.5">
+                <Label className="text-slate-400 text-xs">Payment Method</Label>
+                <FormSelect value={form.payment_method_id || ''} onChange={e => setForm({ ...form, payment_method_id: e.target.value })} required>
                   <option value="">-- Select Payment Method --</option>
                   {paymentMethods.map(pm => <option key={pm.id} value={pm.id}>{pm.name}</option>)}
-                </select>
+                </FormSelect>
               </div>
             </>
           )}
 
           {activeTab === 'expense' && (
             <>
-              <div className="space-y-1">
-                <Label className="text-slate-400">Category</Label>
-                <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={form.category_id || ''} onChange={e => setForm({ ...form, category_id: e.target.value })} required>
+              <div className="space-y-1.5">
+                <Label className="text-slate-400 text-xs">Category</Label>
+                <FormSelect value={form.category_id || ''} onChange={e => setForm({ ...form, category_id: e.target.value })} required>
                   <option value="">-- Select Category --</option>
                   {expenseCategories.map(ec => <option key={ec.id} value={ec.id}>{ec.name}</option>)}
-                </select>
+                </FormSelect>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-slate-400">Amount (₹)</Label>
-                  <Input type="number" step="0.01" placeholder="e.g. 4500" value={form.amount || ''} onChange={e => setForm({ ...form, amount: e.target.value })} required />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-slate-400 text-xs">Amount (₹)</Label>
+                  <Input type="number" step="0.01" placeholder="e.g. 4500" value={form.amount || ''} onChange={e => setForm({ ...form, amount: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-slate-400">Payment Method</Label>
-                  <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={form.payment_method_id || ''} onChange={e => setForm({ ...form, payment_method_id: e.target.value })} required>
+                <div className="space-y-1.5">
+                  <Label className="text-slate-400 text-xs">Payment Method</Label>
+                  <FormSelect value={form.payment_method_id || ''} onChange={e => setForm({ ...form, payment_method_id: e.target.value })} required>
                     <option value="">-- Method --</option>
                     {paymentMethods.map(pm => <option key={pm.id} value={pm.id}>{pm.name}</option>)}
-                  </select>
+                  </FormSelect>
                 </div>
               </div>
             </>
@@ -377,36 +378,36 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClos
 
           {activeTab === 'trip' && (
             <>
-              <div className="space-y-1">
-                <Label className="text-slate-400">Vehicle</Label>
-                <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-100 focus:outline-none" value={form.vehicle_id || ''} onChange={e => setForm({ ...form, vehicle_id: e.target.value })} required>
+              <div className="space-y-1.5">
+                <Label className="text-slate-400 text-xs">Vehicle</Label>
+                <FormSelect value={form.vehicle_id || ''} onChange={e => setForm({ ...form, vehicle_id: e.target.value })} required>
                   <option value="">-- Select Vehicle --</option>
                   {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number} ({v.driver_name})</option>)}
-                </select>
+                </FormSelect>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-slate-400">Trip Cost (₹)</Label>
-                  <Input type="number" step="0.01" placeholder="e.g. 1500" value={form.cost || ''} onChange={e => setForm({ ...form, cost: e.target.value })} required />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-slate-400 text-xs">Trip Cost (₹)</Label>
+                  <Input type="number" step="0.01" placeholder="e.g. 1500" value={form.cost || ''} onChange={e => setForm({ ...form, cost: e.target.value })} required className="bg-slate-950/40 border-slate-700/60" />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-slate-400">Distance (KM)</Label>
-                  <Input type="number" step="0.1" placeholder="e.g. 45" value={form.distance_km || ''} onChange={e => setForm({ ...form, distance_km: e.target.value })} />
+                <div className="space-y-1.5">
+                  <Label className="text-slate-400 text-xs">Distance (KM)</Label>
+                  <Input type="number" step="0.1" placeholder="e.g. 45" value={form.distance_km || ''} onChange={e => setForm({ ...form, distance_km: e.target.value })} className="bg-slate-950/40 border-slate-700/60" />
                 </div>
               </div>
             </>
           )}
 
-          <div className="space-y-1">
-            <Label className="text-slate-400">Notes (Optional)</Label>
-            <Input type="text" placeholder="Additional details..." value={form.notes || ''} onChange={e => setForm({ ...form, notes: e.target.value })} />
+          <div className="space-y-1.5">
+            <Label className="text-slate-400 text-xs">Notes (Optional)</Label>
+            <Input type="text" placeholder="Additional details..." value={form.notes || ''} onChange={e => setForm({ ...form, notes: e.target.value })} className="bg-slate-950/40 border-slate-700/60" />
           </div>
 
-          <div className="flex justify-end gap-2.5 pt-3">
-            <Button type="button" variant="outline" onClick={onClose} className="border-slate-700 hover:bg-slate-800">
+          <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-800/40">
+            <Button type="button" variant="outline" onClick={onClose} className="border-slate-700 hover:bg-slate-800 text-slate-300">
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="bg-orange-500 hover:bg-orange-600 text-white font-semibold">
+            <Button type="submit" disabled={loading} className="bg-orange-500 hover:bg-orange-600 text-white font-semibold min-w-[120px]">
               {loading ? 'Saving...' : 'Submit Entry'}
             </Button>
           </div>

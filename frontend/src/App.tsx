@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { Sidebar } from './shared/components/Sidebar';
+import { MobileHeader } from './shared/components/MobileHeader';
 import { MobileNav } from './shared/components/MobileNav';
 import { QuickEntryModal } from './shared/components/QuickEntryModal';
 import { LoginView } from './features/auth/LoginView';
@@ -14,6 +16,7 @@ import { TransportView } from './features/transport/TransportView';
 import { SettingsView } from './features/settings/SettingsView';
 import { ReportsView } from './features/reports/ReportsView';
 import { apiRequest } from './shared/api/client';
+import { LoadingSpinner } from './shared/components/LoadingSpinner';
 
 export function App() {
   const [user, setUser] = useState<any>(null);
@@ -48,8 +51,8 @@ export function App() {
 
   if (loadingAuth) {
     return (
-      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', color: 'var(--accent-orange)', fontWeight: 700 }}>
-        Loading BrickSetu Workspace...
+      <div className="flex h-screen items-center justify-center bg-background">
+        <LoadingSpinner label="Loading BrickSetu Workspace..." />
       </div>
     );
   }
@@ -59,43 +62,50 @@ export function App() {
   }
 
   return (
-    <div className="app-shell">
-      {/* Desktop Sidebar */}
-      <Sidebar
-        currentTab={currentTab}
-        onSelectTab={(tab) => setCurrentTab(tab)}
-        user={user}
-        onLogout={handleLogout}
-      />
-
-      {/* Main View Area */}
-      <main className="main-content" key={refreshKey}>
-        {currentTab === 'dashboard' && <DashboardView onOpenQuickEntry={() => setIsQuickEntryOpen(true)} onNavigate={(t) => setCurrentTab(t)} />}
-        {currentTab === 'production' && <ProductionView />}
-        {currentTab === 'inventory' && <InventoryView />}
-        {currentTab === 'workers' && <WorkersView />}
-        {currentTab === 'materials' && <MaterialsView />}
-        {currentTab === 'sales' && <SalesView />}
-        {currentTab === 'payments' && <PaymentsView />}
-        {currentTab === 'transport' && <TransportView />}
-        {currentTab === 'reports' && <ReportsView />}
-        {currentTab === 'settings' && <SettingsView />}
-      </main>
-
-      {/* Mobile Bottom Navigation */}
-      <MobileNav
-        currentTab={currentTab}
-        onSelectTab={(tab) => setCurrentTab(tab)}
-        onOpenQuickEntry={() => setIsQuickEntryOpen(true)}
-      />
-
-      {/* Quick Entry Daily Action Drawer/Modal */}
+    <AppLayout
+      contentKey={refreshKey}
+      sidebar={
+        <Sidebar
+          className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-slate-800/80 bg-slate-950/90 shadow-2xl shadow-slate-950/30 backdrop-blur-xl lg:flex"
+          currentTab={currentTab}
+          onSelectTab={(tab) => setCurrentTab(tab)}
+          user={user}
+          onLogout={handleLogout}
+        />
+      }
+      mobileHeader={
+        <MobileHeader
+          currentTab={currentTab}
+          onSelectTab={(tab) => setCurrentTab(tab)}
+          onOpenQuickEntry={() => setIsQuickEntryOpen(true)}
+          user={user}
+          onLogout={handleLogout}
+        />
+      }
+      mobileNavigation={
+        <MobileNav
+          currentTab={currentTab}
+          onSelectTab={(tab) => setCurrentTab(tab)}
+          onOpenQuickEntry={() => setIsQuickEntryOpen(true)}
+        />
+      }
+    >
+      {currentTab === 'dashboard' && <DashboardView onOpenQuickEntry={() => setIsQuickEntryOpen(true)} onNavigate={(t) => setCurrentTab(t)} />}
+      {currentTab === 'production' && <ProductionView />}
+      {currentTab === 'inventory' && <InventoryView />}
+      {currentTab === 'workers' && <WorkersView />}
+      {currentTab === 'materials' && <MaterialsView />}
+      {currentTab === 'sales' && <SalesView />}
+      {currentTab === 'payments' && <PaymentsView />}
+      {currentTab === 'transport' && <TransportView />}
+      {currentTab === 'reports' && <ReportsView />}
+      {currentTab === 'settings' && <SettingsView />}
       <QuickEntryModal
         isOpen={isQuickEntryOpen}
         onClose={() => setIsQuickEntryOpen(false)}
         onSuccess={() => setRefreshKey(prev => prev + 1)}
       />
-    </div>
+    </AppLayout>
   );
 }
 
