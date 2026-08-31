@@ -1,10 +1,22 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from 'sonner';
 
-const inter = Inter({ subsets: ['latin'] });
+const ibmPlexSans = IBM_Plex_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-sans',
+  display: 'swap',
+});
+
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-mono',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'BrickSetu — Brick Kiln Operations & Management System',
@@ -17,8 +29,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className="h-full">
-      <body className={`${inter.className} min-h-full bg-background text-foreground antialiased`}>
+    <html lang="en" suppressHydrationWarning className={`h-full ${ibmPlexSans.variable} ${ibmPlexMono.variable}`}>
+      <body className={`${ibmPlexSans.className} min-h-full bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
