@@ -98,6 +98,33 @@ export async function createWorkerAction(formData: FormData): Promise<ActionResu
   }
 }
 
+export async function updateWorkerAction(workerId: string, formData: FormData): Promise<ActionResult> {
+  try {
+    const user = await requireSession();
+    const fullName = formData.get('full_name')?.toString();
+    const phone = formData.get('phone')?.toString() || null;
+    const address = formData.get('address')?.toString() || null;
+    const paymentType = formData.get('payment_type')?.toString() || 'PIECE_RATE';
+
+    if (!fullName) {
+      return { success: false, error: 'Worker name is required' };
+    }
+
+    await query(
+      `UPDATE workers.profiles
+       SET full_name = $1, phone = $2, address = $3, payment_type = $4
+       WHERE id = $5 AND business_unit_id = $6`,
+      [fullName, phone, address, paymentType, workerId, user.business_unit_id]
+    );
+
+    revalidatePath(`/workers/${workerId}`);
+    revalidatePath('/workers');
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: formatPgError(err) };
+  }
+}
+
 export async function addWorkerRateAction(workerId: string, effectiveDate: string, rateRupees: number): Promise<ActionResult> {
   try {
     const user = await requireSession();
@@ -124,6 +151,7 @@ export async function addWorkerRateAction(workerId: string, effectiveDate: strin
       [worker_id, effective_date, ratePaise, user.id]
     );
 
+    revalidatePath(`/workers/${worker_id}`);
     revalidatePath('/workers');
     return { success: true, data: rows[0] };
   } catch (err: any) {

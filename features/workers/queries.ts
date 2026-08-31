@@ -3,6 +3,14 @@ import { requireSession } from '@/lib/auth/require-session';
 import { unsettledWorkFilterSchema, idParamSchema } from '@/lib/validation/schemas';
 import { safeBigInt } from '@/lib/utils';
 
+function formatDateString(val: any): string | null {
+  if (!val) return null;
+  if (val instanceof Date) {
+    return val.toISOString().split('T')[0];
+  }
+  return String(val);
+}
+
 export async function getWorkers() {
   const user = await requireSession();
   const { rows } = await query(
@@ -22,6 +30,8 @@ export async function getWorkers() {
   );
   return rows.map((r) => ({
     ...r,
+    joining_date: formatDateString(r.joining_date),
+    created_at: formatDateString(r.created_at),
     current_rate_paise: r.current_rate_paise ? safeBigInt(r.current_rate_paise).toString() : null,
     total_advance_paise: safeBigInt(r.total_advance_paise).toString(),
     payable_balance_paise: safeBigInt(r.payable_balance_paise).toString(),
@@ -84,6 +94,8 @@ export async function getWorkerDetail(id: string) {
 
   return {
     ...worker,
+    joining_date: formatDateString(worker.joining_date),
+    created_at: formatDateString(worker.created_at),
     current_rate_paise: worker.current_rate_paise ? safeBigInt(worker.current_rate_paise).toString() : null,
     total_advance_paise: safeBigInt(worker.total_advance_paise).toString(),
     payable_balance_paise: safeBigInt(worker.payable_balance_paise).toString(),
@@ -91,15 +103,22 @@ export async function getWorkerDetail(id: string) {
     total_bricks_moulded: parseInt(worker.total_bricks_moulded || '0', 10),
     rate_history: ratesRes.rows.map((r) => ({
       ...r,
+      effective_date: formatDateString(r.effective_date),
+      created_at: formatDateString(r.created_at),
       rate_per_1000_paise: safeBigInt(r.rate_per_1000_paise).toString(),
     })),
     moulding_logs: logsRes.rows.map((r) => ({
       ...r,
+      work_date: formatDateString(r.work_date),
+      created_at: formatDateString(r.created_at),
       bricks_moulded: parseInt(r.bricks_moulded || '0', 10),
       earned_amount_paise: safeBigInt(r.earned_amount_paise).toString(),
     })),
     settlements: settlementsRes.rows.map((r) => ({
       ...r,
+      period_start_date: formatDateString(r.period_start_date),
+      period_end_date: formatDateString(r.period_end_date),
+      created_at: formatDateString(r.created_at),
       total_bricks_moulded: parseInt(r.total_bricks_moulded || '0', 10),
       gross_amount_paise: safeBigInt(r.gross_amount_paise).toString(),
       advance_deducted_paise: safeBigInt(r.advance_deducted_paise).toString(),
@@ -108,6 +127,8 @@ export async function getWorkerDetail(id: string) {
     })),
     payments: paymentsRes.rows.map((r) => ({
       ...r,
+      payment_date: formatDateString(r.payment_date),
+      created_at: formatDateString(r.created_at),
       amount_paise: safeBigInt(r.amount_paise).toString(),
     })),
   };
@@ -127,6 +148,9 @@ export async function getSettlements() {
   );
   return rows.map((r) => ({
     ...r,
+    period_start_date: formatDateString(r.period_start_date),
+    period_end_date: formatDateString(r.period_end_date),
+    created_at: formatDateString(r.created_at),
     total_bricks_moulded: parseInt(r.total_bricks_moulded || '0', 10),
     gross_amount_paise: safeBigInt(r.gross_amount_paise).toString(),
     advance_deducted_paise: safeBigInt(r.advance_deducted_paise).toString(),

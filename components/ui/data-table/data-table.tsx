@@ -19,6 +19,7 @@ interface DataTableProps<T extends Record<string, any>> {
   data: T[];
   searchPlaceholder?: string;
   exportFileName?: string;
+  showExport?: boolean;
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -26,6 +27,7 @@ export function DataTable<T extends Record<string, any>>({
   data,
   searchPlaceholder = 'Search records...',
   exportFileName = 'export.csv',
+  showExport = true,
 }: DataTableProps<T>) {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -87,14 +89,16 @@ export function DataTable<T extends Record<string, any>>({
             className="pl-9"
           />
         </div>
-        <Button
-          variant="secondary"
-          onClick={exportCSV}
-          className="w-full sm:w-auto shrink-0"
-        >
-          <Download className="h-4 w-4" />
-          <span>Export CSV</span>
-        </Button>
+        {showExport && (
+          <Button
+            variant="secondary"
+            onClick={exportCSV}
+            className="w-full sm:w-auto shrink-0"
+          >
+            <Download className="h-4 w-4" />
+            <span>Export CSV</span>
+          </Button>
+        )}
       </div>
 
       {/* Table Container with hairline border & subtle elevation */}

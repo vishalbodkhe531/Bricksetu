@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Users, Plus, FileCheck, Eye, Calendar, X } from 'lucide-react';
 import {
   getWorkersAction,
@@ -183,14 +184,15 @@ export default function WorkersPage() {
       header: 'Actions',
       align: 'center',
       cell: ({ row }) => (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleViewWorkerDetail(row.original.id)}
-          className="h-7 text-[11px] gap-1"
-        >
-          <Eye className="h-3.5 w-3.5" /> Details
-        </Button>
+        <Link href={`/workers/${row.original.id}`}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-[11px] gap-1 cursor-pointer"
+          >
+            <Eye className="h-3.5 w-3.5" /> Details
+          </Button>
+        </Link>
       ),
     },
   ];
@@ -286,38 +288,13 @@ export default function WorkersPage() {
         </div>
       </div>
 
-      {/* Standardized Tabs */}
-      <TabsList>
-        <TabsTrigger
-          active={activeTab === 'workers'}
-          onClick={() => setActiveTab('workers')}
-        >
-          Worker Roster ({workers.length})
-        </TabsTrigger>
-        <TabsTrigger
-          active={activeTab === 'settlements'}
-          onClick={() => setActiveTab('settlements')}
-        >
-          Weekly Settlements ({settlements.length})
-        </TabsTrigger>
-      </TabsList>
-
       {/* Content */}
-      {activeTab === 'workers' ? (
-        <DataTable
-          columns={workerColumns}
-          data={workers}
-          searchPlaceholder="Search worker by name or code..."
-          exportFileName="workers.csv"
-        />
-      ) : (
-        <DataTable
-          columns={settlementColumns}
-          data={settlements}
-          searchPlaceholder="Search settlements..."
-          exportFileName="settlements.csv"
-        />
-      )}
+      <DataTable
+        columns={workerColumns}
+        data={workers}
+        searchPlaceholder="Search worker by name or code..."
+        showExport={false}
+      />
 
       {/* Modal: Add Worker */}
       {showAddWorker && (
