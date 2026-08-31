@@ -1,12 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Download, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, Search, ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
-interface Column<T> {
+export interface Column<T> {
+  id?: string;
   header: string;
   accessorKey?: keyof T | string;
   cell?: (info: { row: { original: T } }) => React.ReactNode;
+  align?: 'left' | 'center' | 'right';
+  className?: string;
 }
 
 interface DataTableProps<T extends Record<string, any>> {
@@ -70,8 +75,8 @@ export function DataTable<T extends Record<string, any>>({
       {/* Search & Export Toolbar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
             type="text"
             value={searchQuery}
             onChange={(e) => {
@@ -79,50 +84,85 @@ export function DataTable<T extends Record<string, any>>({
               setCurrentPage(1);
             }}
             placeholder={searchPlaceholder}
-            className="w-full rounded-md border border-border bg-card pl-9 pr-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            className="pl-9"
           />
         </div>
-        <button
+        <Button
+          variant="secondary"
           onClick={exportCSV}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-md border border-border bg-card px-3.5 py-2 text-xs font-medium text-foreground hover:bg-accent transition-colors cursor-pointer"
+          className="w-full sm:w-auto shrink-0"
         >
           <Download className="h-4 w-4" />
           <span>Export CSV</span>
-        </button>
+        </Button>
       </div>
 
-      {/* Table */}
+      {/* Table Container with hairline border & subtle elevation */}
       <div className="rounded-lg border border-border bg-card overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b border-border bg-muted/60 text-[11px] font-bold uppercase tracking-wider text-muted-foreground select-none">
               <tr>
-                {columns.map((col, idx) => (
-                  <th key={idx} className="px-4 py-3 select-none">
-                    {col.header}
-                  </th>
-                ))}
+                {columns.map((col, idx) => {
+                  const alignClass =
+                    col.align === 'right'
+                      ? 'text-right'
+                      : col.align === 'center'
+                      ? 'text-center'
+                      : 'text-left';
+                  return (
+                    <th
+                      key={idx}
+                      className={`px-4 py-3.5 ${alignClass} ${col.className || ''}`}
+                    >
+                      {col.header}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {paginatedData.length > 0 ? (
                 paginatedData.map((row, rIdx) => (
-                  <tr key={rIdx} className="hover:bg-muted/30 transition-colors">
-                    {columns.map((col, cIdx) => (
-                      <td key={cIdx} className="px-4 py-3 align-middle">
-                        {col.cell
-                          ? col.cell({ row: { original: row } })
-                          : col.accessorKey
-                          ? String(row[col.accessorKey as keyof T] ?? '')
-                          : null}
-                      </td>
-                    ))}
+                  <tr
+                    key={rIdx}
+                    className="hover:bg-muted/40 transition-colors group cursor-default"
+                  >
+                    {columns.map((col, cIdx) => {
+                      const alignClass =
+                        col.align === 'right'
+                          ? 'text-right'
+                          : col.align === 'center'
+                          ? 'text-center'
+                          : 'text-left';
+                      return (
+                        <td
+                          key={cIdx}
+                          className={`px-4 py-3.5 align-middle ${alignClass} ${col.className || ''}`}
+                        >
+                          {col.cell
+                            ? col.cell({ row: { original: row } })
+                            : col.accessorKey
+                            ? String(row[col.accessorKey as keyof T] ?? '')
+                            : null}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={columns.length} className="h-28 text-center text-sm text-muted-foreground">
-                    No records found.
+                  <td
+                    colSpan={columns.length}
+                    className="h-36 text-center text-xs text-muted-foreground"
+                  >
+                    <div className="flex flex-col items-center justify-center gap-1 py-6">
+                      <Inbox className="h-8 w-8 text-muted-foreground/50 stroke-1" />
+                      <p className="font-semibold text-foreground">No records found</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Try adjusting your search filter or add a new entry.
+                      </p>
+                    </div>
                   </td>
                 </tr>
               )}
@@ -133,26 +173,33 @@ export function DataTable<T extends Record<string, any>>({
         {/* Pagination Footer */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border px-4 py-3 text-xs text-muted-foreground">
           <div>
-            Showing {paginatedData.length} of {filteredData.length} records
+            Showing <span className="font-semibold text-foreground">{paginatedData.length}</span> of{' '}
+            <span className="font-semibold text-foreground">{filteredData.length}</span> records
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="icon"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-foreground hover:bg-accent disabled:opacity-40 cursor-pointer"
+              className="h-8 w-8 disabled:opacity-40 disabled:cursor-not-allowed"
+              aria-label="Previous Page"
             >
               <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="font-medium">
+            </Button>
+            <span className="font-medium text-[11px] text-foreground px-1">
               Page {currentPage} of {totalPages}
             </span>
-            <button
+            <Button
+              variant="outline"
+              size="icon"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-foreground hover:bg-accent disabled:opacity-40 cursor-pointer"
+              className="h-8 w-8 disabled:opacity-40 disabled:cursor-not-allowed"
+              aria-label="Next Page"
             >
               <ChevronRight className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </div>
       </div>

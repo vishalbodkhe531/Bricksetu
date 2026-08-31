@@ -1,19 +1,21 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, IndianRupee, FileCheck, AlertCircle, Eye, Calendar, DollarSign } from 'lucide-react';
+import { Users, Plus, FileCheck, Eye, Calendar, X } from 'lucide-react';
 import {
   getWorkersAction,
   createWorkerAction,
   getWorkerDetailAction,
-  addWorkerRateAction,
   getSettlementsAction,
   getUnsettledWorkAction,
   generateSettlementAction,
   approveSettlementAction,
-  voidSettlementAction,
 } from '@/features/workers/actions';
-import { DataTable } from '@/components/ui/data-table/data-table';
+import { DataTable, Column } from '@/components/ui/data-table/data-table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 
 export default function WorkersPage() {
@@ -124,37 +126,41 @@ export default function WorkersPage() {
     }
   };
 
-  // Table Columns
-  const workerColumns: any[] = [
+  // Table Columns with alignment & monospace numeric styles
+  const workerColumns: Column<any>[] = [
     {
       accessorKey: 'full_name',
       header: 'Worker Name',
-      cell: ({ row }: any) => (
-        <div>
-          <div className="font-bold text-foreground">{row.original.full_name}</div>
-          <div className="text-[11px] text-muted-foreground font-mono">{row.original.code}</div>
+      cell: ({ row }) => (
+        <div className="space-y-0.5">
+          <div className="font-semibold text-foreground">{row.original.full_name}</div>
+          <Badge variant="outline" className="font-mono text-[10px] text-muted-foreground bg-muted/30 py-0 px-1 font-medium">
+            {row.original.code}
+          </Badge>
         </div>
       ),
     },
     {
       accessorKey: 'phone',
       header: 'Phone Number',
-      cell: ({ row }: any) => <span className="text-muted-foreground">{row.original.phone || '—'}</span>,
+      cell: ({ row }) => <span className="text-muted-foreground font-mono text-[11px]">{row.original.phone || '—'}</span>,
     },
     {
       accessorKey: 'current_rate_paise',
       header: 'Current Rate',
-      cell: ({ row }: any) => (
-        <span className="font-semibold text-foreground">
-          ₹{(parseInt(row.original.current_rate_paise || '0', 10) / 100).toFixed(2)} / 1K
+      align: 'right',
+      cell: ({ row }) => (
+        <span className="font-mono font-semibold text-foreground tabular-nums">
+          ₹{(parseInt(row.original.current_rate_paise || '0', 10) / 100).toFixed(2)} <span className="text-muted-foreground text-[10px] font-sans font-normal">/ 1K</span>
         </span>
       ),
     },
     {
       accessorKey: 'total_bricks_moulded',
       header: 'Total Bricks',
-      cell: ({ row }: any) => (
-        <span className="font-medium text-foreground">
+      align: 'right',
+      cell: ({ row }) => (
+        <span className="font-mono font-medium text-foreground tabular-nums">
           {parseInt(row.original.total_bricks_moulded || '0', 10).toLocaleString()}
         </span>
       ),
@@ -162,10 +168,11 @@ export default function WorkersPage() {
     {
       accessorKey: 'payable_balance_paise',
       header: 'Pending Due',
-      cell: ({ row }: any) => {
+      align: 'right',
+      cell: ({ row }) => {
         const val = parseInt(row.original.payable_balance_paise || '0', 10) / 100;
         return (
-          <span className={`font-bold ${val > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
+          <span className={`font-mono font-bold tabular-nums ${val > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground'}`}>
             ₹{val.toFixed(2)}
           </span>
         );
@@ -174,42 +181,50 @@ export default function WorkersPage() {
     {
       id: 'actions',
       header: 'Actions',
-      cell: ({ row }: any) => (
-        <button
+      align: 'center',
+      cell: ({ row }) => (
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => handleViewWorkerDetail(row.original.id)}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-border bg-card text-xs font-semibold text-foreground hover:bg-accent"
+          className="h-7 text-[11px] gap-1"
         >
           <Eye className="h-3.5 w-3.5" /> Details
-        </button>
+        </Button>
       ),
     },
   ];
 
-  const settlementColumns: any[] = [
+  const settlementColumns: Column<any>[] = [
     {
       accessorKey: 'settlement_number',
       header: 'Settlement #',
-      cell: ({ row }: any) => <span className="font-mono font-bold text-foreground">{row.original.settlement_number}</span>,
+      cell: ({ row }) => <span className="font-mono font-bold text-foreground text-xs">{row.original.settlement_number}</span>,
     },
     {
       accessorKey: 'worker_name',
       header: 'Worker',
-      cell: ({ row }: any) => <span>{row.original.worker_name} ({row.original.worker_code})</span>,
+      cell: ({ row }) => (
+        <span className="font-medium text-foreground">
+          {row.original.worker_name} <span className="text-muted-foreground text-[11px] font-mono">({row.original.worker_code})</span>
+        </span>
+      ),
     },
     {
       accessorKey: 'period_start_date',
       header: 'Period',
-      cell: ({ row }: any) => (
-        <span className="text-muted-foreground">
-          {row.original.period_start_date} to {row.original.period_end_date}
+      cell: ({ row }) => (
+        <span className="text-muted-foreground font-mono text-[11px]">
+          {row.original.period_start_date} → {row.original.period_end_date}
         </span>
       ),
     },
     {
       accessorKey: 'net_payable_paise',
       header: 'Net Payable',
-      cell: ({ row }: any) => (
-        <span className="font-bold text-foreground">
+      align: 'right',
+      cell: ({ row }) => (
+        <span className="font-mono font-bold text-foreground tabular-nums">
           ₹{(parseInt(row.original.net_payable_paise || '0', 10) / 100).toFixed(2)}
         </span>
       ),
@@ -217,113 +232,150 @@ export default function WorkersPage() {
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ row }: any) => {
+      align: 'center',
+      cell: ({ row }) => {
         const s = row.original.status;
-        return (
-          <span
-            className={`rounded px-2 py-0.5 text-[10px] font-bold ${
-              s === 'APPROVED'
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                : s === 'DRAFT'
-                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                : 'bg-muted text-muted-foreground'
-            }`}
-          >
-            {s}
-          </span>
-        );
+        const variant = s === 'APPROVED' ? 'success' : s === 'DRAFT' ? 'warning' : 'secondary';
+        return <Badge variant={variant}>{s}</Badge>;
       },
     },
     {
       id: 'actions',
       header: 'Action',
-      cell: ({ row }: any) =>
+      align: 'center',
+      cell: ({ row }) =>
         row.original.status === 'DRAFT' ? (
-          <button
+          <Button
+            size="sm"
             onClick={() => handleApproveSettlement(row.original.id)}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700"
+            className="h-7 text-[11px] bg-emerald-700 hover:bg-emerald-800 text-white dark:bg-emerald-600 dark:hover:bg-emerald-700 font-bold"
           >
             Approve
-          </button>
+          </Button>
         ) : null,
     },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with clear action hierarchy */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Users className="h-6 w-6 text-primary" /> Workers & Weekly Wage Settlements
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+            <Users className="h-6 w-6 text-primary shrink-0" /> Workers & Wage Ledger
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Worker roster, rate per 1,000 history, wage advances, and automated weekly settlement generation
+            Worker roster, rate history, wage advances, and weekly settlement generation
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
+
+        {/* Action Buttons: Primary (Kiln Ember) vs Secondary Outline */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <Button
+            variant="secondary"
             onClick={() => setShowSettlementModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3.5 py-2 text-xs font-bold text-foreground hover:bg-accent shadow-xs"
           >
             <FileCheck className="h-4 w-4" /> Weekly Settlement
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="default"
             onClick={() => setShowAddWorker(true)}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 shadow-xs"
           >
             <Plus className="h-4 w-4" /> Register Worker
-          </button>
+          </Button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-border gap-2">
-        <button
+      {/* Standardized Tabs */}
+      <TabsList>
+        <TabsTrigger
+          active={activeTab === 'workers'}
           onClick={() => setActiveTab('workers')}
-          className={`pb-3 px-4 text-xs font-semibold border-b-2 transition-colors ${
-            activeTab === 'workers'
-              ? 'border-primary text-primary font-bold'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
         >
           Worker Roster ({workers.length})
-        </button>
-        <button
+        </TabsTrigger>
+        <TabsTrigger
+          active={activeTab === 'settlements'}
           onClick={() => setActiveTab('settlements')}
-          className={`pb-3 px-4 text-xs font-semibold border-b-2 transition-colors ${
-            activeTab === 'settlements'
-              ? 'border-primary text-primary font-bold'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
         >
           Weekly Settlements ({settlements.length})
-        </button>
-      </div>
+        </TabsTrigger>
+      </TabsList>
 
       {/* Content */}
       {activeTab === 'workers' ? (
-        <DataTable columns={workerColumns} data={workers} searchPlaceholder="Search worker by name or code..." exportFileName="workers.csv" />
+        <DataTable
+          columns={workerColumns}
+          data={workers}
+          searchPlaceholder="Search worker by name or code..."
+          exportFileName="workers.csv"
+        />
       ) : (
-        <DataTable columns={settlementColumns} data={settlements} searchPlaceholder="Search settlements..." exportFileName="settlements.csv" />
+        <DataTable
+          columns={settlementColumns}
+          data={settlements}
+          searchPlaceholder="Search settlements..."
+          exportFileName="settlements.csv"
+        />
       )}
 
       {/* Modal: Add Worker */}
       {showAddWorker && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
-            <h3 className="text-base font-bold text-foreground">Register New Worker</h3>
+          <div className="bg-card border border-border rounded-xl max-w-md w-full p-6 space-y-4 shadow-md">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-base font-bold text-foreground">Register New Worker</h3>
+              <button
+                onClick={() => setShowAddWorker(false)}
+                className="text-muted-foreground hover:text-foreground rounded p-1"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
             <form onSubmit={handleCreateWorker} className="space-y-3">
-              <input value={newWorkerCode} onChange={(e) => setNewWorkerCode(e.target.value)} placeholder="Worker Code (e.g. WRK-001)" required className="w-full rounded border border-border bg-card px-3 py-2 text-xs" />
-              <input value={newWorkerName} onChange={(e) => setNewWorkerName(e.target.value)} placeholder="Full Name" required className="w-full rounded border border-border bg-card px-3 py-2 text-xs" />
-              <input value={newWorkerPhone} onChange={(e) => setNewWorkerPhone(e.target.value)} placeholder="Phone Number (optional)" className="w-full rounded border border-border bg-card px-3 py-2 text-xs" />
               <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-muted-foreground">Initial Rate per 1,000 Bricks (₹)</label>
-                <input type="number" step="1" value={newWorkerRate} onChange={(e) => setNewWorkerRate(e.target.value)} required className="w-full rounded border border-border bg-card px-3 py-2 text-xs" />
+                <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Worker Code</label>
+                <Input
+                  value={newWorkerCode}
+                  onChange={(e) => setNewWorkerCode(e.target.value)}
+                  placeholder="e.g. WRK-001"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Full Name</label>
+                <Input
+                  value={newWorkerName}
+                  onChange={(e) => setNewWorkerName(e.target.value)}
+                  placeholder="e.g. Ramesh Kumar"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Phone Number</label>
+                <Input
+                  value={newWorkerPhone}
+                  onChange={(e) => setNewWorkerPhone(e.target.value)}
+                  placeholder="10-digit mobile number"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Initial Rate per 1,000 Bricks (₹)</label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={newWorkerRate}
+                  onChange={(e) => setNewWorkerRate(e.target.value)}
+                  required
+                />
               </div>
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowAddWorker(false)} className="px-3 py-1.5 text-xs border rounded">Cancel</button>
-                <button type="submit" className="px-4 py-1.5 text-xs font-bold bg-primary text-primary-foreground rounded">Save Worker</button>
+                <Button type="button" variant="outline" onClick={() => setShowAddWorker(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="default">
+                  Save Worker
+                </Button>
               </div>
             </form>
           </div>
@@ -333,51 +385,78 @@ export default function WorkersPage() {
       {/* Modal: Weekly Settlement Generator */}
       {showSettlementModal && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl max-w-xl w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-base font-bold text-foreground">Generate Weekly Settlement</h3>
+          <div className="bg-card border border-border rounded-xl max-w-xl w-full p-6 space-y-4 shadow-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-base font-bold text-foreground">Generate Weekly Settlement</h3>
+              <button
+                onClick={() => setShowSettlementModal(false)}
+                className="text-muted-foreground hover:text-foreground rounded p-1"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
             <form onSubmit={handleFetchUnsettled} className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-muted-foreground">Select Worker</label>
-                <select value={settleWorkerId} onChange={(e) => setSettleWorkerId(e.target.value)} required className="w-full rounded border border-border bg-card px-3 py-2 text-xs">
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Select Worker</label>
+                <select
+                  value={settleWorkerId}
+                  onChange={(e) => setSettleWorkerId(e.target.value)}
+                  required
+                  className="w-full rounded-sm border border-border bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
                   <option value="">-- Choose Worker --</option>
                   {workers.map((w) => (
-                    <option key={w.id} value={w.id}>{w.full_name} ({w.code})</option>
+                    <option key={w.id} value={w.id}>
+                      {w.full_name} ({w.code})
+                    </option>
                   ))}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground">Start Date</label>
-                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required className="w-full rounded border border-border bg-card px-3 py-2 text-xs" />
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Start Date</label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    required
+                  />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground">End Date</label>
-                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required className="w-full rounded border border-border bg-card px-3 py-2 text-xs" />
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">End Date</label>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    required
+                  />
                 </div>
               </div>
-              <button type="submit" className="w-full bg-secondary text-secondary-foreground py-2 rounded text-xs font-bold">
+              <Button type="submit" variant="secondary" className="w-full">
                 Calculate Unsettled Work
-              </button>
+              </Button>
             </form>
 
             {unsettledData && (
               <div className="space-y-3 pt-3 border-t border-border">
-                <div className="flex justify-between text-xs font-bold">
-                  <span>Total Bricks Moulded: {unsettledData.total_bricks.toLocaleString()}</span>
+                <div className="flex justify-between text-xs font-mono font-bold bg-muted/40 p-3 rounded-md border border-border">
+                  <span>Total Bricks: {unsettledData.total_bricks.toLocaleString()}</span>
                   <span>Gross Earned: ₹{(parseInt(unsettledData.gross_amount_paise, 10) / 100).toFixed(2)}</span>
                 </div>
-                <button
+                <Button
                   onClick={handleGenerateSettlement}
                   disabled={settleSubmitting || unsettledData.total_bricks === 0}
-                  className="w-full bg-primary text-primary-foreground py-2.5 rounded text-xs font-bold disabled:opacity-50"
+                  className="w-full"
                 >
                   {settleSubmitting ? 'Generating...' : 'Confirm & Generate Draft Settlement'}
-                </button>
+                </Button>
               </div>
             )}
 
             <div className="flex justify-end pt-2">
-              <button onClick={() => setShowSettlementModal(false)} className="px-4 py-1.5 text-xs border rounded">Close</button>
+              <Button variant="outline" onClick={() => setShowSettlementModal(false)}>
+                Close
+              </Button>
             </div>
           </div>
         </div>
@@ -386,37 +465,43 @@ export default function WorkersPage() {
       {/* Modal: Worker Detail */}
       {selectedWorkerId && workerDetail && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl max-w-2xl w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-card border border-border rounded-xl max-w-2xl w-full p-6 space-y-4 shadow-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-border pb-3">
               <div>
                 <h3 className="text-base font-bold text-foreground">{workerDetail.full_name}</h3>
                 <p className="text-xs text-muted-foreground font-mono">{workerDetail.code} • Joined: {workerDetail.joining_date}</p>
               </div>
-              <button onClick={() => { setSelectedWorkerId(null); setWorkerDetail(null); }} className="text-xs border px-3 py-1 rounded">Close</button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setSelectedWorkerId(null); setWorkerDetail(null); }}
+              >
+                Close
+              </Button>
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="p-3 bg-muted/30 rounded border border-border">
+              <div className="p-3 bg-muted/30 rounded-md border border-border">
                 <span className="text-[10px] text-muted-foreground uppercase font-bold block">Current Rate</span>
-                <span className="text-sm font-bold text-foreground">₹{(parseInt(workerDetail.current_rate_paise || '0', 10) / 100).toFixed(2)}</span>
+                <span className="text-sm font-bold font-mono text-foreground">₹{(parseInt(workerDetail.current_rate_paise || '0', 10) / 100).toFixed(2)}</span>
               </div>
-              <div className="p-3 bg-muted/30 rounded border border-border">
+              <div className="p-3 bg-muted/30 rounded-md border border-border">
                 <span className="text-[10px] text-muted-foreground uppercase font-bold block">Total Bricks</span>
-                <span className="text-sm font-bold text-foreground">{parseInt(workerDetail.total_bricks_moulded || '0', 10).toLocaleString()}</span>
+                <span className="text-sm font-bold font-mono text-foreground">{parseInt(workerDetail.total_bricks_moulded || '0', 10).toLocaleString()}</span>
               </div>
-              <div className="p-3 bg-muted/30 rounded border border-border">
+              <div className="p-3 bg-muted/30 rounded-md border border-border">
                 <span className="text-[10px] text-muted-foreground uppercase font-bold block">Pending Balance</span>
-                <span className="text-sm font-bold text-amber-600 dark:text-amber-400">₹{(parseInt(workerDetail.payable_balance_paise || '0', 10) / 100).toFixed(2)}</span>
+                <span className="text-sm font-bold font-mono text-amber-700 dark:text-amber-400">₹{(parseInt(workerDetail.payable_balance_paise || '0', 10) / 100).toFixed(2)}</span>
               </div>
             </div>
 
             <div>
-              <h4 className="text-xs font-bold text-foreground uppercase mb-2">Rate History</h4>
-              <ul className="divide-y divide-border text-xs">
+              <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-2">Rate History</h4>
+              <ul className="divide-y divide-border text-xs border border-border rounded-md bg-card">
                 {workerDetail.rate_history?.map((rh: any) => (
-                  <li key={rh.id} className="py-1.5 flex justify-between">
-                    <span>Effective {rh.effective_date}</span>
-                    <span className="font-bold">₹{(parseInt(rh.rate_per_1000_paise, 10) / 100).toFixed(2)} / 1,000</span>
+                  <li key={rh.id} className="p-2.5 flex justify-between items-center">
+                    <span className="text-muted-foreground font-mono">Effective {rh.effective_date}</span>
+                    <span className="font-mono font-bold text-foreground">₹{(parseInt(rh.rate_per_1000_paise, 10) / 100).toFixed(2)} / 1,000</span>
                   </li>
                 ))}
               </ul>
