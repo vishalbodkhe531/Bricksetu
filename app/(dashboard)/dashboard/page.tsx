@@ -1,44 +1,46 @@
 import React from 'react';
 import Link from 'next/link';
 import {
-  LayoutDashboard, Flame, Layers, ShoppingCart, Wallet,
-  ArrowRight, Users, Package, Truck, Receipt
+  LayoutDashboard, Flame, Package, ShoppingCart, Wallet,
+  ArrowRight, Users, Receipt, TrendingUp
 } from 'lucide-react';
-import { getDashboardSummary } from '@/features/dashboard/queries';
+import { getDashboardSummary } from '@/features/dashboard/services/dashboard.service';
+import { getSessionUser } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  const data = await getDashboardSummary();
+  const user = await getSessionUser();
+  const data = user ? await getDashboardSummary(user.organization_id) : null;
 
   const kpis = [
     {
-      label: 'Active Batches',
-      value: data?.active_batches || 0,
-      suffix: 'In Kiln',
+      label: 'Active Workers',
+      value: data?.total_workers ?? 0,
+      suffix: 'Workers',
+      icon: Users,
+      color: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
+    },
+    {
+      label: "Today's Production",
+      value: (data?.total_production_today ?? 0).toLocaleString(),
+      suffix: 'Bricks',
       icon: Flame,
       color: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
     },
     {
-      label: 'Finished Stock',
-      value: (data?.finished_stock_total || 0).toLocaleString(),
-      suffix: 'Bricks',
-      icon: Layers,
-      color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
-    },
-    {
-      label: 'Customer Receivables',
-      value: `₹${(parseInt(data?.customer_receivables_paise || '0', 10) / 100).toLocaleString('en-IN')}`,
-      suffix: 'Due',
+      label: 'Pending Orders',
+      value: data?.total_sales_pending ?? 0,
+      suffix: 'Orders',
       icon: ShoppingCart,
-      color: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
+      color: 'text-orange-500 bg-orange-500/10 border-orange-500/20',
     },
     {
-      label: 'Supplier Payables',
-      value: `₹${(parseInt(data?.supplier_payables_paise || '0', 10) / 100).toLocaleString('en-IN')}`,
-      suffix: 'Payable',
+      label: 'Payments Received',
+      value: `₹${((data?.total_payments_received ?? 0) / 1).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
+      suffix: 'Total',
       icon: Wallet,
-      color: 'text-destructive bg-destructive/10 border-destructive/20',
+      color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
     },
   ];
 
@@ -75,20 +77,20 @@ export default async function DashboardPage() {
         })}
       </div>
 
-      {/* Main Grid: Stock Ledger & Quick Modules */}
+      {/* Main Grid: Recent Activity & Quick Modules */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Finished Stock Table */}
+        {/* Recent Production */}
         <div className="lg:col-span-2 bg-card border border-border rounded-xl p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-foreground">Finished Brick Stock by Grade</h3>
-              <p className="text-xs text-muted-foreground">Current yard inventory available for sales dispatch</p>
+              <h3 className="text-sm font-bold text-foreground">Recent Production</h3>
+              <p className="text-xs text-muted-foreground">Latest production batches across all workers</p>
             </div>
             <Link
-              href="/inventory"
+              href="/production"
               className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
             >
-              Full Inventory <ArrowRight className="h-3.5 w-3.5" />
+              All Production <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
 
@@ -96,30 +98,28 @@ export default async function DashboardPage() {
             <table className="w-full text-xs text-left">
               <thead className="bg-muted/50 text-muted-foreground uppercase font-bold border-b border-border">
                 <tr>
+                  <th className="px-4 py-2.5">Date</th>
                   <th className="px-4 py-2.5">Brick Type</th>
-                  <th className="px-4 py-2.5">Grade</th>
-                  <th className="px-4 py-2.5 text-right">Available Qty</th>
+                  <th className="px-4 py-2.5">Worker</th>
+                  <th className="px-4 py-2.5 text-right">Bricks</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {data?.stock_breakdown?.length > 0 ? (
-                  data.stock_breakdown.map((st: any, idx: number) => (
+                {data?.recent_production && data.recent_production.length > 0 ? (
+                  data.recent_production.map((row, idx) => (
                     <tr key={idx} className="hover:bg-muted/30">
-                      <td className="px-4 py-3 font-semibold text-foreground">{st.brick_type_name}</td>
-                      <td className="px-4 py-3">
-                        <span className="rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-2 py-0.5 text-[10px] font-bold">
-                          {st.brick_grade_name}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
-                        {st.quantity.toLocaleString()} Bricks
+                      <td className="px-4 py-3 font-mono text-muted-foreground">{row.production_date}</td>
+                      <td className="px-4 py-3 font-semibold text-foreground">{row.brick_type_name}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{row.worker_name ?? '—'}</td>
+                      <td className="px-4 py-3 text-right font-bold font-mono text-foreground">
+                        {row.bricks_moulded.toLocaleString()}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">
-                      No finished stock lots recorded yet.
+                    <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                      No production batches recorded yet.
                     </td>
                   </tr>
                 )}
@@ -128,42 +128,69 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Quick Module Shortcuts */}
-        <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-          <div>
-            <h3 className="text-sm font-bold text-foreground">Operational Modules</h3>
-            <p className="text-xs text-muted-foreground">Direct access to workflow entry pages</p>
+        {/* Quick Module Shortcuts + Recent Payments */}
+        <div className="space-y-4">
+          {/* Recent Payments */}
+          <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-foreground">Recent Payments</h3>
+              <Link href="/payments" className="text-xs font-bold text-primary hover:underline inline-flex items-center gap-1">
+                All <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+            {data?.recent_payments && data.recent_payments.length > 0 ? (
+              <ul className="divide-y divide-border">
+                {data.recent_payments.map((p, idx) => (
+                  <li key={idx} className="py-2.5 flex justify-between items-center">
+                    <div>
+                      <div className="text-xs font-semibold text-foreground">{p.customer_name}</div>
+                      <div className="text-[10px] text-muted-foreground font-mono">{p.payment_date} · {p.payment_mode ?? 'N/A'}</div>
+                    </div>
+                    <span className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                      ₹{p.amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-muted-foreground text-center py-4">No recent payments.</p>
+            )}
           </div>
 
-          <div className="space-y-2">
-            {[
-              { title: 'Production & Batches', href: '/production', icon: Flame, desc: 'Moulding, firing, & stage tracking' },
-              { title: 'Workers & Wages', href: '/workers', icon: Users, desc: 'Piece rate, advances, & settlements' },
-              { title: 'Materials & Procurement', href: '/materials', icon: Package, desc: 'Coal, clay, & supplier ledgers' },
-              { title: 'Sales & Customers', href: '/sales', icon: ShoppingCart, desc: 'Sales dispatches & receivables' },
-              { title: 'Payments & Ledger', href: '/payments', icon: Receipt, desc: 'Cash flow & allocations' },
-              { title: 'Transport & Fleet', href: '/transport', icon: Truck, desc: 'Vehicles & trip freight logs' },
-            ].map((m) => {
-              const Icon = m.icon;
-              return (
-                <Link
-                  key={m.href}
-                  href={m.href}
-                  className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-muted/20 hover:bg-accent hover:border-primary/40 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded bg-primary/10 text-primary">
-                      <Icon className="h-4 w-4" />
+          {/* Quick Module Shortcuts */}
+          <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Operational Modules</h3>
+              <p className="text-xs text-muted-foreground">Direct access to workflow entry pages</p>
+            </div>
+
+            <div className="space-y-2">
+              {[
+                { title: 'Production & Batches', href: '/production', icon: Flame },
+                { title: 'Workers & Wages', href: '/workers', icon: Users },
+                { title: 'Inventory', href: '/inventory', icon: Package },
+                { title: 'Sales & Customers', href: '/sales', icon: ShoppingCart },
+                { title: 'Payments & Ledger', href: '/payments', icon: Receipt },
+                { title: 'Reports', href: '/reports', icon: TrendingUp },
+              ].map((m) => {
+                const Icon = m.icon;
+                return (
+                  <Link
+                    key={m.href}
+                    href={m.href}
+                    className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-muted/20 hover:bg-accent hover:border-primary/40 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-1.5 rounded bg-primary/10 text-primary">
+                        <Icon className="h-3.5 w-3.5" />
+                      </div>
+                      <span className="text-xs font-bold text-foreground">{m.title}</span>
                     </div>
-                    <div>
-                      <div className="text-xs font-bold text-foreground">{m.title}</div>
-                      <div className="text-[10px] text-muted-foreground">{m.desc}</div>
-                    </div>
-                  </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
-                </Link>
-              );
-            })}
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

@@ -1,70 +1,206 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { BarChart3, Download, Filter, FileText, TrendingUp, DollarSign } from 'lucide-react';
-import { getReportDataAction } from '@/features/reports/actions';
-import { DataTable } from '@/components/ui/data-table/data-table';
-import { toast } from 'sonner';
+import React, { useState } from 'react';
+import { BarChart3, Filter } from 'lucide-react';
+import { useReport } from '@/features/reports/hooks/useReports';
+import type { ReportType } from '@/features/reports/api/reports.api';
+import { DataTable, Column } from '@/components/ui/data-table/data-table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export default function ReportsPage() {
-  const [reportType, setReportType] = useState<string>('batch-costing');
+  const [selectedReportType, setSelectedReportType] = useState<ReportType>('production-summary');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [reportData, setReportData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchReport();
-  }, [reportType]);
-
-  async function fetchReport() {
-    setLoading(true);
-    const res = await getReportDataAction(reportType, { start_date: startDate, end_date: endDate });
-    if (res.success) {
-      setReportData(res.data);
-    } else {
-      toast.error(res.error || 'Failed to fetch report');
+  // Fetch report data using TanStack Query hook
+  const { data: reportData = [], isLoading, refetch } = useReport<any[]>(
+    selectedReportType,
+    {
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
     }
-    setLoading(false);
-  }
+  );
 
   // Dynamic Column Generators
-  const getColumns = (): any[] => {
-    if (reportType === 'batch-costing') {
-      return [
-        { accessorKey: 'batch_number', header: 'Batch #', cell: ({ row }: any) => <span className="font-mono font-bold text-foreground">{row.original.batch_number}</span> },
-        { accessorKey: 'brick_type_name', header: 'Brick Type', cell: ({ row }: any) => <span>{row.original.brick_type_name}</span> },
-        { accessorKey: 'fired_good_quantity', header: 'Fired Good Qty', cell: ({ row }: any) => <span className="font-semibold">{parseInt(row.original.fired_good_quantity || '0', 10).toLocaleString()}</span> },
-        { accessorKey: 'moulding_cost_paise', header: 'Moulding Labor', cell: ({ row }: any) => <span>₹{(parseInt(row.original.moulding_cost_paise || '0', 10) / 100).toFixed(2)}</span> },
-        { accessorKey: 'material_cost_paise', header: 'Materials', cell: ({ row }: any) => <span>₹{(parseInt(row.original.material_cost_paise || '0', 10) / 100).toFixed(2)}</span> },
-        { accessorKey: 'total_cost_paise', header: 'Total Batch Cost', cell: ({ row }: any) => <span className="font-bold text-primary">₹{(parseInt(row.original.total_cost_paise || '0', 10) / 100).toFixed(2)}</span> },
-        { accessorKey: 'cost_per_1000_paise', header: 'Cost / 1K Bricks', cell: ({ row }: any) => <span className="font-bold text-emerald-600 dark:text-emerald-400">{row.original.cost_per_1000_paise ? `₹${(parseInt(row.original.cost_per_1000_paise, 10) / 100).toFixed(2)}` : 'N/A'}</span> },
-      ];
-    }
+  const getColumns = (): Column<any>[] => {
+    switch (selectedReportType) {
+      case 'production-summary':
+        return [
+          {
+            accessorKey: 'production_date',
+            header: 'Date',
+            cell: ({ row }) => (
+              <span className="text-muted-foreground font-mono text-[11px]">
+                {row.original.production_date}
+              </span>
+            ),
+          },
+          {
+            accessorKey: 'brick_type_name',
+            header: 'Brick Type',
+            cell: ({ row }) => (
+              <span className="font-semibold text-foreground">{row.original.brick_type_name}</span>
+            ),
+          },
+          {
+            accessorKey: 'worker_name',
+            header: 'Worker',
+            cell: ({ row }) => (
+              <span className="text-muted-foreground text-xs">{row.original.worker_name ?? '—'}</span>
+            ),
+          },
+          {
+            accessorKey: 'bricks_moulded',
+            header: 'Bricks Moulded',
+            align: 'right',
+            cell: ({ row }) => (
+              <span className="font-mono font-bold text-foreground">
+                {Number(row.original.bricks_moulded).toLocaleString()}
+              </span>
+            ),
+          },
+        ];
 
-    if (reportType === 'production-damage') {
-      return [
-        { accessorKey: 'transition_date', header: 'Date', cell: ({ row }: any) => <span className="text-muted-foreground">{row.original.transition_date}</span> },
-        { accessorKey: 'batch_number', header: 'Batch #', cell: ({ row }: any) => <span className="font-mono font-bold">{row.original.batch_number}</span> },
-        { accessorKey: 'brick_type_name', header: 'Brick Type', cell: ({ row }: any) => <span>{row.original.brick_type_name}</span> },
-        { accessorKey: 'from_stage', header: 'From → To Stage', cell: ({ row }: any) => <span className="text-xs font-semibold">{row.original.from_stage} → {row.original.to_stage}</span> },
-        { accessorKey: 'input_quantity', header: 'Input Qty', cell: ({ row }: any) => <span>{parseInt(row.original.input_quantity || '0', 10).toLocaleString()}</span> },
-        { accessorKey: 'output_good_quantity', header: 'Good Qty', cell: ({ row }: any) => <span className="font-bold text-emerald-600 dark:text-emerald-400">{parseInt(row.original.output_good_quantity || '0', 10).toLocaleString()}</span> },
-        { accessorKey: 'damaged_quantity', header: 'Damaged Qty', cell: ({ row }: any) => <span className="font-bold text-destructive">{parseInt(row.original.damaged_quantity || '0', 10).toLocaleString()}</span> },
-      ];
-    }
+      case 'worker-settlements':
+        return [
+          {
+            accessorKey: 'worker_name',
+            header: 'Worker Name',
+            cell: ({ row }) => (
+              <span className="font-semibold text-foreground">{row.original.worker_name}</span>
+            ),
+          },
+          {
+            accessorKey: 'period_start',
+            header: 'Period',
+            cell: ({ row }) => (
+              <span className="text-muted-foreground font-mono text-[11px]">
+                {row.original.period_start} → {row.original.period_end}
+              </span>
+            ),
+          },
+          {
+            accessorKey: 'gross_wage',
+            header: 'Gross Wage',
+            align: 'right',
+            cell: ({ row }) => (
+              <span className="font-mono font-semibold">₹{Number(row.original.gross_wage).toFixed(2)}</span>
+            ),
+          },
+          {
+            accessorKey: 'advances_deducted',
+            header: 'Advances',
+            align: 'right',
+            cell: ({ row }) => (
+              <span className="font-mono text-amber-600">₹{Number(row.original.advances_deducted).toFixed(2)}</span>
+            ),
+          },
+          {
+            accessorKey: 'net_payable',
+            header: 'Net Payable',
+            align: 'right',
+            cell: ({ row }) => (
+              <span className="font-mono font-bold text-emerald-600">₹{Number(row.original.net_payable).toFixed(2)}</span>
+            ),
+          },
+        ];
 
-    if (reportType === 'stock-movement') {
-      return [
-        { accessorKey: 'transaction_date', header: 'Date', cell: ({ row }: any) => <span className="text-muted-foreground">{row.original.transaction_date}</span> },
-        { accessorKey: 'transaction_type', header: 'Type', cell: ({ row }: any) => <span className="font-mono font-bold text-xs">{row.original.transaction_type}</span> },
-        { accessorKey: 'brick_type_name', header: 'Item', cell: ({ row }: any) => <span>{row.original.brick_type_name} ({row.original.brick_grade_name || 'N/A'})</span> },
-        { accessorKey: 'quantity_change', header: 'Qty Change', cell: ({ row }: any) => <span className="font-bold">{row.original.quantity_change > 0 ? `+${row.original.quantity_change}` : row.original.quantity_change}</span> },
-        { accessorKey: 'balance_after', header: 'Balance After', cell: ({ row }: any) => <span className="font-bold text-foreground">{parseInt(row.original.balance_after || '0', 10).toLocaleString()}</span> },
-      ];
-    }
+      case 'inventory-stock':
+        return [
+          {
+            accessorKey: 'item_name',
+            header: 'Item Name',
+            cell: ({ row }) => (
+              <span className="font-semibold text-foreground">{row.original.item_name}</span>
+            ),
+          },
+          {
+            accessorKey: 'item_type',
+            header: 'Item Type',
+            cell: ({ row }) => (
+              <span className="font-mono text-xs text-muted-foreground">{row.original.item_type}</span>
+            ),
+          },
+          {
+            accessorKey: 'stock',
+            header: 'Current Stock',
+            align: 'right',
+            cell: ({ row }) => (
+              <span className="font-mono font-bold">{Number(row.original.stock).toLocaleString()}</span>
+            ),
+          },
+        ];
 
-    return [];
+      case 'sales-summary':
+        return [
+          {
+            accessorKey: 'order_date',
+            header: 'Order Date',
+            cell: ({ row }) => (
+              <span className="text-muted-foreground font-mono text-[11px]">{row.original.order_date}</span>
+            ),
+          },
+          {
+            accessorKey: 'customer_name',
+            header: 'Customer',
+            cell: ({ row }) => (
+              <span className="font-semibold text-foreground">{row.original.customer_name}</span>
+            ),
+          },
+          {
+            accessorKey: 'status',
+            header: 'Status',
+            cell: ({ row }) => (
+              <span className="capitalize font-mono text-xs">{row.original.status}</span>
+            ),
+          },
+          {
+            accessorKey: 'total_amount',
+            header: 'Total Amount',
+            align: 'right',
+            cell: ({ row }) => (
+              <span className="font-mono font-bold">₹{Number(row.original.total_amount).toLocaleString('en-IN')}</span>
+            ),
+          },
+        ];
+
+      case 'payment-summary':
+        return [
+          {
+            accessorKey: 'payment_date',
+            header: 'Payment Date',
+            cell: ({ row }) => (
+              <span className="text-muted-foreground font-mono text-[11px]">{row.original.payment_date}</span>
+            ),
+          },
+          {
+            accessorKey: 'customer_name',
+            header: 'Customer',
+            cell: ({ row }) => (
+              <span className="font-semibold text-foreground">{row.original.customer_name}</span>
+            ),
+          },
+          {
+            accessorKey: 'payment_mode',
+            header: 'Mode',
+            cell: ({ row }) => (
+              <span className="uppercase font-mono text-xs">{row.original.payment_mode || '—'}</span>
+            ),
+          },
+          {
+            accessorKey: 'amount',
+            header: 'Amount',
+            align: 'right',
+            cell: ({ row }) => (
+              <span className="font-mono font-bold text-emerald-600">₹{Number(row.original.amount).toLocaleString('en-IN')}</span>
+            ),
+          },
+        ];
+
+      default:
+        return [];
+    }
   };
 
   return (
@@ -75,84 +211,69 @@ export default function ReportsPage() {
           <BarChart3 className="h-6 w-6 text-primary" /> Reports & Financial Analytics
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
-          Comprehensive kiln performance, unit costing per 1,000 bricks, and operating P&L analysis
+          Comprehensive kiln performance, worker settlements, inventory stock, and payment summaries
         </p>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-card border border-border rounded-xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+      <div className="bg-card border border-border rounded-xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shadow-xs">
         <div className="flex flex-wrap items-center gap-3">
           <div>
-            <label className="text-[11px] font-semibold text-muted-foreground block mb-1">Select Report Type</label>
+            <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+              Select Report Type
+            </label>
             <select
-              value={reportType}
-              onChange={(e) => setReportType(e.target.value)}
+              value={selectedReportType}
+              onChange={(e) => setSelectedReportType(e.target.value as ReportType)}
               className="rounded border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary"
             >
-              <option value="batch-costing">Batch Unit Costing Breakdown</option>
-              <option value="production-damage">Daily Production & Damage Report</option>
-              <option value="stock-movement">Stock Movement Ledger</option>
-              <option value="weekly-payments">Weekly Worker Settlements</option>
-              <option value="material-consumption">Material Consumption Audit</option>
-              <option value="operating-profit">Operating P&L Summary</option>
+              <option value="production-summary">Production Output Summary</option>
+              <option value="worker-settlements">Worker Settlement Ledger</option>
+              <option value="inventory-stock">Inventory Stock Status</option>
+              <option value="sales-summary">Sales Orders Breakdown</option>
+              <option value="payment-summary">Payment Receipts Summary</option>
             </select>
           </div>
           <div>
-            <label className="text-[11px] font-semibold text-muted-foreground block mb-1">Start Date</label>
-            <input
+            <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+              Start Date
+            </label>
+            <Input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="rounded border border-border bg-card px-3 py-1.5 text-xs text-foreground"
+              className="h-8 text-xs"
             />
           </div>
           <div>
-            <label className="text-[11px] font-semibold text-muted-foreground block mb-1">End Date</label>
-            <input
+            <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+              End Date
+            </label>
+            <Input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="rounded border border-border bg-card px-3 py-1.5 text-xs text-foreground"
+              className="h-8 text-xs"
             />
           </div>
         </div>
 
-        <button
-          onClick={fetchReport}
-          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 shadow-xs self-end"
+        <Button
+          onClick={() => refetch()}
+          size="sm"
+          className="self-end gap-1.5"
         >
-          <Filter className="h-4 w-4" /> Apply Filters
-        </button>
+          <Filter className="h-3.5 w-3.5" /> Refresh Report
+        </Button>
       </div>
 
-      {/* Render Operating Profit Widget if selected */}
-      {reportType === 'operating-profit' && reportData && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-5 bg-card border border-border rounded-xl space-y-1">
-            <span className="text-xs font-bold text-muted-foreground uppercase">Total Sales Revenue</span>
-            <div className="text-2xl font-extrabold text-foreground">
-              ₹{(parseInt(reportData.total_sales_revenue_paise || '0', 10) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </div>
-          </div>
-          <div className="p-5 bg-card border border-border rounded-xl space-y-1">
-            <span className="text-xs font-bold text-muted-foreground uppercase">Cost of Goods Sold (COGS)</span>
-            <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400">
-              ₹{(parseInt(reportData.total_cogs_paise || '0', 10) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </div>
-          </div>
-          <div className="p-5 bg-card border border-border rounded-xl space-y-1">
-            <span className="text-xs font-bold text-muted-foreground uppercase">Operating Profit</span>
-            <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-              ₹{(parseInt(reportData.operating_profit_paise || '0', 10) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Render Data Table for Tabular Reports */}
-      {reportType !== 'operating-profit' && Array.isArray(reportData) && (
-        <DataTable columns={getColumns()} data={reportData} searchPlaceholder="Filter report records..." exportFileName={`${reportType}_report.csv`} />
-      )}
+      {/* Render Data Table */}
+      <DataTable
+        columns={getColumns()}
+        data={Array.isArray(reportData) ? reportData : []}
+        searchPlaceholder="Filter report records..."
+        showExport={false}
+      />
     </div>
   );
 }
