@@ -204,9 +204,9 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
       </div>
 
       {/* Overview & Contact */}
-      <div className="rounded-xl border border-border bg-card p-6 shadow-xs space-y-4">
+      <div className="rounded-xl border border-border bg-card p-6 shadow-xs space-y-3">
         <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Profile Information</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
           <div className="space-y-1 p-3 bg-muted/20 rounded-lg border border-border">
             <span className="text-[11px] font-bold text-muted-foreground uppercase">Full Name</span>
             <p className="font-semibold text-foreground text-sm">{worker.full_name}</p>
@@ -230,7 +230,7 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
             <span className="text-[11px] font-bold text-muted-foreground uppercase">Joining Date</span>
             <p className="font-mono font-medium text-foreground text-sm">{worker.joining_date}</p>
           </div>
-          <div className="space-y-1 p-3 bg-muted/20 rounded-lg border border-border md:col-span-2">
+          <div className="space-y-1 p-3 bg-muted/20 rounded-lg border border-border md:col-span-4">
             <span className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1">
               <MapPin className="h-3 w-3" /> Address
             </span>
