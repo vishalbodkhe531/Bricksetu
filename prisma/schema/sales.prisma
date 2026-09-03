@@ -1,0 +1,47 @@
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model records {
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id   String              @db.Uuid
+  sale_number        String              @db.VarChar(100)
+  customer_id        String              @db.Uuid
+  brick_type_id      String              @db.Uuid
+  brick_grade_id     String              @db.Uuid
+  sale_date          DateTime            @db.Date
+  quantity           Int
+  unit_price_paise   BigInt
+  total_amount_paise BigInt
+  cost_amount_paise  BigInt              @default(0)
+  charge_id          String?             @db.Uuid
+  vehicle_id         String?             @db.Uuid
+  notes              String?
+  created_at         DateTime            @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by         String?             @db.Uuid
+  brick_grades       brick_grades        @relation(fields: [brick_grade_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  brick_types        brick_types         @relation(fields: [brick_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  business_units     business_units      @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users              users?              @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customers          customers           @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  vehicles           vehicles?           @relation(fields: [vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stock_allocations  stock_allocations[]
+  trips              trips[]
+
+  @@unique([business_unit_id, sale_number], map: "unique_sale_number")
+  @@index([business_unit_id, sale_date(sort: Desc)], map: "idx_sales_bu_date")
+  @@index([customer_id], map: "idx_sales_customer")
+  @@schema("sales")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model stock_allocations {
+  id                  String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sale_id             String        @db.Uuid
+  finished_lot_id     String        @db.Uuid
+  quantity            Int
+  lot_unit_cost_paise BigInt
+  total_cost_paise    BigInt
+  created_at          DateTime      @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  finished_lots       finished_lots @relation(fields: [finished_lot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  records             records       @relation(fields: [sale_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("sales")
+}

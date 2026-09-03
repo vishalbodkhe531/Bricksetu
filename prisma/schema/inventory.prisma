@@ -1,0 +1,66 @@
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model finished_lots {
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id   String              @db.Uuid
+  batch_id           String?             @db.Uuid
+  brick_type_id      String              @db.Uuid
+  brick_grade_id     String              @db.Uuid
+  lot_number         String              @db.VarChar(100)
+  initial_quantity   Int
+  available_quantity Int
+  unit_cost_paise    BigInt              @default(0)
+  created_at         DateTime            @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  batches            batches?            @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  brick_grades       brick_grades        @relation(fields: [brick_grade_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  brick_types        brick_types         @relation(fields: [brick_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  business_units     business_units      @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stock_adjustments  stock_adjustments[]
+  stock_ledger       stock_ledger[]
+  stock_allocations  stock_allocations[]
+
+  @@index([brick_type_id, brick_grade_id, available_quantity], map: "idx_finished_lots_available", where: raw("(available_quantity > 0)"))
+  @@schema("inventory")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model stock_adjustments {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id String         @db.Uuid
+  finished_lot_id  String         @db.Uuid
+  adjustment_type  String         @db.VarChar(50)
+  quantity_change  Int
+  reason           String
+  adjustment_date  DateTime       @db.Date
+  created_at       DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by       String?        @db.Uuid
+  business_units   business_units @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users            users?         @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  finished_lots    finished_lots  @relation(fields: [finished_lot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("inventory")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model stock_ledger {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id String         @db.Uuid
+  finished_lot_id  String?        @db.Uuid
+  brick_type_id    String         @db.Uuid
+  brick_grade_id   String?        @db.Uuid
+  transaction_type String         @db.VarChar(50)
+  quantity_change  Int
+  balance_after    Int
+  reference_id     String?        @db.Uuid
+  transaction_date DateTime       @db.Date
+  reason           String?
+  created_at       DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by       String?        @db.Uuid
+  brick_grades     brick_grades?  @relation(fields: [brick_grade_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  brick_types      brick_types    @relation(fields: [brick_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  business_units   business_units @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users            users?         @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  finished_lots    finished_lots? @relation(fields: [finished_lot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([business_unit_id, transaction_date(sort: Desc)], map: "idx_stock_ledger_bu_date")
+  @@schema("inventory")
+}

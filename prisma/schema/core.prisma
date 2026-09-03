@@ -1,0 +1,104 @@
+model brick_grades {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id String          @db.Uuid
+  code             String          @db.VarChar(50)
+  name             String          @db.VarChar(100)
+  description      String?
+  is_active        Boolean         @default(true)
+  created_at       DateTime        @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  business_units   business_units  @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  finished_lots    finished_lots[]
+  stock_ledger     stock_ledger[]
+  records          records[]
+
+  @@unique([business_unit_id, code], map: "unique_brick_grade_code")
+  @@schema("core")
+}
+
+model brick_types {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id String          @db.Uuid
+  code             String          @db.VarChar(50)
+  name             String          @db.VarChar(100)
+  dimensions       String?         @db.VarChar(100)
+  description      String?
+  is_active        Boolean         @default(true)
+  created_at       DateTime        @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  business_units   business_units  @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  finished_lots    finished_lots[]
+  stock_ledger     stock_ledger[]
+  batches          batches[]
+  records          records[]
+
+  @@unique([business_unit_id, code], map: "unique_brick_type_code")
+  @@schema("core")
+}
+
+model business_units {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code               String               @unique @db.VarChar(50)
+  name               String               @db.VarChar(255)
+  address            String?
+  is_active          Boolean              @default(true)
+  created_at         DateTime             @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at         DateTime             @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  users              users[]
+  events             events[]
+  brick_grades       brick_grades[]
+  brick_types        brick_types[]
+  expense_categories expense_categories[]
+  charges            charges[]
+  expenses           expenses[]
+  payments           payments[]
+  settlements        settlements[]
+  finished_lots      finished_lots[]
+  stock_adjustments  stock_adjustments[]
+  stock_ledger       stock_ledger[]
+  catalogue          catalogue[]
+  consumption        consumption[]
+  lots               lots[]
+  purchases          purchases[]
+  customers          customers[]
+  suppliers          suppliers[]
+  batches            batches[]
+  records            records[]
+  trips              trips[]
+  vehicles           vehicles[]
+  profiles           profiles[]
+
+  @@schema("core")
+}
+
+model expense_categories {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id String         @db.Uuid
+  code             String         @db.VarChar(50)
+  name             String         @db.VarChar(100)
+  description      String?
+  is_active        Boolean        @default(true)
+  created_at       DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  business_units   business_units @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  expenses         expenses[]
+
+  @@unique([business_unit_id, code], map: "unique_expense_category_code")
+  @@schema("core")
+}
+
+model material_units {
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code      String      @unique @db.VarChar(50)
+  name      String      @db.VarChar(50)
+  catalogue catalogue[]
+
+  @@schema("core")
+}
+
+model payment_methods {
+  id       String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code     String     @unique @db.VarChar(50)
+  name     String     @db.VarChar(50)
+  expenses expenses[]
+  payments payments[]
+
+  @@schema("core")
+}

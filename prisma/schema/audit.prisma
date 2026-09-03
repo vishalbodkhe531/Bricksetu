@@ -1,0 +1,16 @@
+model events {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id String?         @db.Uuid
+  actor_id         String?         @db.Uuid
+  action           String          @db.VarChar(100)
+  entity_type      String          @db.VarChar(100)
+  entity_id        String?         @db.Uuid
+  metadata         Json?
+  created_at       DateTime        @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  users            users?          @relation(fields: [actor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  business_units   business_units? @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([business_unit_id, created_at(sort: Desc)], map: "idx_audit_events_bu_date")
+  @@index([entity_type, entity_id], map: "idx_audit_events_entity")
+  @@schema("audit")
+}

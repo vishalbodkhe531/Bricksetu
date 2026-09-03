@@ -1,0 +1,75 @@
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model batches {
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id    String                @db.Uuid
+  batch_number        String                @db.VarChar(100)
+  brick_type_id       String                @db.Uuid
+  stage               String                @default("MOULDING") @db.VarChar(50)
+  target_quantity     Int                   @default(0)
+  moulded_quantity    Int                   @default(0)
+  dried_quantity      Int                   @default(0)
+  fired_good_quantity Int                   @default(0)
+  damaged_quantity    Int                   @default(0)
+  start_date          DateTime              @db.Date
+  end_date            DateTime?             @db.Date
+  status              String                @default("IN_PROGRESS") @db.VarChar(50)
+  notes               String?
+  created_at          DateTime              @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by          String?               @db.Uuid
+  updated_at          DateTime              @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  expenses            expenses[]
+  finished_lots       finished_lots[]
+  consumption         consumption[]
+  brick_types         brick_types           @relation(fields: [brick_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  business_units      business_units        @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users               users?                @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  daily_moulding_logs daily_moulding_logs[]
+  stage_transitions   stage_transitions[]
+  trips               trips[]
+
+  @@unique([business_unit_id, batch_number], map: "unique_batch_number")
+  @@index([business_unit_id], map: "idx_batches_bu")
+  @@schema("production")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model daily_moulding_logs {
+  id                  String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batch_id            String       @db.Uuid
+  worker_id           String       @db.Uuid
+  work_date           DateTime     @db.Date
+  bricks_moulded      Int
+  rate_per_1000_paise BigInt
+  earned_amount_paise BigInt
+  settlement_id       String?      @db.Uuid
+  notes               String?
+  created_at          DateTime     @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by          String?      @db.Uuid
+  batches             batches      @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users               users?       @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  profiles            profiles     @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  settlements         settlements? @relation(fields: [settlement_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_daily_moulding_settlement")
+
+  @@index([batch_id], map: "idx_moulding_logs_batch")
+  @@index([worker_id, work_date], map: "idx_moulding_logs_worker")
+  @@schema("production")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model stage_transitions {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batch_id             String   @db.Uuid
+  from_stage           String   @db.VarChar(50)
+  to_stage             String   @db.VarChar(50)
+  transition_date      DateTime @db.Date
+  input_quantity       Int
+  output_good_quantity Int
+  damaged_quantity     Int
+  notes                String?
+  created_at           DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by           String?  @db.Uuid
+  batches              batches  @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                users?   @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("production")
+}

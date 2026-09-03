@@ -1,0 +1,87 @@
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model catalogue {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id String         @db.Uuid
+  code             String         @db.VarChar(50)
+  name             String         @db.VarChar(100)
+  unit_id          String         @db.Uuid
+  reorder_level    Decimal        @default(0) @db.Decimal(14, 3)
+  description      String?
+  is_active        Boolean        @default(true)
+  created_at       DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  business_units   business_units @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  material_units   material_units @relation(fields: [unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  lots             lots[]
+  purchases        purchases[]
+
+  @@unique([business_unit_id, code], map: "unique_material_code")
+  @@index([business_unit_id], map: "idx_materials_bu")
+  @@schema("materials")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model consumption {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id String         @db.Uuid
+  batch_id         String?        @db.Uuid
+  material_lot_id  String         @db.Uuid
+  consumption_date DateTime       @db.Date
+  quantity         Decimal        @db.Decimal(14, 3)
+  cost_paise       BigInt
+  notes            String?
+  created_at       DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by       String?        @db.Uuid
+  batches          batches?       @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  business_units   business_units @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users            users?         @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  lots             lots           @relation(fields: [material_lot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([batch_id], map: "idx_material_consumption_batch")
+  @@schema("materials")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model lots {
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id   String         @db.Uuid
+  material_id        String         @db.Uuid
+  purchase_id        String?        @db.Uuid
+  lot_number         String         @db.VarChar(100)
+  initial_quantity   Decimal        @db.Decimal(14, 3)
+  available_quantity Decimal        @db.Decimal(14, 3)
+  unit_cost_paise    BigInt
+  received_date      DateTime       @db.Date
+  created_at         DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  consumption        consumption[]
+  business_units     business_units @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  catalogue          catalogue      @relation(fields: [material_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  purchases          purchases?     @relation(fields: [purchase_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([material_id, available_quantity], map: "idx_material_lots_available", where: raw("(available_quantity > (0)::numeric)"))
+  @@schema("materials")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model purchases {
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id   String         @db.Uuid
+  purchase_number    String         @db.VarChar(100)
+  supplier_id        String         @db.Uuid
+  material_id        String         @db.Uuid
+  purchase_date      DateTime       @db.Date
+  quantity           Decimal        @db.Decimal(14, 3)
+  unit_price_paise   BigInt
+  total_amount_paise BigInt
+  charge_id          String?        @db.Uuid
+  notes              String?
+  created_at         DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by         String?        @db.Uuid
+  lots               lots[]
+  business_units     business_units @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users              users?         @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  catalogue          catalogue      @relation(fields: [material_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  suppliers          suppliers      @relation(fields: [supplier_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([business_unit_id, purchase_number], map: "unique_purchase_number")
+  @@schema("materials")
+}

@@ -1,0 +1,39 @@
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model trips {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id String         @db.Uuid
+  vehicle_id       String         @db.Uuid
+  batch_id         String?        @db.Uuid
+  sale_id          String?        @db.Uuid
+  trip_date        DateTime       @db.Date
+  origin           String?        @db.VarChar(255)
+  destination      String?        @db.VarChar(255)
+  distance_km      Decimal?       @db.Decimal(8, 2)
+  cost_paise       BigInt
+  notes            String?
+  created_at       DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by       String?        @db.Uuid
+  batches          batches?       @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  business_units   business_units @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users            users?         @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  records          records?       @relation(fields: [sale_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  vehicles         vehicles       @relation(fields: [vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("transport")
+}
+
+model vehicles {
+  id                  String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id    String         @db.Uuid
+  registration_number String         @db.VarChar(50)
+  driver_name         String?        @db.VarChar(255)
+  capacity_details    String?
+  is_active           Boolean        @default(true)
+  created_at          DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  records             records[]
+  trips               trips[]
+  business_units      business_units @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([business_unit_id, registration_number], map: "unique_vehicle_reg")
+  @@schema("transport")
+}

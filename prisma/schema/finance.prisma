@@ -1,0 +1,125 @@
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model allocations {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  payment_id   String   @db.Uuid
+  charge_id    String   @db.Uuid
+  amount_paise BigInt
+  created_at   DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by   String?  @db.Uuid
+  charges      charges  @relation(fields: [charge_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users        users?   @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  payments     payments @relation(fields: [payment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([charge_id], map: "idx_allocations_charge")
+  @@index([payment_id], map: "idx_allocations_payment")
+  @@schema("finance")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model charges {
+  id                     String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id       String         @db.Uuid
+  party_type             String         @db.VarChar(50)
+  party_id               String?        @db.Uuid
+  charge_type            String         @db.VarChar(50)
+  reference_id           String?        @db.Uuid
+  charge_date            DateTime       @db.Date
+  amount_paise           BigInt
+  allocated_amount_paise BigInt         @default(0)
+  status                 String         @default("UNPAID") @db.VarChar(50)
+  description            String?
+  created_at             DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by             String?        @db.Uuid
+  allocations            allocations[]
+  business_units         business_units @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                  users?         @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  expenses               expenses[]
+  settlements            settlements[]
+
+  @@index([business_unit_id, party_type, party_id], map: "idx_charges_bu_party")
+  @@schema("finance")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model expenses {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id   String             @db.Uuid
+  category_id        String             @db.Uuid
+  batch_id           String?            @db.Uuid
+  expense_date       DateTime           @db.Date
+  amount_paise       BigInt
+  payee_name         String?            @db.VarChar(255)
+  payment_method_id  String             @db.Uuid
+  charge_id          String?            @db.Uuid
+  notes              String?
+  created_at         DateTime           @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by         String?            @db.Uuid
+  batches            batches?           @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  business_units     business_units     @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  expense_categories expense_categories @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  charges            charges?           @relation(fields: [charge_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users              users?             @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  payment_methods    payment_methods    @relation(fields: [payment_method_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([business_unit_id, expense_date(sort: Desc)], map: "idx_expenses_bu_date")
+  @@schema("finance")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model payments {
+  id                     String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id       String          @db.Uuid
+  payment_number         String          @db.VarChar(100)
+  direction              String          @db.VarChar(20)
+  party_type             String          @db.VarChar(50)
+  party_id               String?         @db.Uuid
+  payment_date           DateTime        @db.Date
+  amount_paise           BigInt
+  allocated_amount_paise BigInt          @default(0)
+  payment_method_id      String          @db.Uuid
+  reference_number       String?         @db.VarChar(100)
+  notes                  String?
+  created_at             DateTime        @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by             String?         @db.Uuid
+  allocations            allocations[]
+  business_units         business_units  @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                  users?          @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  payment_methods        payment_methods @relation(fields: [payment_method_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([business_unit_id, payment_number], map: "unique_payment_number")
+  @@index([business_unit_id, party_type, party_id], map: "idx_payments_bu_party")
+  @@schema("finance")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model settlements {
+  id                                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id                     String                @db.Uuid
+  settlement_number                    String                @db.VarChar(100)
+  worker_id                            String                @db.Uuid
+  period_start_date                    DateTime              @db.Date
+  period_end_date                      DateTime              @db.Date
+  total_bricks                         Int
+  gross_amount_paise                   BigInt
+  status                               String                @default("DRAFT") @db.VarChar(50)
+  approved_at                          DateTime?             @db.Timestamptz(6)
+  approved_by                          String?               @db.Uuid
+  voided_at                            DateTime?             @db.Timestamptz(6)
+  voided_by                            String?               @db.Uuid
+  void_reason                          String?
+  charge_id                            String?               @db.Uuid
+  notes                                String?
+  created_at                           DateTime              @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                           String?               @db.Uuid
+  users_settlements_approved_byTousers users?                @relation("settlements_approved_byTousers", fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  business_units                       business_units        @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  charges                              charges?              @relation(fields: [charge_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_settlements_created_byTousers  users?                @relation("settlements_created_byTousers", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_settlements_voided_byTousers   users?                @relation("settlements_voided_byTousers", fields: [voided_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  profiles                             profiles              @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  daily_moulding_logs                  daily_moulding_logs[]
+
+  @@unique([business_unit_id, settlement_number], map: "unique_settlement_number")
+  @@index([worker_id, period_start_date, period_end_date], map: "idx_settlements_worker")
+  @@schema("finance")
+}
