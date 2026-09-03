@@ -17,7 +17,13 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    // Automatically unwrap standard API response wrapper { success: true, data: ... }
+    if (res.data && typeof res.data === 'object' && res.data.success === true && 'data' in res.data) {
+      res.data = res.data.data;
+    }
+    return res;
+  },
   (error) => {
     const status = error.response?.status;
     const message = error.response?.data?.error ?? error.response?.data?.message ?? 'Something went wrong';

@@ -18,7 +18,11 @@ export async function GET(
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await params;
+    if (!id || id === 'undefined' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      return NextResponse.json({ error: 'Invalid payment ID format' }, { status: 400 });
+    }
     const payment = await getPaymentById(id, user.organization_id);
+    if (!payment) return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
     return NextResponse.json(payment);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal server error';

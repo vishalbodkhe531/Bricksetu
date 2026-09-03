@@ -22,7 +22,6 @@ export function useWorkers(orgId: string, includeInactive = false, initialData?:
     queryFn: () => workersApi.list(orgId, includeInactive),
     initialData,
     staleTime: 2 * 60 * 1000,
-    enabled: !!orgId,
   });
 }
 
@@ -131,6 +130,5 @@ export function useSettlements(orgId: string) {
   return useQuery({
     queryKey: queryKeys.workers.settlements(orgId),
     queryFn: () => workersApi.getSettlements(orgId),
-    enabled: !!orgId,
   });
 }
