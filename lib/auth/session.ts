@@ -1,5 +1,6 @@
 import { createServerSupabase } from '../supabase/server';
 import { prisma } from '../prisma';
+import { ensureAdminUserSeeded } from './seed-admin';
 
 export interface AuthUser {
   id: string;
@@ -15,6 +16,7 @@ export interface AuthUser {
  */
 export async function getSessionUser(): Promise<AuthUser | null> {
   try {
+    await ensureAdminUserSeeded();
     const supabase = await createServerSupabase();
     const { data: { user }, error } = await supabase.auth.getUser();
 

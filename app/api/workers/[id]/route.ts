@@ -1,66 +1,77 @@
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getSessionUser } from '@/lib/auth/session';
+import { assertRole } from '@/lib/auth/guard';
+import { successResponse, errorResponse } from '@/utils/api-response';
 import {
   getWorkerById,
   updateWorker,
-  deleteWorker,
+  deactivateWorker,
 } from '@/features/workers/services/workers.service';
-import { workerInputSchema } from '@/features/workers/types/worker.types';
+import { workerUpdateSchema } from '@/features/workers/types/worker.types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function GET(_req: Request, { params }: Params) {
+export async function GET(_req: NextRequest, { params }: Params) {
   try {
     const user = await getSessionUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) {
+      return errorResponse('Unauthorized access', null, 401);
+    }
 
     const { id } = await params;
+    if (!id || id === 'undefined' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      return errorResponse('Invalid worker ID format', null, 400);
+    }
     const worker = await getWorkerById(id, user.organization_id);
-    return NextResponse.json(worker);
+    if (!worker) {
+      return errorResponse('Worker not found', null, 404);
+    }
+
+    return successResponse(worker);
   } catch (error: any) {
     console.error('[GET /api/workers/[id]]', error);
-    return NextResponse.json({ error: error.message ?? 'Internal server error' }, { status: 500 });
+    return errorResponse('Failed to fetch worker details', error);
   }
 }
 
-export async function PATCH(req: Request, { params }: Params) {
+export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const user = await getSessionUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (!['owner', 'manager'].includes(user.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!user) {
+      return errorResponse('Unauthorized access', null, 401);
     }
 
+    assertRole(user.role, ['owner', 'manager', 'admin']);
+
     const { id } = await params;
-    const body = workerInputSchema.partial().parse(await req.json());
+    const json = await req.json();
+    const body = workerUpdateSchema.parse(json);
+
     const worker = await updateWorker(id, user.organization_id, body);
-    return NextResponse.json(worker);
+    return successResponse(worker, 'Worker profile updated successfully');
   } catch (error: any) {
     console.error('[PATCH /api/workers/[id]]', error);
-    const isZodError = error?.name === 'ZodError';
-    return NextResponse.json(
-      { error: isZodError ? error.issues[0]?.message : (error.message ?? 'Internal server error') },
-      { status: isZodError ? 400 : 500 }
-    );
+    return errorResponse('Failed to update worker profile', error);
   }
 }
 
-export async function DELETE(_req: Request, { params }: Params) {
+export async function DELETE(_req: NextRequest, { params }: Params) {
   try {
     const user = await getSessionUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (!['owner', 'manager'].includes(user.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!user) {
+      return errorResponse('Unauthorized access', null, 401);
     }
 
+    assertRole(user.role, ['owner', 'manager', 'admin']);
+
     const { id } = await params;
-    await deleteWorker(id, user.organization_id);
-    return new Response(null, { status: 204 });
+    const result = await deactivateWorker(id, user.organization_id);
+    return successResponse(result, 'Worker deactivated successfully');
   } catch (error: any) {
     console.error('[DELETE /api/workers/[id]]', error);
-    return NextResponse.json({ error: error.message ?? 'Internal server error' }, { status: 500 });
+    return errorResponse('Failed to deactivate worker', error);
   }
 }

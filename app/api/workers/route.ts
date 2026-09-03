@@ -6,15 +6,19 @@ import { getWorkers, createWorker } from '@/features/workers/services/workers.se
 import { workerInputSchema } from '@/features/workers/types/worker.types';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const user = await getSessionUser();
     if (!user) {
       return errorResponse('Unauthorized access', null, 401);
     }
 
-    const workers = await getWorkers(user.organization_id);
+    const { searchParams } = new URL(req.url);
+    const includeInactive = searchParams.get('includeInactive') === 'true';
+
+    const workers = await getWorkers(user.organization_id, includeInactive);
     return successResponse(workers);
   } catch (error: any) {
     console.error('[GET /api/workers]', error);

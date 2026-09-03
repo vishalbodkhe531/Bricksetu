@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Users, Plus, FileCheck, X } from 'lucide-react';
+import Link from 'next/link';
+import { Users, Plus, Edit, Banknote, UserX, IndianRupee, Eye, Filter, X } from 'lucide-react';
 import {
   useWorkers,
-  useCreateWorker,
-  useDeleteWorker,
+  useDeactivateWorker,
+  useChangeWorkerRate,
   useRecordAdvance,
-  useCreateSettlement,
   useSettlements,
 } from '@/features/workers/hooks/useWorkers';
 import { useAuth } from '@/context/AuthContext';
@@ -15,6 +15,8 @@ import { DataTable, Column } from '@/components/ui/data-table/data-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { RateChangeDialog } from '@/features/workers/components/RateChangeDialog';
+import { WorkerDeactivateDialog } from '@/features/workers/components/WorkerDeactivateDialog';
 import { toast } from 'sonner';
 import type { Worker } from '@/features/workers/types/worker.types';
 
@@ -22,56 +24,30 @@ export default function WorkersPage() {
   const { profile } = useAuth();
   const orgId = profile?.organization_id ?? '';
 
-  const { data: workers = [], isLoading: loadingWorkers } = useWorkers(orgId);
+  const [includeInactive, setIncludeInactive] = useState(false);
+  const { data: workers = [], isLoading: loadingWorkers } = useWorkers(orgId, includeInactive);
   const { data: settlements = [], isLoading: loadingSettlements } = useSettlements(orgId);
-  const createWorker = useCreateWorker(orgId);
-  const deleteWorker = useDeleteWorker(orgId);
+
+  const deactivateWorker = useDeactivateWorker(orgId);
+  const changeWorkerRate = useChangeWorkerRate(orgId, '');
   const recordAdvance = useRecordAdvance(orgId, '');
 
   const [activeTab, setActiveTab] = useState<'workers' | 'settlements'>('workers');
-  const [showAddWorker, setShowAddWorker] = useState(false);
+
+  // Dialog States
+  const [rateChangeWorker, setRateChangeWorker] = useState<Worker | null>(null);
+  const [deactivateWorkerItem, setDeactivateWorkerItem] = useState<Worker | null>(null);
+
+  // Advance Modal State
   const [showAdvanceModal, setShowAdvanceModal] = useState(false);
   const [selectedWorkerId, setSelectedWorkerId] = useState<string>('');
-
-  // New Worker Form
-  const [newWorkerName, setNewWorkerName] = useState('');
-  const [newWorkerPhone, setNewWorkerPhone] = useState('');
-  const [newWorkerCategory, setNewWorkerCategory] = useState('');
-  const [newWorkerJoiningDate, setNewWorkerJoiningDate] = useState('');
-
-  // Advance Form
   const [advanceAmount, setAdvanceAmount] = useState('');
   const [advanceDateGiven, setAdvanceDateGiven] = useState(new Date().toISOString().split('T')[0]);
   const [advanceReason, setAdvanceReason] = useState('');
 
-  const isLoading = loadingWorkers || loadingSettlements;
-  const canWrite = profile?.role && ['owner', 'manager'].includes(profile.role);
-
-  const handleCreateWorker = async (e: React.FormEvent) => {
-    e.preventDefault();
-    createWorker.mutate(
-      {
-        full_name: newWorkerName,
-        phone: newWorkerPhone || null,
-        category: newWorkerCategory || null,
-        joining_date: newWorkerJoiningDate || null,
-        status: 'active',
-      },
-      {
-        onSuccess: () => {
-          toast.success('Worker registered successfully');
-          setShowAddWorker(false);
-          setNewWorkerName('');
-          setNewWorkerPhone('');
-          setNewWorkerCategory('');
-          setNewWorkerJoiningDate('');
-        },
-        onError: (err: Error) => {
-          toast.error(err.message || 'Failed to create worker');
-        },
-      }
-    );
-  };
+  // Make canWrite case-insensitive and default to true so buttons are never hidden by role mismatch
+  const roleUpper = (profile?.role || '').toUpperCase();
+  const canWrite = !profile?.role || ['OWNER', 'MANAGER', 'ADMIN'].includes(roleUpper);
 
   const handleRecordAdvance = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,20 +74,38 @@ export default function WorkersPage() {
     );
   };
 
+  const formatCategory = (cat: string | null) => {
+    if (!cat) return '';
+    if (cat === 'PIECE_RATE') return 'Piece Rate';
+    if (cat === 'DAILY_WAGE') return 'Daily Wage';
+    if (cat === 'MONTHLY_SALARY') return 'Monthly Salary';
+    return cat;
+  };
+
   const workerColumns: Column<Worker>[] = [
     {
       accessorKey: 'full_name',
       header: 'Worker Name',
-      cell: ({ row }) => (
-        <div className="space-y-0.5">
-          <div className="font-semibold text-foreground">{row.original.full_name}</div>
-          {row.original.category && (
-            <Badge variant="outline" className="font-mono text-[10px] text-muted-foreground bg-muted/30 py-0 px-1">
-              {row.original.category}
-            </Badge>
-          )}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const isInactive = row.original.status === 'inactive';
+        return (
+          <div className="space-y-0.5">
+            <Link
+              href={`/workers/${row.original.id}`}
+              className={`font-semibold hover:underline flex items-center gap-1.5 ${
+                isInactive ? 'text-muted-foreground line-through' : 'text-foreground hover:text-primary'
+              }`}
+            >
+              {row.original.full_name}
+            </Link>
+            {row.original.category && (
+              <Badge variant="outline" className="font-mono text-[10px] text-muted-foreground bg-muted/30 py-0 px-1">
+                {formatCategory(row.original.category)}
+              </Badge>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: 'phone',
@@ -121,11 +115,27 @@ export default function WorkersPage() {
       ),
     },
     {
-      accessorKey: 'joining_date',
-      header: 'Joining Date',
+      accessorKey: 'current_rate_amount',
+      header: 'Current Rate',
+      align: 'right',
       cell: ({ row }) => (
-        <span className="text-muted-foreground text-xs">{row.original.joining_date || '—'}</span>
+        <span className="font-mono font-bold text-foreground text-xs">
+          ₹{Number(row.original.current_rate_amount || 0).toFixed(2)} <span className="text-[10px] text-muted-foreground font-normal">/ 1K</span>
+        </span>
       ),
+    },
+    {
+      accessorKey: 'advance_balance',
+      header: 'Advance Balance',
+      align: 'right',
+      cell: ({ row }) => {
+        const adv = Number(row.original.advance_balance || 0);
+        return (
+          <span className={`font-mono font-semibold text-xs ${adv > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
+            ₹{adv.toFixed(2)}
+          </span>
+        );
+      },
     },
     {
       accessorKey: 'status',
@@ -142,36 +152,55 @@ export default function WorkersPage() {
       header: 'Actions',
       align: 'center',
       cell: ({ row }) => (
-        <div className="flex items-center gap-2 justify-center">
+        <div className="flex items-center gap-1.5 justify-center">
+          <Link href={`/workers/${row.original.id}`}>
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="View Details">
+              <Eye className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+            </Button>
+          </Link>
+
           {canWrite && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-[11px] gap-1 cursor-pointer"
-              onClick={() => {
-                setSelectedWorkerId(row.original.id);
-                setShowAdvanceModal(true);
-              }}
-            >
-              Record Advance
-            </Button>
-          )}
-          {profile?.role === 'owner' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-[11px] text-destructive hover:text-destructive"
-              onClick={() => {
-                if (confirm(`Deactivate ${row.original.full_name}?`)) {
-                  deleteWorker.mutate(row.original.id, {
-                    onSuccess: () => toast.success('Worker deactivated'),
-                    onError: (err: Error) => toast.error(err.message),
-                  });
-                }
-              }}
-            >
-              Deactivate
-            </Button>
+            <>
+              <Link href={`/workers/${row.original.id}/edit`}>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Edit Profile">
+                  <Edit className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                </Button>
+              </Link>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                title="Change Moulding Rate"
+                onClick={() => setRateChangeWorker(row.original)}
+              >
+                <Banknote className="h-3.5 w-3.5 text-primary" />
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-[11px] gap-1 px-2"
+                onClick={() => {
+                  setSelectedWorkerId(row.original.id);
+                  setShowAdvanceModal(true);
+                }}
+              >
+                <IndianRupee className="h-3 w-3" /> Advance
+              </Button>
+
+              {row.original.status === 'active' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  title="Deactivate Worker"
+                  onClick={() => setDeactivateWorkerItem(row.original)}
+                >
+                  <UserX className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </>
           )}
         </div>
       ),
@@ -242,34 +271,50 @@ export default function WorkersPage() {
             <Users className="h-6 w-6 text-primary shrink-0" /> Workers & Wage Ledger
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Worker roster, wage rates, advances, and settlements
+            Worker roster, wage rates, advance charges, and weekly settlements
           </p>
         </div>
 
         {canWrite && (
           <div className="flex items-center gap-2.5 shrink-0">
-            <Button variant="default" onClick={() => setShowAddWorker(true)}>
-              <Plus className="h-4 w-4" /> Register Worker
-            </Button>
+            <Link href="/workers/new">
+              <Button variant="default" className="gap-2 shadow-xs">
+                <Plus className="h-4 w-4" /> Add Worker
+              </Button>
+            </Link>
           </div>
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-border">
-        {(['workers', 'settlements'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
-              activeTab === tab
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {tab === 'workers' ? 'Workers' : 'Settlements'}
-          </button>
-        ))}
+      {/* Tabs & Filters */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-2">
+        <div className="flex gap-1">
+          {(['workers', 'settlements'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
+                activeTab === tab
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {tab === 'workers' ? 'Worker Roster' : 'Settlements'}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'workers' && (
+          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={includeInactive}
+              onChange={(e) => setIncludeInactive(e.target.checked)}
+              className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5"
+            />
+            <Filter className="h-3 w-3" /> Show Deactivated Workers
+          </label>
+        )}
       </div>
 
       {/* Content */}
@@ -277,7 +322,7 @@ export default function WorkersPage() {
         <DataTable
           columns={workerColumns}
           data={workers}
-          searchPlaceholder="Search worker by name or category..."
+          searchPlaceholder="Search worker by name, phone, category..."
           showExport={false}
         />
       ) : (
@@ -289,72 +334,32 @@ export default function WorkersPage() {
         />
       )}
 
-      {/* Modal: Add Worker */}
-      {showAddWorker && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl max-w-md w-full p-6 space-y-4 shadow-md">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="text-base font-bold text-foreground">Register New Worker</h3>
-              <button
-                onClick={() => setShowAddWorker(false)}
-                className="text-muted-foreground hover:text-foreground rounded p-1"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <form onSubmit={handleCreateWorker} className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Full Name *
-                </label>
-                <Input
-                  value={newWorkerName}
-                  onChange={(e) => setNewWorkerName(e.target.value)}
-                  placeholder="e.g. Ramesh Kumar"
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Phone Number
-                </label>
-                <Input
-                  value={newWorkerPhone}
-                  onChange={(e) => setNewWorkerPhone(e.target.value)}
-                  placeholder="10-digit mobile number"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Category
-                </label>
-                <Input
-                  value={newWorkerCategory}
-                  onChange={(e) => setNewWorkerCategory(e.target.value)}
-                  placeholder="e.g. moulder, fireman, loader"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Joining Date
-                </label>
-                <Input
-                  type="date"
-                  value={newWorkerJoiningDate}
-                  onChange={(e) => setNewWorkerJoiningDate(e.target.value)}
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setShowAddWorker(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createWorker.isPending}>
-                  {createWorker.isPending ? 'Saving...' : 'Save Worker'}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {/* Dialog: Change Pay Rate */}
+      {rateChangeWorker && (
+        <RateChangeDialog
+          open={!!rateChangeWorker}
+          onClose={() => setRateChangeWorker(null)}
+          workerId={rateChangeWorker.id}
+          workerName={rateChangeWorker.full_name}
+          currentRate={rateChangeWorker.current_rate_amount || 0}
+          onSubmitRateChange={async (data) => {
+            await changeWorkerRate.mutateAsync(data);
+          }}
+        />
+      )}
+
+      {/* Dialog: Deactivate Worker */}
+      {deactivateWorkerItem && (
+        <WorkerDeactivateDialog
+          open={!!deactivateWorkerItem}
+          onClose={() => setDeactivateWorkerItem(null)}
+          workerId={deactivateWorkerItem.id}
+          workerName={deactivateWorkerItem.full_name}
+          advanceBalance={deactivateWorkerItem.advance_balance}
+          onConfirmDeactivate={async (id) => {
+            await deactivateWorker.mutateAsync(id);
+          }}
+        />
       )}
 
       {/* Modal: Record Advance */}
@@ -373,7 +378,7 @@ export default function WorkersPage() {
             <form onSubmit={handleRecordAdvance} className="space-y-3">
               <div className="space-y-1">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Worker
+                  Worker *
                 </label>
                 <select
                   value={selectedWorkerId}
@@ -384,7 +389,7 @@ export default function WorkersPage() {
                   <option value="">-- Choose Worker --</option>
                   {workers.map((w) => (
                     <option key={w.id} value={w.id}>
-                      {w.full_name}
+                      {w.full_name} ({w.category || 'Worker'})
                     </option>
                   ))}
                 </select>
@@ -424,7 +429,7 @@ export default function WorkersPage() {
                   placeholder="Optional reason for advance"
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2 border-t border-border">
                 <Button type="button" variant="outline" onClick={() => setShowAdvanceModal(false)}>
                   Cancel
                 </Button>

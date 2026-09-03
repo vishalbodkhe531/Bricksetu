@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // ---------------------------------------------------------------------------
-// Database types (matches the Supabase schema from the architecture plan)
+// Database types
 // ---------------------------------------------------------------------------
 
 export interface Worker {
@@ -16,6 +16,10 @@ export interface Worker {
   joining_date: string | null;
   status: 'active' | 'inactive';
   created_at: string;
+  updated_at?: string;
+  // Derived fields
+  current_rate_amount?: number;
+  advance_balance?: number;
 }
 
 export interface WorkerWageRate {
@@ -52,21 +56,43 @@ export interface WorkerSettlement {
 
 export interface WorkerWithDetails extends Worker {
   current_rate?: WorkerWageRate;
+  worker_wage_rates?: WorkerWageRate[];
   recent_advances?: WorkerAdvance[];
+  worker_settlements?: WorkerSettlement[];
   settlements?: WorkerSettlement[];
 }
 
 // ---------------------------------------------------------------------------
-// Zod validation schemas (used in API routes)
+// Zod validation schemas
 // ---------------------------------------------------------------------------
 
+/** Create Worker Schema (includes optional initial moulding rate) */
 export const workerInputSchema = z.object({
   full_name: z.string().min(1, 'Full name is required'),
   phone: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
-  category: z.string().optional().nullable(),
+  category: z.enum(['PIECE_RATE', 'DAILY_WAGE', 'MONTHLY_SALARY']).default('PIECE_RATE'),
   joining_date: z.string().optional().nullable(),
   status: z.enum(['active', 'inactive']).default('active'),
+  initial_rate_amount: z.coerce.number().min(0, 'Rate must be positive').optional().nullable(),
+});
+
+/** Update Worker Profile Schema (EXCLUDES wage rates - rate changes use rateChangeSchema) */
+export const workerUpdateSchema = z.object({
+  full_name: z.string().min(1, 'Full name is required').optional(),
+  phone: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  category: z.enum(['PIECE_RATE', 'DAILY_WAGE', 'MONTHLY_SALARY']).optional(),
+  joining_date: z.string().optional().nullable(),
+  status: z.enum(['active', 'inactive']).optional(),
+});
+
+/** Rate Change Schema (distinct business action) */
+export const rateChangeSchema = z.object({
+  worker_id: z.string().min(1, 'Worker is required'),
+  rate_amount: z.coerce.number().gt(0, 'Rate amount must be greater than 0'),
+  rate_type: z.enum(['per_1000_bricks', 'daily', 'monthly']).default('per_1000_bricks'),
+  effective_date: z.string().min(1, 'Effective date is required'),
 });
 
 export const wageRateInputSchema = z.object({
@@ -93,6 +119,8 @@ export const settlementInputSchema = z.object({
 });
 
 export type WorkerInput = z.infer<typeof workerInputSchema>;
+export type WorkerUpdateInput = z.infer<typeof workerUpdateSchema>;
+export type RateChangeInput = z.infer<typeof rateChangeSchema>;
 export type WageRateInput = z.infer<typeof wageRateInputSchema>;
 export type AdvanceInput = z.infer<typeof advanceInputSchema>;
 export type SettlementInput = z.infer<typeof settlementInputSchema>;
