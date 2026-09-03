@@ -1,62 +1,81 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Users, Plus, Edit, Banknote, UserX, IndianRupee, Eye, Filter, X, MoreVertical, Trash2 } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Column, DataTable } from "@/components/ui/data-table/data-table";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/context/AuthContext";
+import { RateChangeDialog } from "@/features/workers/components/RateChangeDialog";
+import { WorkerDeactivateDialog } from "@/features/workers/components/WorkerDeactivateDialog";
 import {
-  useWorkers,
-  useDeactivateWorker,
   useChangeWorkerRate,
+  useDeactivateWorker,
   useRecordAdvance,
-} from '@/features/workers/hooks/useWorkers';
-import { useAuth } from '@/context/AuthContext';
-import { DataTable, Column } from '@/components/ui/data-table/data-table';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { RateChangeDialog } from '@/features/workers/components/RateChangeDialog';
-import { WorkerDeactivateDialog } from '@/features/workers/components/WorkerDeactivateDialog';
-import { toast } from 'sonner';
-import type { Worker } from '@/features/workers/types/worker.types';
+  useWorkers,
+} from "@/features/workers/hooks/useWorkers";
+import type { Worker } from "@/features/workers/types/worker.types";
+import {
+  Edit,
+  Eye,
+  Filter,
+  MoreVertical,
+  Plus,
+  Trash2,
+  Users,
+  X,
+} from "lucide-react";
+import Link from "next/link";
+import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function WorkersPage() {
   const { profile } = useAuth();
-  const orgId = profile?.organization_id ?? '';
+  const orgId = profile?.organization_id ?? "";
 
   const [includeInactive, setIncludeInactive] = useState(false);
-  const { data: workers = [], isLoading: loadingWorkers } = useWorkers(orgId, includeInactive);
+  const { data: workers = [], isLoading: loadingWorkers } = useWorkers(
+    orgId,
+    includeInactive,
+  );
 
   const deactivateWorker = useDeactivateWorker(orgId);
-  const changeWorkerRate = useChangeWorkerRate(orgId, '');
-  const recordAdvance = useRecordAdvance(orgId, '');
+  const changeWorkerRate = useChangeWorkerRate(orgId, "");
+  const recordAdvance = useRecordAdvance(orgId, "");
 
   // Pop-up Menu State
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (openMenuId && !(event.target as HTMLElement).closest('.action-menu-container')) {
+      if (
+        openMenuId &&
+        !(event.target as HTMLElement).closest(".action-menu-container")
+      ) {
         setOpenMenuId(null);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openMenuId]);
 
   // Dialog States
   const [rateChangeWorker, setRateChangeWorker] = useState<Worker | null>(null);
-  const [deactivateWorkerItem, setDeactivateWorkerItem] = useState<Worker | null>(null);
+  const [deactivateWorkerItem, setDeactivateWorkerItem] =
+    useState<Worker | null>(null);
 
   // Advance Modal State
   const [showAdvanceModal, setShowAdvanceModal] = useState(false);
-  const [selectedWorkerId, setSelectedWorkerId] = useState<string>('');
-  const [advanceAmount, setAdvanceAmount] = useState('');
-  const [advanceDateGiven, setAdvanceDateGiven] = useState(new Date().toISOString().split('T')[0]);
-  const [advanceReason, setAdvanceReason] = useState('');
+  const [selectedWorkerId, setSelectedWorkerId] = useState<string>("");
+  const [advanceAmount, setAdvanceAmount] = useState("");
+  const [advanceDateGiven, setAdvanceDateGiven] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const [advanceReason, setAdvanceReason] = useState("");
 
   // Make canWrite case-insensitive and default to true so buttons are never hidden by role mismatch
-  const roleUpper = (profile?.role || '').toUpperCase();
-  const canWrite = !profile?.role || ['OWNER', 'MANAGER', 'ADMIN'].includes(roleUpper);
+  const roleUpper = (profile?.role || "").toUpperCase();
+  const canWrite =
+    !profile?.role || ["OWNER", "MANAGER", "ADMIN"].includes(roleUpper);
 
   const handleRecordAdvance = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,46 +89,48 @@ export default function WorkersPage() {
       },
       {
         onSuccess: () => {
-          toast.success('Advance recorded successfully');
+          toast.success("Advance recorded successfully");
           setShowAdvanceModal(false);
-          setSelectedWorkerId('');
-          setAdvanceAmount('');
-          setAdvanceReason('');
+          setSelectedWorkerId("");
+          setAdvanceAmount("");
+          setAdvanceReason("");
         },
         onError: (err: Error) => {
-          toast.error(err.message || 'Failed to record advance');
+          toast.error(err.message || "Failed to record advance");
         },
-      }
+      },
     );
   };
 
   const formatCategory = (cat: string | null) => {
-    if (!cat) return '';
-    if (cat === 'PIECE_RATE') return 'Piece Rate';
-    if (cat === 'DAILY_WAGE') return 'Daily Wage';
-    if (cat === 'MONTHLY_SALARY') return 'Monthly Salary';
+    if (!cat) return "";
+    if (cat === "PIECE_RATE") return "Piece Rate";
+    if (cat === "DAILY_WAGE") return "Daily Wage";
+    if (cat === "MONTHLY_SALARY") return "Monthly Salary";
     return cat;
   };
 
   const getInitials = (name: string) => {
-    if (!name) return 'W';
+    if (!name) return "W";
     return name
       .trim()
       .split(/\s+/)
       .map((part) => part[0])
-      .join('')
+      .join("")
       .toUpperCase()
       .slice(0, 2);
   };
 
   const workerColumns: Column<Worker>[] = [
     {
-      accessorKey: 'full_name',
-      header: 'Worker',
+      accessorKey: "full_name",
+      header: "Worker",
       cell: ({ row }) => {
-        const isInactive = row.original.status === 'inactive';
-        const initials = getInitials(row.original.full_name || 'Worker');
-        const workerIdDisplay = row.original.code || `WID-${row.original.id.slice(0, 6).toUpperCase()}`;
+        const isInactive = row.original.status === "inactive";
+        const initials = getInitials(row.original.full_name || "Worker");
+        const workerIdDisplay =
+          row.original.code ||
+          `WID-${row.original.id.slice(0, 6).toUpperCase()}`;
 
         return (
           <div className="flex items-center gap-3">
@@ -131,7 +152,9 @@ export default function WorkersPage() {
               <Link
                 href={`/workers/${row.original.id}`}
                 className={`font-semibold hover:underline flex items-center gap-1.5 truncate ${
-                  isInactive ? 'text-muted-foreground line-through' : 'text-foreground hover:text-primary'
+                  isInactive
+                    ? "text-muted-foreground line-through"
+                    : "text-foreground hover:text-primary"
                 }`}
               >
                 {row.original.full_name}
@@ -150,49 +173,58 @@ export default function WorkersPage() {
       },
     },
     {
-      accessorKey: 'phone',
-      header: 'Phone',
+      accessorKey: "phone",
+      header: "Phone",
       cell: ({ row }) => (
-        <span className="text-muted-foreground font-mono text-[11px]">{row.original.phone || '—'}</span>
-      ),
-    },
-    {
-      accessorKey: 'current_rate_amount',
-      header: 'Current Rate',
-      align: 'right',
-      cell: ({ row }) => (
-        <span className="font-mono font-bold text-foreground text-xs">
-          ₹{Number(row.original.current_rate_amount || 0).toFixed(2)} <span className="text-[10px] text-muted-foreground font-normal">/ 1K</span>
+        <span className="text-muted-foreground font-mono text-[11px]">
+          {row.original.phone || "—"}
         </span>
       ),
     },
     {
-      accessorKey: 'advance_balance',
-      header: 'Advance Balance',
-      align: 'right',
+      accessorKey: "current_rate_amount",
+      header: "Current Rate",
+      align: "right",
+      cell: ({ row }) => (
+        <span className="font-mono font-bold text-foreground text-xs">
+          ₹{Number(row.original.current_rate_amount || 0).toFixed(2)}{" "}
+          <span className="text-[10px] text-muted-foreground font-normal">
+            / 1K
+          </span>
+        </span>
+      ),
+    },
+    {
+      accessorKey: "advance_balance",
+      header: "Advance Balance",
+      align: "right",
       cell: ({ row }) => {
         const adv = Number(row.original.advance_balance || 0);
         return (
-          <span className={`font-mono font-semibold text-xs ${adv > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
+          <span
+            className={`font-mono font-semibold text-xs ${adv > 0 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}
+          >
             ₹{adv.toFixed(2)}
           </span>
         );
       },
     },
     {
-      accessorKey: 'status',
-      header: 'Status',
-      align: 'center',
+      accessorKey: "status",
+      header: "Status",
+      align: "center",
       cell: ({ row }) => (
-        <Badge variant={row.original.status === 'active' ? 'success' : 'secondary'}>
+        <Badge
+          variant={row.original.status === "active" ? "success" : "secondary"}
+        >
           {row.original.status}
         </Badge>
       ),
     },
     {
-      id: 'actions',
-      header: 'Actions',
-      align: 'center',
+      id: "actions",
+      header: "Actions",
+      align: "center",
       cell: ({ row }) => {
         const isMenuOpen = openMenuId === row.original.id;
         const index = (row as any).index ?? 0;
@@ -217,7 +249,7 @@ export default function WorkersPage() {
             {isMenuOpen && (
               <div
                 className={`absolute right-0 z-50 min-w-30 rounded-md border border-border bg-card p-1 shadow-lg animate-in fade-in-80 zoom-in-95 ${
-                  isNearBottom ? 'bottom-8' : 'top-8'
+                  isNearBottom ? "bottom-8" : "top-8"
                 }`}
               >
                 <Link
@@ -336,7 +368,9 @@ export default function WorkersPage() {
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-xl max-w-md w-full p-6 space-y-4 shadow-md">
             <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="text-base font-bold text-foreground">Record Advance Payment</h3>
+              <h3 className="text-base font-bold text-foreground">
+                Record Advance Payment
+              </h3>
               <button
                 onClick={() => setShowAdvanceModal(false)}
                 className="text-muted-foreground hover:text-foreground rounded p-1"
@@ -358,7 +392,7 @@ export default function WorkersPage() {
                   <option value="">-- Choose Worker --</option>
                   {workers.map((w) => (
                     <option key={w.id} value={w.id}>
-                      {w.full_name} ({w.category || 'Worker'})
+                      {w.full_name} ({w.category || "Worker"})
                     </option>
                   ))}
                 </select>
@@ -399,11 +433,15 @@ export default function WorkersPage() {
                 />
               </div>
               <div className="flex justify-end gap-2 pt-2 border-t border-border">
-                <Button type="button" variant="outline" onClick={() => setShowAdvanceModal(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAdvanceModal(false)}
+                >
                   Cancel
                 </Button>
                 <Button type="submit" disabled={recordAdvance.isPending}>
-                  {recordAdvance.isPending ? 'Saving...' : 'Record Advance'}
+                  {recordAdvance.isPending ? "Saving..." : "Record Advance"}
                 </Button>
               </div>
             </form>
