@@ -63,11 +63,11 @@ export function DashboardKPIGrid({ data }: KpiGridProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       {kpis.map((kpi, idx) => {
         const Icon = kpi.icon;
         return (
-          <div key={idx} className="bg-card border border-border rounded-xl p-5 shadow-xs space-y-3">
+          <div key={idx} className="bg-card border border-border rounded-xl px-4 py-3 shadow-xs">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{kpi.label}</span>
               <div className={`p-2 rounded-lg border ${kpi.color}`}>
