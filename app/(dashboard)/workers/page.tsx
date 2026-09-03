@@ -24,8 +24,9 @@ import {
   Users,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useReducer, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function WorkersPage() {
@@ -45,32 +46,73 @@ export default function WorkersPage() {
   // Pop-up Menu State
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        openMenuId &&
-        !(event.target as HTMLElement).closest(".action-menu-container")
-      ) {
-        setOpenMenuId(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [openMenuId]);
+  /**
+   * Click-outside handler for the action pop-up menu.
+   * Uses a stable ref callback instead of a useEffect that re-registers
+   * on every openMenuId change — avoids unnecessary listener churn.
+   */
+  const openMenuIdRef = useRef(openMenuId);
+  openMenuIdRef.current = openMenuId;
+
+  const handleDocumentClick = useCallback((e: MouseEvent) => {
+    if (
+      openMenuIdRef.current &&
+      !(e.target as HTMLElement).closest(".action-menu-container")
+    ) {
+      setOpenMenuId(null);
+    }
+  }, []);
+
+  // Register once on mount, not on every openMenuId change
+  React.useEffect(() => {
+    document.addEventListener("mousedown", handleDocumentClick);
+    return () => document.removeEventListener("mousedown", handleDocumentClick);
+  }, [handleDocumentClick]);
 
   // Dialog States
   const [rateChangeWorker, setRateChangeWorker] = useState<Worker | null>(null);
   const [deactivateWorkerItem, setDeactivateWorkerItem] =
     useState<Worker | null>(null);
 
-  // Advance Modal State
-  const [showAdvanceModal, setShowAdvanceModal] = useState(false);
-  const [selectedWorkerId, setSelectedWorkerId] = useState<string>("");
-  const [advanceAmount, setAdvanceAmount] = useState("");
-  const [advanceDateGiven, setAdvanceDateGiven] = useState(
-    new Date().toISOString().split("T")[0],
+  // Advance Modal State — consolidated into useReducer (5 related fields change together)
+  type AdvanceState = {
+    show: boolean;
+    workerId: string;
+    amount: string;
+    dateGiven: string;
+    reason: string;
+  };
+  type AdvanceAction =
+    | { type: 'open'; workerId?: string }
+    | { type: 'close' }
+    | { type: 'set'; field: keyof Omit<AdvanceState, 'show'>; value: string };
+
+  const initialAdvanceState: AdvanceState = {
+    show: false,
+    workerId: "",
+    amount: "",
+    dateGiven: new Date().toISOString().split("T")[0],
+    reason: "",
+  };
+
+  const [advanceState, dispatchAdvance] = useReducer(
+    (state: AdvanceState, action: AdvanceAction): AdvanceState => {
+      switch (action.type) {
+        case 'open': return { ...state, show: true, workerId: action.workerId ?? "" };
+        case 'close': return { ...initialAdvanceState };
+        case 'set': return { ...state, [action.field]: action.value };
+        default: return state;
+      }
+    },
+    initialAdvanceState,
   );
-  const [advanceReason, setAdvanceReason] = useState("");
+
+  // Convenience aliases for readability below
+  const showAdvanceModal = advanceState.show;
+  const selectedWorkerId = advanceState.workerId;
+  const advanceAmount = advanceState.amount;
+  const advanceDateGiven = advanceState.dateGiven;
+  const advanceReason = advanceState.reason;
 
   // Make canWrite case-insensitive and default to true so buttons are never hidden by role mismatch
   const roleUpper = (profile?.role || "").toUpperCase();
@@ -90,10 +132,7 @@ export default function WorkersPage() {
       {
         onSuccess: () => {
           toast.success("Advance recorded successfully");
-          setShowAdvanceModal(false);
-          setSelectedWorkerId("");
-          setAdvanceAmount("");
-          setAdvanceReason("");
+          dispatchAdvance({ type: 'close' });
         },
         onError: (err: Error) => {
           toast.error(err.message || "Failed to record advance");
@@ -136,9 +175,11 @@ export default function WorkersPage() {
           <div className="flex items-center gap-3">
             {/* Profile Pic / Avatar Badge */}
             {row.original.photo_url ? (
-              <img
+              <Image
                 src={row.original.photo_url}
-                alt={row.original.full_name}
+                alt={row.original.full_name || 'Worker'}
+                width={36}
+                height={36}
                 className="h-9 w-9 rounded-full object-cover border border-border shrink-0"
               />
             ) : (
@@ -372,7 +413,7 @@ export default function WorkersPage() {
                 Record Advance Payment
               </h3>
               <button
-                onClick={() => setShowAdvanceModal(false)}
+                onClick={() => dispatchAdvance({ type: 'close' })}
                 className="text-muted-foreground hover:text-foreground rounded p-1"
               >
                 <X className="h-4 w-4" />
@@ -385,7 +426,7 @@ export default function WorkersPage() {
                 </label>
                 <select
                   value={selectedWorkerId}
-                  onChange={(e) => setSelectedWorkerId(e.target.value)}
+                  onChange={(e) => dispatchAdvance({ type: 'set', field: 'workerId', value: e.target.value })}
                   required
                   className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
@@ -406,7 +447,7 @@ export default function WorkersPage() {
                   step="0.01"
                   min="1"
                   value={advanceAmount}
-                  onChange={(e) => setAdvanceAmount(e.target.value)}
+                  onChange={(e) => dispatchAdvance({ type: 'set', field: 'amount', value: e.target.value })}
                   placeholder="e.g. 2000"
                   required
                 />
@@ -418,7 +459,7 @@ export default function WorkersPage() {
                 <Input
                   type="date"
                   value={advanceDateGiven}
-                  onChange={(e) => setAdvanceDateGiven(e.target.value)}
+                  onChange={(e) => dispatchAdvance({ type: 'set', field: 'dateGiven', value: e.target.value })}
                   required
                 />
               </div>
@@ -428,7 +469,7 @@ export default function WorkersPage() {
                 </label>
                 <Input
                   value={advanceReason}
-                  onChange={(e) => setAdvanceReason(e.target.value)}
+                  onChange={(e) => dispatchAdvance({ type: 'set', field: 'reason', value: e.target.value })}
                   placeholder="Optional reason for advance"
                 />
               </div>
@@ -436,7 +477,7 @@ export default function WorkersPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setShowAdvanceModal(false)}
+                  onClick={() => dispatchAdvance({ type: 'close' })}
                 >
                   Cancel
                 </Button>
