@@ -65,6 +65,7 @@ export async function getWorkers(
 
     return {
       id: w.id,
+      code: w.code,
       organization_id: w.business_unit_id,
       full_name: w.full_name,
       phone: w.phone,

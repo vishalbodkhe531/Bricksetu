@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 export interface Worker {
   id: string;
+  code?: string | null;
   organization_id: string;
   full_name: string;
   phone: string | null;

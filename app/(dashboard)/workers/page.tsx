@@ -95,27 +95,60 @@ export default function WorkersPage() {
     return cat;
   };
 
+  const getInitials = (name: string) => {
+    if (!name) return 'W';
+    return name
+      .trim()
+      .split(/\s+/)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   const workerColumns: Column<Worker>[] = [
     {
       accessorKey: 'full_name',
-      header: 'Worker Name',
+      header: 'Worker',
       cell: ({ row }) => {
         const isInactive = row.original.status === 'inactive';
+        const initials = getInitials(row.original.full_name || 'Worker');
+        const workerIdDisplay = row.original.code || `WID-${row.original.id.slice(0, 6).toUpperCase()}`;
+
         return (
-          <div className="space-y-0.5">
-            <Link
-              href={`/workers/${row.original.id}`}
-              className={`font-semibold hover:underline flex items-center gap-1.5 ${
-                isInactive ? 'text-muted-foreground line-through' : 'text-foreground hover:text-primary'
-              }`}
-            >
-              {row.original.full_name}
-            </Link>
-            {row.original.category && (
-              <Badge variant="outline" className="font-mono text-[10px] text-muted-foreground bg-muted/30 py-0 px-1">
-                {formatCategory(row.original.category)}
-              </Badge>
+          <div className="flex items-center gap-3">
+            {/* Profile Pic / Avatar Badge */}
+            {row.original.photo_url ? (
+              <img
+                src={row.original.photo_url}
+                alt={row.original.full_name}
+                className="h-9 w-9 rounded-full object-cover border border-border shrink-0"
+              />
+            ) : (
+              <div className="h-9 w-9 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-xs shrink-0 select-none">
+                {initials}
+              </div>
             )}
+
+            {/* Worker Name, ID, & Category */}
+            <div className="space-y-0.5 min-w-0">
+              <Link
+                href={`/workers/${row.original.id}`}
+                className={`font-semibold hover:underline flex items-center gap-1.5 truncate ${
+                  isInactive ? 'text-muted-foreground line-through' : 'text-foreground hover:text-primary'
+                }`}
+              >
+                {row.original.full_name}
+              </Link>
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <span className="font-mono bg-muted/60 px-1.5 py-0.2 rounded text-[10px] text-muted-foreground font-semibold">
+                  {workerIdDisplay}
+                </span>
+                {row.original.category && (
+                  <span>• {formatCategory(row.original.category)}</span>
+                )}
+              </div>
+            </div>
           </div>
         );
       },
