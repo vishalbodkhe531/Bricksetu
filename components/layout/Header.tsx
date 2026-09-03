@@ -49,7 +49,7 @@ export function Header({ user, onMobileMenuToggle }: HeaderProps) {
     .toUpperCase();
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card/95 backdrop-blur px-4 sm:px-6 relative">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card/95 backdrop-blur px-4 sm:px-6">
       {/* Top 3px Kiln Ember brand accent line */}
       <div className="absolute top-0 left-0 right-0 h-[3px] bg-primary" />
 

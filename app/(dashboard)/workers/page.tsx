@@ -8,7 +8,6 @@ import {
   useDeactivateWorker,
   useChangeWorkerRate,
   useRecordAdvance,
-  useSettlements,
 } from '@/features/workers/hooks/useWorkers';
 import { useAuth } from '@/context/AuthContext';
 import { DataTable, Column } from '@/components/ui/data-table/data-table';
@@ -26,13 +25,10 @@ export default function WorkersPage() {
 
   const [includeInactive, setIncludeInactive] = useState(false);
   const { data: workers = [], isLoading: loadingWorkers } = useWorkers(orgId, includeInactive);
-  const { data: settlements = [], isLoading: loadingSettlements } = useSettlements(orgId);
 
   const deactivateWorker = useDeactivateWorker(orgId);
   const changeWorkerRate = useChangeWorkerRate(orgId, '');
   const recordAdvance = useRecordAdvance(orgId, '');
-
-  const [activeTab, setActiveTab] = useState<'workers' | 'settlements'>('workers');
 
   // Pop-up Menu State
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -265,105 +261,21 @@ export default function WorkersPage() {
     },
   ];
 
-  const settlementColumns: Column<any>[] = [
-    {
-      accessorKey: 'worker_id',
-      header: 'Worker',
-      cell: ({ row }) => (
-        <span className="font-medium text-foreground">
-          {row.original.workers?.full_name ?? row.original.worker_id}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'period_start',
-      header: 'Period',
-      cell: ({ row }) => (
-        <span className="text-muted-foreground font-mono text-[11px]">
-          {row.original.period_start} → {row.original.period_end}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'gross_wage',
-      header: 'Gross Wage',
-      align: 'right',
-      cell: ({ row }) => (
-        <span className="font-mono font-semibold">₹{Number(row.original.gross_wage).toFixed(2)}</span>
-      ),
-    },
-    {
-      accessorKey: 'advances_deducted',
-      header: 'Advances',
-      align: 'right',
-      cell: ({ row }) => (
-        <span className="font-mono text-amber-600">₹{Number(row.original.advances_deducted).toFixed(2)}</span>
-      ),
-    },
-    {
-      accessorKey: 'net_payable',
-      header: 'Net Payable',
-      align: 'right',
-      cell: ({ row }) => (
-        <span className="font-mono font-bold text-emerald-600">₹{Number(row.original.net_payable).toFixed(2)}</span>
-      ),
-    },
-    {
-      accessorKey: 'status',
-      header: 'Status',
-      align: 'center',
-      cell: ({ row }) => (
-        <Badge variant={row.original.status === 'paid' ? 'success' : 'warning'}>
-          {row.original.status}
-        </Badge>
-      ),
-    },
-  ];
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-            <Users className="h-6 w-6 text-primary shrink-0" /> Workers & Wage Ledger
+            <Users className="h-6 w-6 text-primary shrink-0" /> Workers
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Worker roster, wage rates, advance charges, and weekly settlements
+            Manage worker roster, profile details, moulding rates, and advances
           </p>
         </div>
 
-        {canWrite && (
-          <div className="flex items-center gap-2.5 shrink-0">
-            <Link href="/workers/new">
-              <Button variant="default" className="gap-2 shadow-xs">
-                <Plus className="h-4 w-4" /> Add Worker
-              </Button>
-            </Link>
-          </div>
-        )}
-      </div>
-
-      {/* Tabs & Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-2">
-        <div className="flex gap-1">
-          {(['workers', 'settlements'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
-                activeTab === tab
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {tab === 'workers' ? 'Worker Roster' : 'Settlements'}
-            </button>
-          ))}
-        </div>
-
-        {activeTab === 'workers' && (
-          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+        <div className="flex items-center gap-3 shrink-0">
+          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none border border-border bg-card px-3 py-2 rounded-md shadow-xs hover:bg-accent/50 transition-colors">
             <input
               type="checkbox"
               checked={includeInactive}
@@ -372,25 +284,24 @@ export default function WorkersPage() {
             />
             <Filter className="h-3 w-3" /> Show Deactivated Workers
           </label>
-        )}
+
+          {canWrite && (
+            <Link href="/workers/new">
+              <Button variant="default" className="gap-2 shadow-xs">
+                <Plus className="h-4 w-4" /> Add Worker
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Content */}
-      {activeTab === 'workers' ? (
-        <DataTable
-          columns={workerColumns}
-          data={workers}
-          searchPlaceholder="Search worker by name, phone, category..."
-          showExport={false}
-        />
-      ) : (
-        <DataTable
-          columns={settlementColumns}
-          data={settlements}
-          searchPlaceholder="Search settlements..."
-          showExport={false}
-        />
-      )}
+      <DataTable
+        columns={workerColumns}
+        data={workers}
+        searchPlaceholder="Search worker by name, phone, category..."
+        showExport={false}
+      />
 
       {/* Dialog: Change Pay Rate */}
       {rateChangeWorker && (

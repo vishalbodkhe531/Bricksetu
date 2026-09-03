@@ -146,7 +146,7 @@
   html, body {
     @apply bg-background text-foreground font-sans antialiased;
     scrollbar-gutter: stable;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   /* Custom minimal, theme-matching scrollbar for WebKit (Chrome, Edge, Safari) */
