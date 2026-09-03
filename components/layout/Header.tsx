@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+import { createBrowserSupabase } from '@/lib/supabase/client';
+
 interface HeaderProps {
   user?: {
     full_name?: string;
@@ -25,14 +27,12 @@ export function Header({ user, onMobileMenuToggle }: HeaderProps) {
   async function handleLogout() {
     try {
       setLoggingOut(true);
-      const res = await fetch('/api/v1/auth/logout', { method: 'POST' });
-      if (res.ok) {
-        toast.success('Logged out successfully');
-        router.push('/login');
-        router.refresh();
-      } else {
-        toast.error('Logout failed');
-      }
+      const supabase = createBrowserSupabase();
+      await supabase.auth.signOut();
+      await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+      toast.success('Logged out successfully');
+      router.push('/login');
+      router.refresh();
     } catch {
       toast.error('An error occurred during logout');
     } finally {

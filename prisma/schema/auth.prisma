@@ -1,0 +1,47 @@
+model sessions {
+  id         String   @id @db.VarChar(255)
+  user_id    String   @db.Uuid
+  expires_at DateTime @db.Timestamptz(6)
+  created_at DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_sessions_user_id")
+  @@schema("app_auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model users {
+  id                                         String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id                           String                @db.Uuid
+  username                                   String                @unique @db.VarChar(100)
+  email                                      String                @unique @db.VarChar(255)
+  password_hash                              String                @db.VarChar(255)
+  full_name                                  String                @db.VarChar(255)
+  role                                       String                @default("ADMIN") @db.VarChar(50)
+  is_active                                  Boolean               @default(true)
+  created_at                                 DateTime              @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at                                 DateTime              @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  sessions                                   sessions[]
+  business_units                             business_units        @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  events                                     events[]
+  allocations                                allocations[]
+  charges                                    charges[]
+  expenses                                   expenses[]
+  payments                                   payments[]
+  settlements_settlements_approved_byTousers settlements[]         @relation("settlements_approved_byTousers")
+  settlements_settlements_created_byTousers  settlements[]         @relation("settlements_created_byTousers")
+  settlements_settlements_voided_byTousers   settlements[]         @relation("settlements_voided_byTousers")
+  stock_adjustments                          stock_adjustments[]
+  stock_ledger                               stock_ledger[]
+  consumption                                consumption[]
+  purchases                                  purchases[]
+  batches                                    batches[]
+  daily_moulding_logs                        daily_moulding_logs[]
+  stage_transitions                          stage_transitions[]
+  records                                    records[]
+  trips                                      trips[]
+  rate_history                               rate_history[]
+
+  @@index([business_unit_id], map: "idx_users_business_unit")
+  @@schema("app_auth")
+}

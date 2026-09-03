@@ -1,47 +1,48 @@
-import { cookies } from 'next/headers';
-import { query } from '../db/pool';
+import { createServerSupabase } from '../supabase/server';
+import { prisma } from '../prisma';
+import { ensureAdminUserSeeded } from './seed-admin';
 
 export interface AuthUser {
   id: string;
-  business_unit_id: string;
-  business_unit_name: string;
-  username: string;
-  email: string;
+  organization_id: string;
   full_name: string;
+  email: string;
   role: string;
 }
 
+/**
+ * Get the authenticated user from the current session using Prisma.
+ * Returns null if not logged in or user not found.
+ */
 export async function getSessionUser(): Promise<AuthUser | null> {
   try {
-    const cookieStore = await cookies();
-    const sessionToken = cookieStore.get('bricksetu_session')?.value;
+    await ensureAdminUserSeeded();
+    const supabase = await createServerSupabase();
+    const { data: { user }, error } = await supabase.auth.getUser();
 
-    if (!sessionToken) {
-      return null;
-    }
+    if (error || !user) return null;
 
-    const { rows } = await query(
-      `SELECT u.id, u.business_unit_id, u.username, u.email, u.full_name, u.role, u.is_active, s.expires_at, bu.name as bu_name
-       FROM app_auth.sessions s
-       JOIN app_auth.users u ON u.id = s.user_id
-       JOIN core.business_units bu ON bu.id = u.business_unit_id
-       WHERE s.id = $1 AND s.expires_at > clock_timestamp() AND u.is_active = true`,
-      [sessionToken]
-    );
+    // Fetch user profile from Prisma
+    const dbUser = await prisma.users.findUnique({
+      where: { id: user.id },
+      select: {
+        id: true,
+        business_unit_id: true,
+        full_name: true,
+        email: true,
+        role: true,
+        is_active: true,
+      },
+    });
 
-    if (rows.length === 0) {
-      return null;
-    }
+    if (!dbUser || !dbUser.is_active) return null;
 
-    const user = rows[0];
     return {
-      id: user.id,
-      business_unit_id: user.business_unit_id,
-      business_unit_name: user.bu_name,
-      username: user.username,
-      email: user.email,
-      full_name: user.full_name,
-      role: user.role,
+      id: dbUser.id,
+      organization_id: dbUser.business_unit_id,
+      full_name: dbUser.full_name,
+      email: dbUser.email,
+      role: dbUser.role,
     };
   } catch (error) {
     console.error('[AUTH SESSION ERROR]', error);

@@ -1,0 +1,9 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema", "partialIndexes", "prismaSchemaFolder"]
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["app_auth", "audit", "core", "finance", "inventory", "materials", "parties", "production", "sales", "transport", "workers"]
+}

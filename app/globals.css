@@ -139,11 +139,43 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
   }
-  body {
+
+  html, body {
     @apply bg-background text-foreground font-sans antialiased;
+    scrollbar-gutter: stable;
+    overflow-x: hidden;
   }
-  html {
-    @apply font-sans;
+
+  /* Custom minimal, theme-matching scrollbar for WebKit (Chrome, Edge, Safari) */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+  }
+
+  /* Completely disable ugly native OS scrollbar arrows */
+  ::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
   }
 }

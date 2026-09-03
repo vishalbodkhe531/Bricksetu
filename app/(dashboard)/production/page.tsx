@@ -1,152 +1,126 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Factory, Plus, Flame, ArrowRight, Layers, Eye, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Factory, Plus, Eye, X } from 'lucide-react';
 import {
-  getBatchesAction,
-  createBatchAction,
-  getBatchDetailAction,
-  recordMouldingLogAction,
-  transitionStageAction,
-} from '@/features/production/actions';
-import { getMasterDataAction } from '@/features/settings/actions';
-import { getWorkersAction } from '@/features/workers/actions';
-import { DataTable } from '@/components/ui/data-table/data-table';
+  useProductionBatches,
+  useBrickTypes,
+  useCreateProductionBatch,
+} from '@/features/production/hooks/useProduction';
+import { useWorkers } from '@/features/workers/hooks/useWorkers';
+import { useAuth } from '@/context/AuthContext';
+import { DataTable, Column } from '@/components/ui/data-table/data-table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import type { ProductionBatch } from '@/features/production/types/production.types';
 
 export default function ProductionPage() {
-  const [batches, setBatches] = useState<any[]>([]);
-  const [brickTypes, setBrickTypes] = useState<any[]>([]);
-  const [workers, setWorkers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { profile } = useAuth();
+  const orgId = profile?.organization_id ?? '';
 
-  // Modals
+  const { data: batches = [], isLoading: loadingBatches } = useProductionBatches(orgId);
+  const { data: brickTypes = [] } = useBrickTypes(orgId);
+  const { data: workers = [] } = useWorkers(orgId);
+
+  const createBatch = useCreateProductionBatch(orgId);
+
+  // Modal state
   const [showAddBatch, setShowAddBatch] = useState(false);
-  const [showLogMoulding, setShowLogMoulding] = useState(false);
-  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
-  const [batchDetail, setBatchDetail] = useState<any | null>(null);
+  const [selectedBatch, setSelectedBatch] = useState<ProductionBatch | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  // Form State
+  const [brickTypeId, setBrickTypeId] = useState('');
+  const [workerId, setWorkerId] = useState('');
+  const [productionDate, setProductionDate] = useState(new Date().toISOString().split('T')[0]);
+  const [bricksMoulded, setBricksMoulded] = useState('');
+  const [notes, setNotes] = useState('');
 
-  async function loadData() {
-    setLoading(true);
-    const [bRes, mRes, wRes] = await Promise.all([
-      getBatchesAction(),
-      getMasterDataAction(),
-      getWorkersAction(),
-    ]);
-    if (bRes.success) setBatches(bRes.data || []);
-    if (mRes.success) setBrickTypes(mRes.data?.brick_types || []);
-    if (wRes.success) setWorkers(wRes.data || []);
-    setLoading(false);
-  }
+  const canWrite = profile?.role && ['owner', 'manager'].includes(profile.role);
 
-  const handleCreateBatch = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateBatch = async (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const res = await createBatchAction(formData);
-    if (res.success) {
-      toast.success('Kiln Batch initialized');
-      setShowAddBatch(false);
-      loadData();
-    } else {
-      toast.error(res.error || 'Failed to create batch');
-    }
+    createBatch.mutate(
+      {
+        brick_type_id: brickTypeId,
+        worker_id: workerId || null,
+        production_date: productionDate,
+        bricks_moulded: parseInt(bricksMoulded, 10),
+        notes: notes || null,
+      },
+      {
+        onSuccess: () => {
+          toast.success('Production batch logged successfully');
+          setShowAddBatch(false);
+          setBrickTypeId('');
+          setWorkerId('');
+          setBricksMoulded('');
+          setNotes('');
+        },
+        onError: (err: Error) => {
+          toast.error(err.message || 'Failed to log production batch');
+        },
+      }
+    );
   };
 
-  const handleRecordMoulding = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const res = await recordMouldingLogAction(formData);
-    if (res.success) {
-      toast.success('Daily moulding output recorded!');
-      setShowLogMoulding(false);
-      loadData();
-    } else {
-      toast.error(res.error || 'Failed to record moulding log');
-    }
-  };
-
-  const handleViewBatch = async (id: string) => {
-    setSelectedBatchId(id);
-    const res = await getBatchDetailAction(id);
-    if (res.success) {
-      setBatchDetail(res.data);
-    } else {
-      toast.error(res.error || 'Failed to load batch details');
-    }
-  };
-
-  const batchColumns: any[] = [
+  const columns: Column<ProductionBatch>[] = [
     {
-      accessorKey: 'batch_number',
-      header: 'Batch Number',
-      cell: ({ row }: any) => (
-        <div>
-          <div className="font-mono font-bold text-foreground">{row.original.batch_number}</div>
-          <div className="text-[11px] text-muted-foreground">{row.original.brick_type_name}</div>
+      accessorKey: 'production_date',
+      header: 'Date',
+      cell: ({ row }) => (
+        <span className="text-muted-foreground font-mono text-[11px]">{row.original.production_date}</span>
+      ),
+    },
+    {
+      accessorKey: 'brick_type',
+      header: 'Brick Type',
+      cell: ({ row }) => (
+        <div className="font-semibold text-foreground">
+          {row.original.brick_type?.name ?? 'Standard Brick'}
         </div>
       ),
     },
     {
-      accessorKey: 'stage',
-      header: 'Current Stage',
-      cell: ({ row }: any) => {
-        const stage = row.original.stage;
-        return (
-          <span
-            className={`rounded px-2.5 py-1 text-[11px] font-bold ${
-              stage === 'MOULDING'
-                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                : stage === 'SETTING'
-                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
-                : stage === 'FIRING'
-                ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
-                : stage === 'UNLOADED'
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                : 'bg-muted text-muted-foreground'
-            }`}
-          >
-            {stage}
-          </span>
-        );
-      },
+      accessorKey: 'worker_name',
+      header: 'Moulding Worker',
+      cell: ({ row }) => (
+        <span className="text-muted-foreground text-xs">{row.original.worker_name ?? '—'}</span>
+      ),
     },
     {
-      accessorKey: 'moulded_quantity',
-      header: 'Moulded Qty',
-      cell: ({ row }: any) => (
-        <span className="font-semibold text-foreground">
-          {parseInt(row.original.moulded_quantity || '0', 10).toLocaleString()}
+      accessorKey: 'bricks_moulded',
+      header: 'Bricks Moulded',
+      align: 'right',
+      cell: ({ row }) => (
+        <span className="font-mono font-bold text-foreground">
+          {row.original.bricks_moulded.toLocaleString()}
         </span>
       ),
     },
     {
-      accessorKey: 'fired_good_quantity',
-      header: 'Fired Good Qty',
-      cell: ({ row }: any) => (
-        <span className="font-bold text-emerald-600 dark:text-emerald-400">
-          {parseInt(row.original.fired_good_quantity || '0', 10).toLocaleString()}
+      accessorKey: 'notes',
+      header: 'Notes',
+      cell: ({ row }) => (
+        <span className="text-muted-foreground text-xs truncate max-w-[200px] block">
+          {row.original.notes || '—'}
         </span>
       ),
-    },
-    {
-      accessorKey: 'start_date',
-      header: 'Start Date',
-      cell: ({ row }: any) => <span className="text-muted-foreground">{row.original.start_date}</span>,
     },
     {
       id: 'actions',
       header: 'Action',
-      cell: ({ row }: any) => (
-        <button
-          onClick={() => handleViewBatch(row.original.id)}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-border bg-card text-xs font-semibold hover:bg-accent"
+      align: 'center',
+      cell: ({ row }) => (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-[11px] gap-1 cursor-pointer"
+          onClick={() => setSelectedBatch(row.original)}
         >
-          <Eye className="h-3.5 w-3.5" /> Details
-        </button>
+          <Eye className="h-3.5 w-3.5" /> View
+        </Button>
       ),
     },
   ];
@@ -157,137 +131,168 @@ export default function ProductionPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Factory className="h-6 w-6 text-primary" /> Production & Kiln Batches
+            <Factory className="h-6 w-6 text-primary" /> Production & Moulding Logs
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Track batch lifecycle (Moulding → Setting → Firing → Sorting → Unloaded) and detailed batch unit costing
+            Track daily moulding output by brick type and worker
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowLogMoulding(true)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3.5 py-2 text-xs font-bold text-foreground hover:bg-accent shadow-xs"
-          >
-            <Layers className="h-4 w-4" /> Log Moulding Output
-          </button>
-          <button
-            onClick={() => setShowAddBatch(true)}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 shadow-xs"
-          >
-            <Plus className="h-4 w-4" /> Initialize Batch
-          </button>
-        </div>
+        {canWrite && (
+          <Button onClick={() => setShowAddBatch(true)}>
+            <Plus className="h-4 w-4" /> Log Production Batch
+          </Button>
+        )}
       </div>
 
       {/* Batches Table */}
-      <DataTable columns={batchColumns} data={batches} searchPlaceholder="Search production batches..." exportFileName="production_batches.csv" />
+      <DataTable
+        columns={columns}
+        data={batches}
+        searchPlaceholder="Search production batches..."
+        exportFileName="production_batches.csv"
+      />
 
-      {/* Modal: Initialize Batch */}
+      {/* Modal: Log Production Batch */}
       {showAddBatch && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
-            <h3 className="text-base font-bold text-foreground">Initialize New Kiln Batch</h3>
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-base font-bold text-foreground">Log Production Batch</h3>
+              <button
+                onClick={() => setShowAddBatch(false)}
+                className="text-muted-foreground hover:text-foreground rounded p-1"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
             <form onSubmit={handleCreateBatch} className="space-y-3">
-              <input name="batch_number" placeholder="Batch Number (e.g. BATCH-2026-01)" required className="w-full rounded border border-border bg-card px-3 py-2 text-xs" />
               <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Brick Type</label>
-                <select name="brick_type_id" required className="w-full rounded border border-border bg-card px-3 py-2 text-xs">
+                <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                  Brick Type *
+                </label>
+                <select
+                  value={brickTypeId}
+                  onChange={(e) => setBrickTypeId(e.target.value)}
+                  required
+                  className="w-full rounded border border-border bg-card px-3 py-2 text-xs text-foreground focus:ring-1 focus:ring-primary"
+                >
                   <option value="">-- Select Brick Type --</option>
                   {brickTypes.map((bt) => (
-                    <option key={bt.id} value={bt.id}>{bt.name} ({bt.code})</option>
+                    <option key={bt.id} value={bt.id}>
+                      {bt.name}
+                    </option>
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Target Production Qty</label>
-                <input name="target_quantity" type="number" placeholder="e.g. 100000" defaultValue="100000" className="w-full rounded border border-border bg-card px-3 py-2 text-xs" />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Batch Start Date</label>
-                <input name="start_date" type="date" defaultValue={new Date().toISOString().split('T')[0]} required className="w-full rounded border border-border bg-card px-3 py-2 text-xs" />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowAddBatch(false)} className="px-3 py-1.5 text-xs border rounded">Cancel</button>
-                <button type="submit" className="px-4 py-1.5 text-xs font-bold bg-primary text-primary-foreground rounded">Save Batch</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
-      {/* Modal: Log Moulding */}
-      {showLogMoulding && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
-            <h3 className="text-base font-bold text-foreground">Record Daily Moulding Output</h3>
-            <form onSubmit={handleRecordMoulding} className="space-y-3">
               <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Select Active Batch</label>
-                <select name="batch_id" required className="w-full rounded border border-border bg-card px-3 py-2 text-xs">
-                  <option value="">-- Choose Batch --</option>
-                  {batches.map((b) => (
-                    <option key={b.id} value={b.id}>{b.batch_number} ({b.brick_type_name})</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Select Moulding Worker</label>
-                <select name="worker_id" required className="w-full rounded border border-border bg-card px-3 py-2 text-xs">
-                  <option value="">-- Choose Worker --</option>
+                <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                  Moulding Worker
+                </label>
+                <select
+                  value={workerId}
+                  onChange={(e) => setWorkerId(e.target.value)}
+                  className="w-full rounded border border-border bg-card px-3 py-2 text-xs text-foreground focus:ring-1 focus:ring-primary"
+                >
+                  <option value="">-- Choose Worker (Optional) --</option>
                   {workers.map((w) => (
-                    <option key={w.id} value={w.id}>{w.full_name} ({w.code})</option>
+                    <option key={w.id} value={w.id}>
+                      {w.full_name}
+                    </option>
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Work Date</label>
-                <input name="work_date" type="date" defaultValue={new Date().toISOString().split('T')[0]} required className="w-full rounded border border-border bg-card px-3 py-2 text-xs" />
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                    Production Date *
+                  </label>
+                  <Input
+                    type="date"
+                    value={productionDate}
+                    onChange={(e) => setProductionDate(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                    Bricks Moulded *
+                  </label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={bricksMoulded}
+                    onChange={(e) => setBricksMoulded(e.target.value)}
+                    placeholder="e.g. 1500"
+                    required
+                  />
+                </div>
               </div>
+
               <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Bricks Moulded</label>
-                <input name="bricks_moulded" type="number" placeholder="e.g. 1500" required className="w-full rounded border border-border bg-card px-3 py-2 text-xs" />
+                <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                  Notes / Observations
+                </label>
+                <Input
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="e.g. Morning shift moulding batch"
+                />
               </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowLogMoulding(false)} className="px-3 py-1.5 text-xs border rounded">Cancel</button>
-                <button type="submit" className="px-4 py-1.5 text-xs font-bold bg-primary text-primary-foreground rounded">Record Output</button>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                <Button type="button" variant="outline" onClick={() => setShowAddBatch(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createBatch.isPending}>
+                  {createBatch.isPending ? 'Saving...' : 'Save Batch'}
+                </Button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Modal: Batch Detail Drawer & Costing Breakdown */}
-      {selectedBatchId && batchDetail && (
+      {/* Modal: Batch Detail */}
+      {selectedBatch && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl max-w-3xl w-full p-6 space-y-6 shadow-xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-card border border-border rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl">
             <div className="flex justify-between items-center border-b border-border pb-3">
-              <div>
-                <h3 className="text-base font-bold text-foreground">Batch {batchDetail.batch_number}</h3>
-                <p className="text-xs text-muted-foreground">Type: {batchDetail.brick_type_name} • Current Stage: <span className="font-bold text-primary">{batchDetail.stage}</span></p>
-              </div>
-              <button onClick={() => { setSelectedBatchId(null); setBatchDetail(null); }} className="text-xs border px-3 py-1 rounded">Close</button>
+              <h3 className="text-base font-bold text-foreground">Batch Details</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedBatch(null)}
+              >
+                Close
+              </Button>
             </div>
-
-            {/* Cost Breakdown Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-              <div className="p-3 bg-muted/30 rounded border border-border">
-                <span className="text-[10px] text-muted-foreground uppercase font-bold block">Moulding Labor</span>
-                <span className="text-sm font-bold text-foreground">₹{(parseInt(batchDetail.cost_breakdown?.moulding_cost_paise || '0', 10) / 100).toFixed(2)}</span>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between py-1 border-b border-border">
+                <span className="text-muted-foreground">Production Date:</span>
+                <span className="font-mono font-semibold">{selectedBatch.production_date}</span>
               </div>
-              <div className="p-3 bg-muted/30 rounded border border-border">
-                <span className="text-[10px] text-muted-foreground uppercase font-bold block">Materials (Coal/Clay)</span>
-                <span className="text-sm font-bold text-foreground">₹{(parseInt(batchDetail.cost_breakdown?.material_cost_paise || '0', 10) / 100).toFixed(2)}</span>
+              <div className="flex justify-between py-1 border-b border-border">
+                <span className="text-muted-foreground">Brick Type:</span>
+                <span className="font-semibold">{selectedBatch.brick_type?.name ?? 'Standard'}</span>
               </div>
-              <div className="p-3 bg-muted/30 rounded border border-border">
-                <span className="text-[10px] text-muted-foreground uppercase font-bold block">Total Batch Cost</span>
-                <span className="text-sm font-bold text-primary">₹{(parseInt(batchDetail.cost_breakdown?.total_cost_paise || '0', 10) / 100).toFixed(2)}</span>
+              <div className="flex justify-between py-1 border-b border-border">
+                <span className="text-muted-foreground">Worker:</span>
+                <span>{selectedBatch.worker_name ?? 'Unassigned'}</span>
               </div>
-              <div className="p-3 bg-muted/30 rounded border border-border">
-                <span className="text-[10px] text-muted-foreground uppercase font-bold block">Cost / 1,000 Bricks</span>
-                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                  {batchDetail.cost_breakdown?.cost_per_1000_paise ? `₹${(parseInt(batchDetail.cost_breakdown.cost_per_1000_paise, 10) / 100).toFixed(2)}` : 'N/A'}
+              <div className="flex justify-between py-1 border-b border-border">
+                <span className="text-muted-foreground">Bricks Moulded:</span>
+                <span className="font-mono font-bold text-primary">
+                  {selectedBatch.bricks_moulded.toLocaleString()}
                 </span>
               </div>
+              {selectedBatch.notes && (
+                <div className="pt-2">
+                  <span className="text-muted-foreground text-xs block mb-1">Notes:</span>
+                  <p className="text-xs bg-muted/40 p-2 rounded border border-border">{selectedBatch.notes}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

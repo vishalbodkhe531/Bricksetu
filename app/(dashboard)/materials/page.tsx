@@ -1,196 +1,169 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Package, Plus, ShoppingBag, Truck, Flame, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Package, Plus, Truck, X } from 'lucide-react';
 import {
-  getMaterialsAction,
-  createMaterialAction,
-  getSuppliersAction,
-  createSupplierAction,
-  getPurchasesAction,
-  createPurchaseAction,
-  consumeMaterialAction,
-} from '@/features/materials/actions';
-import { DataTable } from '@/components/ui/data-table/data-table';
+  useRawMaterialsList,
+  useCreateRawMaterial,
+  useSuppliersList,
+  useCreateSupplier,
+} from '@/features/materials/hooks/useMaterials';
+import { useAuth } from '@/context/AuthContext';
+import { DataTable, Column } from '@/components/ui/data-table/data-table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import type { RawMaterial, Supplier } from '@/features/materials/types/materials.types';
 
 export default function MaterialsPage() {
-  const [activeTab, setActiveTab] = useState<'catalogue' | 'purchases' | 'suppliers'>('catalogue');
-  const [materials, setMaterials] = useState<any[]>([]);
-  const [purchases, setPurchases] = useState<any[]>([]);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { profile } = useAuth();
+  const orgId = profile?.organization_id ?? '';
+
+  const [activeTab, setActiveTab] = useState<'materials' | 'suppliers'>('materials');
+
+  const { data: materials = [], isLoading: loadingMaterials } = useRawMaterialsList(orgId);
+  const { data: suppliers = [], isLoading: loadingSuppliers } = useSuppliersList(orgId);
+
+  const createMaterial = useCreateRawMaterial(orgId);
+  const createSupplier = useCreateSupplier(orgId);
 
   // Modals
-  const [showAddPurchase, setShowAddPurchase] = useState(false);
-  const [showAddSupplier, setShowAddSupplier] = useState(false);
   const [showAddMaterial, setShowAddMaterial] = useState(false);
+  const [showAddSupplier, setShowAddSupplier] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  // Form State - Material
+  const [matName, setMatName] = useState('');
+  const [matUnit, setMatUnit] = useState('tons');
+  const [matReorder, setMatReorder] = useState('');
+  const [matDesc, setMatDesc] = useState('');
 
-  async function loadData() {
-    setLoading(true);
-    const [mRes, pRes, sRes] = await Promise.all([
-      getMaterialsAction(),
-      getPurchasesAction(),
-      getSuppliersAction(),
-    ]);
-    if (mRes.success) setMaterials(mRes.data || []);
-    if (pRes.success) setPurchases(pRes.data || []);
-    if (sRes.success) setSuppliers(sRes.data || []);
-    setLoading(false);
-  }
+  // Form State - Supplier
+  const [supName, setSupName] = useState('');
+  const [supContact, setSupContact] = useState('');
+  const [supPhone, setSupPhone] = useState('');
+  const [supAddress, setSupAddress] = useState('');
+  const [supGst, setSupGst] = useState('');
 
-  const handleCreatePurchase = async (e: React.FormEvent<HTMLFormElement>) => {
+  const canWrite = profile?.role && ['owner', 'manager'].includes(profile.role);
+
+  const handleCreateMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const res = await createPurchaseAction(formData);
-    if (res.success) {
-      toast.success('Material purchase logged successfully');
-      setShowAddPurchase(false);
-      loadData();
-    } else {
-      toast.error(res.error || 'Failed to post purchase');
-    }
+    createMaterial.mutate(
+      {
+        name: matName,
+        unit: matUnit,
+        reorder_level: matReorder ? parseFloat(matReorder) : null,
+        description: matDesc || null,
+      },
+      {
+        onSuccess: () => {
+          toast.success('Raw material added successfully');
+          setShowAddMaterial(false);
+          setMatName('');
+          setMatReorder('');
+          setMatDesc('');
+        },
+        onError: (err: Error) => {
+          toast.error(err.message || 'Failed to add raw material');
+        },
+      }
+    );
   };
 
-  const handleCreateSupplier = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const res = await createSupplierAction(formData);
-    if (res.success) {
-      toast.success('Supplier registered');
-      setShowAddSupplier(false);
-      loadData();
-    } else {
-      toast.error(res.error || 'Failed to create supplier');
-    }
+    createSupplier.mutate(
+      {
+        name: supName,
+        contact_person: supContact || null,
+        phone: supPhone || null,
+        address: supAddress || null,
+        gst_number: supGst || null,
+      },
+      {
+        onSuccess: () => {
+          toast.success('Supplier registered successfully');
+          setShowAddSupplier(false);
+          setSupName('');
+          setSupContact('');
+          setSupPhone('');
+          setSupAddress('');
+          setSupGst('');
+        },
+        onError: (err: Error) => {
+          toast.error(err.message || 'Failed to register supplier');
+        },
+      }
+    );
   };
 
-  const handleCreateMaterial = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const res = await createMaterialAction(formData);
-    if (res.success) {
-      toast.success('Material item added');
-      setShowAddMaterial(false);
-      loadData();
-    } else {
-      toast.error(res.error || 'Failed to add material');
-    }
-  };
-
-  const materialColumns: any[] = [
+  const materialColumns: Column<RawMaterial>[] = [
     {
       accessorKey: 'name',
       header: 'Material Name',
-      cell: ({ row }: any) => (
-        <div>
-          <div className="font-bold text-foreground">{row.original.name}</div>
-          <div className="text-[11px] text-muted-foreground font-mono">{row.original.code}</div>
-        </div>
+      cell: ({ row }) => (
+        <div className="font-semibold text-foreground">{row.original.name}</div>
       ),
     },
     {
-      accessorKey: 'unit_name',
-      header: 'Unit',
-      cell: ({ row }: any) => <span className="font-mono text-muted-foreground">{row.original.unit_code}</span>,
-    },
-    {
-      accessorKey: 'current_stock',
-      header: 'Current Stock',
-      cell: ({ row }: any) => (
-        <span className="font-bold text-foreground">
-          {parseFloat(row.original.current_stock || '0').toLocaleString()} {row.original.unit_code}
-        </span>
+      accessorKey: 'unit',
+      header: 'Unit of Measure',
+      cell: ({ row }) => (
+        <Badge variant="outline" className="font-mono text-[10px] uppercase">
+          {row.original.unit}
+        </Badge>
       ),
     },
     {
       accessorKey: 'reorder_level',
-      header: 'Reorder Threshold',
-      cell: ({ row }: any) => (
-        <span className="text-muted-foreground">
-          {parseFloat(row.original.reorder_level || '0').toLocaleString()} {row.original.unit_code}
+      header: 'Reorder Level',
+      align: 'right',
+      cell: ({ row }) => (
+        <span className="font-mono text-muted-foreground text-xs">
+          {row.original.reorder_level != null ? row.original.reorder_level.toLocaleString() : '—'}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'description',
+      header: 'Description',
+      cell: ({ row }) => (
+        <span className="text-muted-foreground text-xs truncate max-w-[200px] block">
+          {row.original.description || '—'}
         </span>
       ),
     },
   ];
 
-  const purchaseColumns: any[] = [
-    {
-      accessorKey: 'purchase_number',
-      header: 'Purchase #',
-      cell: ({ row }: any) => <span className="font-mono font-bold text-foreground">{row.original.purchase_number}</span>,
-    },
-    {
-      accessorKey: 'purchase_date',
-      header: 'Date',
-      cell: ({ row }: any) => <span className="text-muted-foreground">{row.original.purchase_date}</span>,
-    },
-    {
-      accessorKey: 'supplier_name',
-      header: 'Supplier',
-      cell: ({ row }: any) => <span>{row.original.supplier_name}</span>,
-    },
-    {
-      accessorKey: 'material_name',
-      header: 'Material',
-      cell: ({ row }: any) => <span>{row.original.material_name}</span>,
-    },
-    {
-      accessorKey: 'quantity',
-      header: 'Quantity',
-      cell: ({ row }: any) => (
-        <span className="font-bold">
-          {parseFloat(row.original.quantity).toLocaleString()} {row.original.unit_code}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'total_amount_paise',
-      header: 'Total Cost',
-      cell: ({ row }: any) => (
-        <span className="font-bold text-foreground">
-          ₹{(parseInt(row.original.total_amount_paise || '0', 10) / 100).toFixed(2)}
-        </span>
-      ),
-    },
-  ];
-
-  const supplierColumns: any[] = [
+  const supplierColumns: Column<Supplier>[] = [
     {
       accessorKey: 'name',
       header: 'Supplier Name',
-      cell: ({ row }: any) => (
-        <div>
-          <div className="font-bold text-foreground">{row.original.name}</div>
-          <div className="text-[11px] text-muted-foreground font-mono">{row.original.code}</div>
-        </div>
+      cell: ({ row }) => (
+        <div className="font-semibold text-foreground">{row.original.name}</div>
       ),
     },
     {
       accessorKey: 'contact_person',
       header: 'Contact Person',
-      cell: ({ row }: any) => <span className="text-muted-foreground">{row.original.contact_person || '—'}</span>,
+      cell: ({ row }) => (
+        <span className="text-muted-foreground text-xs">{row.original.contact_person || '—'}</span>
+      ),
     },
     {
       accessorKey: 'phone',
       header: 'Phone',
-      cell: ({ row }: any) => <span className="text-muted-foreground">{row.original.phone || '—'}</span>,
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">{row.original.phone || '—'}</span>
+      ),
     },
     {
-      accessorKey: 'payable_balance_paise',
-      header: 'Outstanding Balance',
-      cell: ({ row }: any) => {
-        const val = parseInt(row.original.payable_balance_paise || '0', 10) / 100;
-        return (
-          <span className={`font-bold ${val > 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'}`}>
-            ₹{val.toFixed(2)}
-          </span>
-        );
-      },
+      accessorKey: 'gst_number',
+      header: 'GSTIN',
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">{row.original.gst_number || '—'}</span>
+      ),
     },
   ];
 
@@ -200,114 +173,130 @@ export default function MaterialsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Package className="h-6 w-6 text-primary" /> Materials & Procurement
+            <Package className="h-6 w-6 text-primary" /> Raw Materials & Suppliers
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Coal, clay, sawdust, diesel stock tracking, FIFO lot pricing, and supplier ledger accounts
+            Manage coal, clay, sand, diesel, and registered supplier contacts
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowAddSupplier(true)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-xs font-bold text-foreground hover:bg-accent shadow-xs"
-          >
-            <Truck className="h-4 w-4" /> Add Supplier
-          </button>
-          <button
-            onClick={() => setShowAddPurchase(true)}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 shadow-xs"
-          >
-            <ShoppingBag className="h-4 w-4" /> Log Purchase
-          </button>
-        </div>
+        {canWrite && (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setShowAddSupplier(true)}>
+              <Truck className="h-4 w-4" /> Add Supplier
+            </Button>
+            <Button onClick={() => setShowAddMaterial(true)}>
+              <Plus className="h-4 w-4" /> Add Material
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-border gap-2">
-        <button
-          onClick={() => setActiveTab('catalogue')}
-          className={`pb-3 px-4 text-xs font-semibold border-b-2 transition-colors ${
-            activeTab === 'catalogue'
-              ? 'border-primary text-primary font-bold'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Material Stock ({materials.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('purchases')}
-          className={`pb-3 px-4 text-xs font-semibold border-b-2 transition-colors ${
-            activeTab === 'purchases'
-              ? 'border-primary text-primary font-bold'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Purchase Entries ({purchases.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('suppliers')}
-          className={`pb-3 px-4 text-xs font-semibold border-b-2 transition-colors ${
-            activeTab === 'suppliers'
-              ? 'border-primary text-primary font-bold'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Suppliers ({suppliers.length})
-        </button>
+      <div className="flex gap-1 border-b border-border">
+        {(['materials', 'suppliers'] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
+              activeTab === tab
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {tab === 'materials' ? 'Raw Materials' : 'Suppliers Directory'}
+          </button>
+        ))}
       </div>
 
       {/* Content */}
-      {activeTab === 'catalogue' && (
-        <DataTable columns={materialColumns} data={materials} searchPlaceholder="Search materials..." exportFileName="materials.csv" />
-      )}
-      {activeTab === 'purchases' && (
-        <DataTable columns={purchaseColumns} data={purchases} searchPlaceholder="Search purchases..." exportFileName="purchases.csv" />
-      )}
-      {activeTab === 'suppliers' && (
-        <DataTable columns={supplierColumns} data={suppliers} searchPlaceholder="Search suppliers..." exportFileName="suppliers.csv" />
+      {activeTab === 'materials' ? (
+        <DataTable
+          columns={materialColumns}
+          data={materials}
+          searchPlaceholder="Search materials..."
+          showExport={false}
+        />
+      ) : (
+        <DataTable
+          columns={supplierColumns}
+          data={suppliers}
+          searchPlaceholder="Search suppliers..."
+          showExport={false}
+        />
       )}
 
-      {/* Modal: Log Purchase */}
-      {showAddPurchase && (
+      {/* Modal: Add Material */}
+      {showAddMaterial && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
-            <h3 className="text-base font-bold text-foreground">Log Material Purchase</h3>
-            <form onSubmit={handleCreatePurchase} className="space-y-3">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-base font-bold text-foreground">Add Raw Material</h3>
+              <button
+                onClick={() => setShowAddMaterial(false)}
+                className="text-muted-foreground hover:text-foreground rounded p-1"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateMaterial} className="space-y-3">
               <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Supplier</label>
-                <select name="supplier_id" required className="w-full rounded border border-border bg-card px-3 py-2 text-xs">
-                  <option value="">-- Select Supplier --</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Material Item</label>
-                <select name="material_id" required className="w-full rounded border border-border bg-card px-3 py-2 text-xs">
-                  <option value="">-- Select Material --</option>
-                  {materials.map((m) => (
-                    <option key={m.id} value={m.id}>{m.name} ({m.unit_code})</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Purchase Date</label>
-                <input name="purchase_date" type="date" defaultValue={new Date().toISOString().split('T')[0]} required className="w-full rounded border border-border bg-card px-3 py-2 text-xs" />
+                <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                  Material Name *
+                </label>
+                <Input
+                  value={matName}
+                  onChange={(e) => setMatName(e.target.value)}
+                  placeholder="e.g. Coal / Clay / Sawdust"
+                  required
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-muted-foreground">Quantity</label>
-                  <input name="quantity" type="number" step="0.01" placeholder="e.g. 50" required className="w-full rounded border border-border bg-card px-3 py-2 text-xs" />
+                  <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                    Unit *
+                  </label>
+                  <select
+                    value={matUnit}
+                    onChange={(e) => setMatUnit(e.target.value)}
+                    required
+                    className="w-full rounded border border-border bg-card px-3 py-2 text-xs text-foreground focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="tons">Tons</option>
+                    <option value="kg">Kilograms (kg)</option>
+                    <option value="liters">Liters</option>
+                    <option value="units">Units / Bags</option>
+                  </select>
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-muted-foreground">Unit Price (₹)</label>
-                  <input name="unit_price" type="number" step="0.01" placeholder="e.g. 8500" required className="w-full rounded border border-border bg-card px-3 py-2 text-xs" />
+                  <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                    Reorder Threshold
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={matReorder}
+                    onChange={(e) => setMatReorder(e.target.value)}
+                    placeholder="e.g. 10"
+                  />
                 </div>
               </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowAddPurchase(false)} className="px-3 py-1.5 text-xs border rounded">Cancel</button>
-                <button type="submit" className="px-4 py-1.5 text-xs font-bold bg-primary text-primary-foreground rounded">Save Purchase</button>
+              <div>
+                <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                  Description
+                </label>
+                <Input
+                  value={matDesc}
+                  onChange={(e) => setMatDesc(e.target.value)}
+                  placeholder="e.g. High grade steam coal"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                <Button type="button" variant="outline" onClick={() => setShowAddMaterial(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createMaterial.isPending}>
+                  {createMaterial.isPending ? 'Saving...' : 'Save Material'}
+                </Button>
               </div>
             </form>
           </div>
@@ -318,15 +307,78 @@ export default function MaterialsPage() {
       {showAddSupplier && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
-            <h3 className="text-base font-bold text-foreground">Register New Supplier</h3>
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-base font-bold text-foreground">Register Supplier</h3>
+              <button
+                onClick={() => setShowAddSupplier(false)}
+                className="text-muted-foreground hover:text-foreground rounded p-1"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
             <form onSubmit={handleCreateSupplier} className="space-y-3">
-              <input name="code" placeholder="Supplier Code (e.g. SUP-001)" required className="w-full rounded border border-border bg-card px-3 py-2 text-xs" />
-              <input name="name" placeholder="Supplier Firm Name" required className="w-full rounded border border-border bg-card px-3 py-2 text-xs" />
-              <input name="contact_person" placeholder="Contact Person (optional)" className="w-full rounded border border-border bg-card px-3 py-2 text-xs" />
-              <input name="phone" placeholder="Phone Number" className="w-full rounded border border-border bg-card px-3 py-2 text-xs" />
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowAddSupplier(false)} className="px-3 py-1.5 text-xs border rounded">Cancel</button>
-                <button type="submit" className="px-4 py-1.5 text-xs font-bold bg-primary text-primary-foreground rounded">Save Supplier</button>
+              <div>
+                <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                  Supplier Name *
+                </label>
+                <Input
+                  value={supName}
+                  onChange={(e) => setSupName(e.target.value)}
+                  placeholder="e.g. Royal Coal Traders"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                    Contact Person
+                  </label>
+                  <Input
+                    value={supContact}
+                    onChange={(e) => setSupContact(e.target.value)}
+                    placeholder="Manager Name"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                    Phone
+                  </label>
+                  <Input
+                    value={supPhone}
+                    onChange={(e) => setSupPhone(e.target.value)}
+                    placeholder="Phone number"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                    Address
+                  </label>
+                  <Input
+                    value={supAddress}
+                    onChange={(e) => setSupAddress(e.target.value)}
+                    placeholder="City / Depot"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                    GSTIN
+                  </label>
+                  <Input
+                    value={supGst}
+                    onChange={(e) => setSupGst(e.target.value)}
+                    placeholder="GST Number"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                <Button type="button" variant="outline" onClick={() => setShowAddSupplier(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createSupplier.isPending}>
+                  {createSupplier.isPending ? 'Saving...' : 'Save Supplier'}
+                </Button>
               </div>
             </form>
           </div>

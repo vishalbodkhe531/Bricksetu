@@ -1,0 +1,36 @@
+model customers {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id String         @db.Uuid
+  code             String         @db.VarChar(50)
+  name             String         @db.VarChar(255)
+  phone            String?        @db.VarChar(20)
+  address          String?
+  is_active        Boolean        @default(true)
+  created_at       DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at       DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  business_units   business_units @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  records          records[]
+
+  @@unique([business_unit_id, code], map: "unique_customer_code")
+  @@index([business_unit_id], map: "idx_customers_bu")
+  @@schema("parties")
+}
+
+model suppliers {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id String         @db.Uuid
+  code             String         @db.VarChar(50)
+  name             String         @db.VarChar(255)
+  contact_person   String?        @db.VarChar(255)
+  phone            String?        @db.VarChar(20)
+  address          String?
+  is_active        Boolean        @default(true)
+  created_at       DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at       DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  purchases        purchases[]
+  business_units   business_units @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([business_unit_id, code], map: "unique_supplier_code")
+  @@index([business_unit_id], map: "idx_suppliers_bu")
+  @@schema("parties")
+}

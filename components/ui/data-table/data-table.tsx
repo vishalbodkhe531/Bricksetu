@@ -145,7 +145,7 @@ export function DataTable<T extends Record<string, any>>({
                           className={`px-4 py-3.5 align-middle ${alignClass} ${col.className || ''}`}
                         >
                           {col.cell
-                            ? col.cell({ row: { original: row } })
+                            ? col.cell({ row: { original: row, index: rIdx, totalRows: paginatedData.length } as any })
                             : col.accessorKey
                             ? String(row[col.accessorKey as keyof T] ?? '')
                             : null}
