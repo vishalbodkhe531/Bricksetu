@@ -100,21 +100,21 @@ export async function getDashboardSummary(organizationId: string): Promise<Dashb
   const pendingSales = pendingSalesCount;
   const totalPayments = Number(paymentsAggregate._sum.amount_paise || BigInt(0)) / 100;
 
-  const recentProduction = recentBatches.map((b) => ({
+  const recentProduction = recentBatches.map((b: any) => ({
     production_date: b.start_date.toISOString().split('T')[0],
     brick_type_name: b.brick_types?.name ?? 'Unknown',
     bricks_moulded: b.moulded_quantity,
     worker_name: b.users?.full_name ?? null,
   }));
 
-  const recentPaymentsList = recentPayments.map((p) => ({
+  const recentPaymentsList = recentPayments.map((p: any) => ({
     payment_date: p.payment_date.toISOString().split('T')[0],
     customer_name: p.party_id || 'Customer',
     amount: Number(p.amount_paise) / 100,
     payment_mode: p.payment_methods?.name || 'Cash',
   }));
 
-  const stockSummary = stockGrouped.map((s) => ({
+  const stockSummary = stockGrouped.map((s: any) => ({
     item_id: s.brick_type_id,
     item_type: 'brick',
     stock: s._sum.quantity_change || 0,

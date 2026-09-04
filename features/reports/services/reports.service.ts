@@ -65,7 +65,7 @@ export async function getProductionSummary(
     orderBy: { start_date: 'desc' },
   });
 
-  return batches.map((b) => ({
+  return batches.map((b: any) => ({
     production_date: b.start_date.toISOString().split('T')[0],
     brick_type_name: b.brick_types?.name ?? 'Unknown',
     worker_name: b.users?.full_name ?? null,
@@ -90,7 +90,7 @@ export async function getWorkerSettlementsReport(
     orderBy: { period_start_date: 'desc' },
   });
 
-  return settlements.map((s) => ({
+  return settlements.map((s: any) => ({
     worker_name: s.profiles?.full_name ?? 'Unknown',
     period_start: s.period_start_date.toISOString().split('T')[0],
     period_end: s.period_end_date.toISOString().split('T')[0],
@@ -109,7 +109,7 @@ export async function getInventoryStockReport(organizationId: string): Promise<I
     _sum: { quantity_change: true },
   });
 
-  return stockGrouped.map((s) => ({
+  return stockGrouped.map((s: any) => ({
     item_type: 'brick',
     item_id: s.brick_type_id,
     stock: s._sum.quantity_change || 0,
@@ -133,7 +133,7 @@ export async function getSalesSummaryReport(
     orderBy: { sale_date: 'desc' },
   });
 
-  return records.map((r) => ({
+  return records.map((r: any) => ({
     order_date: r.sale_date.toISOString().split('T')[0],
     customer_name: r.customers?.name ?? 'Unknown',
     status: 'COMPLETED',
@@ -159,7 +159,7 @@ export async function getPaymentSummaryReport(
     orderBy: { payment_date: 'desc' },
   });
 
-  return payments.map((p) => ({
+  return payments.map((p: any) => ({
     payment_date: p.payment_date.toISOString().split('T')[0],
     customer_name: p.party_id || 'Customer',
     amount: Number(p.amount_paise) / 100,

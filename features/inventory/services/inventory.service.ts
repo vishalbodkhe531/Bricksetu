@@ -12,7 +12,7 @@ export async function getInventoryTransactions(organizationId: string) {
     take: 200,
   });
 
-  return ledger.map((tx) => ({
+  return ledger.map((tx: any) => ({
     id: tx.id,
     organization_id: tx.business_unit_id,
     item_type: 'finished_goods' as const,
@@ -70,7 +70,7 @@ export async function getRawMaterials(organizationId: string) {
     orderBy: { name: 'asc' },
   });
 
-  return items.map((item) => ({
+  return items.map((item: any) => ({
     id: item.id,
     organization_id: item.business_unit_id,
     name: item.name,
@@ -121,7 +121,7 @@ export async function getStockSummary(organizationId: string) {
     },
   });
 
-  return stockByBrick.map((s) => ({
+  return stockByBrick.map((s: any) => ({
     item_id: s.brick_type_id,
     item_name: 'Brick',
     item_type: 'finished_goods' as const,

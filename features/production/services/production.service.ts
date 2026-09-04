@@ -21,7 +21,7 @@ export async function getProductionBatches(organizationId: string, date?: string
     orderBy: { start_date: 'desc' },
   });
 
-  return batches.map((b) => ({
+  return batches.map((b: any) => ({
     id: b.id,
     organization_id: b.business_unit_id,
     worker_id: null,
@@ -149,7 +149,7 @@ export async function getBrickTypes(organizationId: string) {
     orderBy: { name: 'asc' },
   });
 
-  return list.map((b) => ({
+  return list.map((b: any) => ({
     id: b.id,
     organization_id: b.business_unit_id,
     name: b.name,

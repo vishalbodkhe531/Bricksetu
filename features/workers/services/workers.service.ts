@@ -33,7 +33,7 @@ export async function getWorkers(
 
   if (list.length === 0) return [];
 
-  const workerIds = list.map((w) => w.id);
+  const workerIds = list.map((w: any) => w.id);
 
   // 2. Compute advance balances for all workers in single batch aggregation
   const advanceCharges = await prisma.charges.groupBy({
@@ -56,7 +56,7 @@ export async function getWorkers(
     }
   }
 
-  return list.map((w) => {
+  return list.map((w: any) => {
     const latestRate = w.rate_history[0];
     const currentRateAmount = latestRate
       ? Number(latestRate.rate_per_1000_paise) / 100
@@ -86,7 +86,7 @@ export async function getWorkers(
       updated_at: w.updated_at.toISOString(),
       current_rate_amount: currentRateAmount,
       advance_balance: advanceBalance,
-      worker_wage_rates: w.rate_history.map((r) => ({
+      worker_wage_rates: w.rate_history.map((r: any) => ({
         id: r.id,
         worker_id: r.worker_id,
         rate_type: "per_1000_bricks" as const,
@@ -176,7 +176,7 @@ export async function getWorkerById(id: string, organizationId: string) {
           created_at: latestRate.created_at.toISOString(),
         }
       : undefined,
-    worker_wage_rates: w.rate_history.map((r) => ({
+    worker_wage_rates: w.rate_history.map((r: any) => ({
       id: r.id,
       worker_id: r.worker_id,
       rate_type: "per_1000_bricks" as const,
@@ -185,7 +185,7 @@ export async function getWorkerById(id: string, organizationId: string) {
       effective_to: null,
       created_at: r.created_at.toISOString(),
     })),
-    recent_advances: advanceRecords.map((a) => ({
+    recent_advances: advanceRecords.map((a: any) => ({
       id: a.id,
       worker_id: a.party_id || id,
       amount: Number(a.amount_paise) / 100,
@@ -193,7 +193,7 @@ export async function getWorkerById(id: string, organizationId: string) {
       reason: a.description,
       created_at: a.created_at.toISOString(),
     })),
-    worker_settlements: w.settlements.map((s) => ({
+    worker_settlements: w.settlements.map((s: any) => ({
       id: s.id,
       worker_id: s.worker_id,
       period_start: s.period_start_date.toISOString().split("T")[0],
@@ -229,7 +229,7 @@ export async function createWorker(organizationId: string, input: WorkerInput) {
       paymentType = "MONTHLY_SALARY";
   }
 
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: any) => {
     const created = await tx.profiles.create({
       data: {
         business_unit_id: organizationId,
@@ -550,7 +550,7 @@ export async function getSettlements(organizationId: string) {
     orderBy: { created_at: "desc" },
   });
 
-  return list.map((s) => ({
+  return list.map((s: any) => ({
     id: s.id,
     worker_id: s.worker_id,
     period_start: s.period_start_date.toISOString().split("T")[0],

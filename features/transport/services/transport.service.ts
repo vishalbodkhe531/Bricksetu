@@ -11,7 +11,7 @@ export class TransportService {
       orderBy: { registration_number: 'asc' },
     });
 
-    return list.map((v) => ({
+    return list.map((v: any) => ({
       id: v.id,
       organization_id: v.business_unit_id,
       registration_number: v.registration_number,

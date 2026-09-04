@@ -7,7 +7,7 @@ export async function getCustomers(organizationId: string) {
     orderBy: { name: 'asc' },
   });
 
-  return list.map((c) => ({
+  return list.map((c: any) => ({
     id: c.id,
     organization_id: c.business_unit_id,
     name: c.name,
@@ -36,7 +36,7 @@ export async function getCustomerById(id: string, organizationId: string) {
     address: c.address,
     created_at: c.created_at.toISOString(),
     updated_at: c.updated_at.toISOString(),
-    sales_orders: c.records.map((r) => ({
+    sales_orders: c.records.map((r: any) => ({
       id: r.id,
       sale_number: r.sale_number,
       sale_date: r.sale_date.toISOString().split('T')[0],
@@ -100,7 +100,7 @@ export async function getSalesOrders(organizationId: string) {
     orderBy: { sale_date: 'desc' },
   });
 
-  return records.map((r) => ({
+  return records.map((r: any) => ({
     id: r.id,
     organization_id: r.business_unit_id,
     customer_id: r.customer_id,
@@ -180,7 +180,7 @@ export async function createSalesOrder(
   input: SalesOrderInput
 ) {
   // Use transaction to atomically insert sales records
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: any) => {
     // Get default brick grade
     let grade = await tx.brick_grades.findFirst({
       where: { business_unit_id: organizationId },

@@ -12,7 +12,7 @@ export class MaterialsService {
       orderBy: { name: 'asc' },
     });
 
-    return items.map((item) => ({
+    return items.map((item: any) => ({
       id: item.id,
       organization_id: item.business_unit_id,
       name: item.name,
@@ -77,7 +77,7 @@ export class MaterialsService {
       orderBy: { name: 'asc' },
     });
 
-    return list.map((s) => ({
+    return list.map((s: any) => ({
       id: s.id,
       organization_id: s.business_unit_id,
       name: s.name,

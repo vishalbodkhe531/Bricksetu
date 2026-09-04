@@ -30,7 +30,7 @@ export class SettingsService {
       orderBy: { full_name: 'asc' },
     });
 
-    return users.map((u) => ({
+    return users.map((u: any) => ({
       id: u.id,
       organization_id: u.business_unit_id,
       full_name: u.full_name,

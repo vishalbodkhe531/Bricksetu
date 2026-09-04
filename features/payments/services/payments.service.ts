@@ -15,7 +15,7 @@ export async function getPayments(organizationId: string) {
     take: 500,
   });
 
-  return list.map((p) => ({
+  return list.map((p: any) => ({
     id: p.id,
     organization_id: p.business_unit_id,
     customer_id: p.party_id || '',
@@ -156,11 +156,11 @@ export async function getPaymentSummaryByCustomer(customerId: string, organizati
     orderBy: { payment_date: 'desc' },
   });
 
-  const payments = list.map((p) => ({
+  const payments = list.map((p: any) => ({
     amount: Number(p.amount_paise) / 100,
     payment_date: p.payment_date.toISOString().split('T')[0],
   }));
 
-  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+  const totalPaid = payments.reduce((sum: number, p: any) => sum + p.amount, 0);
   return { payments, total_paid: totalPaid };
 }
