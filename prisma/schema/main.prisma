@@ -1,6 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["multiSchema", "partialIndexes", "prismaSchemaFolder"]
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
