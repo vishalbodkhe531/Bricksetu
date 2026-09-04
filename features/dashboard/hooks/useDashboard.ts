@@ -5,17 +5,17 @@ import { dashboardApi } from '../api/dashboard.api';
 import { queryKeys } from '@/lib/query/queryKeys';
 import type { DashboardSummary } from '../services/dashboard.service';
 
-/**
- * useDashboardSummary — fetch the executive summary KPIs.
- * Short staleTime since KPIs should reflect recent activity.
- */
+
 export function useDashboardSummary(orgId: string, initialData?: DashboardSummary) {
   return useQuery({
     queryKey: queryKeys.dashboard.summary(orgId),
     queryFn: () => dashboardApi.getSummary(),
     initialData,
-    staleTime: 60 * 1000, // 1 min
+    staleTime: 30_000,          // 30 sec — don't refetch if data is <30s old
+    gcTime: 5 * 60_000,         // 5 min garbage collect after unmount
+    refetchInterval: 30_000,    // poll every 30s for live feel
     refetchOnWindowFocus: true,
     enabled: !!orgId,
   });
 }
+

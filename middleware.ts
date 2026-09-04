@@ -60,5 +60,16 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  /**
+   * Only run auth middleware on page navigations.
+   * Explicitly exclude:
+   *  - /api/* — route handlers handle their own auth via getSessionUser()
+   *  - /_next/* — Next.js internal assets (JS chunks, CSS, images)
+   *  - /favicon.ico, /robots.txt, public static files
+   *
+   * This reduces middleware overhead on every API call and asset request.
+   */
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon\\.ico|robots\\.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|eot)).*)',
+  ],
 };

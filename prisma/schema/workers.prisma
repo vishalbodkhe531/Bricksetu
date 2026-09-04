@@ -1,21 +1,30 @@
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model profiles {
-  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  business_unit_id    String                @db.Uuid
-  code                String                @db.VarChar(50)
-  full_name           String                @db.VarChar(255)
-  phone               String?               @db.VarChar(20)
-  address             String?
-  payment_type        String                @default("PIECE_RATE") @db.VarChar(50)
-  joining_date        DateTime              @db.Date
-  is_active           Boolean               @default(true)
-  archived_at         DateTime?             @db.Timestamptz(6)
-  created_at          DateTime              @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
-  updated_at          DateTime              @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
-  settlements         settlements[]
-  daily_moulding_logs daily_moulding_logs[]
-  business_units      business_units        @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rate_history        rate_history[]
+  id                      String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id        String                @db.Uuid
+  code                    String                @db.VarChar(50)
+  full_name               String                @db.VarChar(255)
+  phone                   String?               @db.VarChar(20)
+  alternate_phone         String?               @db.VarChar(20)
+  address                 String?
+  id_proof_type           String?               @db.VarChar(50)
+  id_proof_number         String?               @db.VarChar(100)
+  photo_url               String?
+  dob                     DateTime?             @db.Date
+  gender                  String?               @db.VarChar(20)
+  emergency_contact_name  String?               @db.VarChar(255)
+  emergency_contact_phone String?               @db.VarChar(20)
+  emergency_relationship  String?               @db.VarChar(50)
+  payment_type            String                @default("PIECE_RATE") @db.VarChar(50)
+  joining_date            DateTime              @db.Date
+  is_active               Boolean               @default(true)
+  archived_at             DateTime?             @db.Timestamptz(6)
+  created_at              DateTime              @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at              DateTime              @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  settlements             settlements[]
+  daily_moulding_logs     daily_moulding_logs[]
+  business_units          business_units        @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  rate_history            rate_history[]
 
   @@unique([business_unit_id, code], map: "unique_worker_code_per_bu")
   @@index([business_unit_id], map: "idx_workers_bu")

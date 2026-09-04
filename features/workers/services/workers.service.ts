@@ -65,12 +65,20 @@ export async function getWorkers(
 
     return {
       id: w.id,
+      code: w.code,
       organization_id: w.business_unit_id,
       full_name: w.full_name,
       phone: w.phone,
+      alternate_phone: w.alternate_phone,
       address: w.address,
-      id_proof_number: null,
-      photo_url: null,
+      id_proof_type: w.id_proof_type,
+      id_proof_number: w.id_proof_number,
+      photo_url: w.photo_url,
+      dob: w.dob ? w.dob.toISOString().split("T")[0] : null,
+      gender: w.gender,
+      emergency_contact_name: w.emergency_contact_name,
+      emergency_contact_phone: w.emergency_contact_phone,
+      emergency_relationship: w.emergency_relationship,
       category: w.payment_type,
       joining_date: w.joining_date.toISOString().split("T")[0],
       status: (w.is_active ? "active" : "inactive") as "active" | "inactive",
@@ -140,9 +148,16 @@ export async function getWorkerById(id: string, organizationId: string) {
     organization_id: w.business_unit_id,
     full_name: w.full_name,
     phone: w.phone,
+    alternate_phone: w.alternate_phone,
     address: w.address,
-    id_proof_number: null,
-    photo_url: null,
+    id_proof_type: w.id_proof_type,
+    id_proof_number: w.id_proof_number,
+    photo_url: w.photo_url,
+    dob: w.dob ? w.dob.toISOString().split("T")[0] : null,
+    gender: w.gender,
+    emergency_contact_name: w.emergency_contact_name,
+    emergency_contact_phone: w.emergency_contact_phone,
+    emergency_relationship: w.emergency_relationship,
     category: w.payment_type,
     joining_date: w.joining_date.toISOString().split("T")[0],
     status: (w.is_active ? "active" : "inactive") as "active" | "inactive",
@@ -221,7 +236,16 @@ export async function createWorker(organizationId: string, input: WorkerInput) {
         code,
         full_name: input.full_name,
         phone: input.phone ?? null,
+        alternate_phone: input.alternate_phone ?? null,
         address: input.address ?? null,
+        id_proof_type: input.id_proof_type ?? null,
+        id_proof_number: input.id_proof_number ?? null,
+        photo_url: input.photo_url ?? null,
+        dob: input.dob ? new Date(input.dob) : null,
+        gender: input.gender ?? null,
+        emergency_contact_name: input.emergency_contact_name ?? null,
+        emergency_contact_phone: input.emergency_contact_phone ?? null,
+        emergency_relationship: input.emergency_relationship ?? null,
         payment_type: paymentType,
         joining_date: input.joining_date
           ? new Date(input.joining_date)
@@ -246,14 +270,45 @@ export async function createWorker(organizationId: string, input: WorkerInput) {
       });
     }
 
+    // Opening Advance (Peshgi at onboarding)
+    let openingAdvanceBalance = 0;
+    if (input.opening_advance_amount && input.opening_advance_amount > 0) {
+      openingAdvanceBalance = input.opening_advance_amount;
+      const advancePaise = BigInt(Math.round(openingAdvanceBalance * 100));
+      const advanceDate = input.opening_advance_date
+        ? new Date(input.opening_advance_date)
+        : input.joining_date
+        ? new Date(input.joining_date)
+        : new Date();
+
+      await tx.charges.create({
+        data: {
+          business_unit_id: organizationId,
+          party_type: "WORKER",
+          party_id: created.id,
+          charge_type: "ADVANCE",
+          charge_date: advanceDate,
+          amount_paise: advancePaise,
+          description: input.opening_advance_reason || "Opening advance at joining (Peshgi)",
+        },
+      });
+    }
+
     return {
       id: created.id,
       organization_id: created.business_unit_id,
       full_name: created.full_name,
       phone: created.phone,
+      alternate_phone: created.alternate_phone,
       address: created.address,
-      id_proof_number: null,
-      photo_url: null,
+      id_proof_type: created.id_proof_type,
+      id_proof_number: created.id_proof_number,
+      photo_url: created.photo_url,
+      dob: created.dob ? created.dob.toISOString().split("T")[0] : null,
+      gender: created.gender,
+      emergency_contact_name: created.emergency_contact_name,
+      emergency_contact_phone: created.emergency_contact_phone,
+      emergency_relationship: created.emergency_relationship,
       category: created.payment_type,
       joining_date: created.joining_date.toISOString().split("T")[0],
       status: (created.is_active ? "active" : "inactive") as
@@ -262,7 +317,7 @@ export async function createWorker(organizationId: string, input: WorkerInput) {
       created_at: created.created_at.toISOString(),
       updated_at: created.updated_at.toISOString(),
       current_rate_amount: initialRateAmount,
-      advance_balance: 0,
+      advance_balance: openingAdvanceBalance,
     };
   });
 }
@@ -275,7 +330,16 @@ export async function updateWorker(
   const updateData: any = {};
   if (input.full_name !== undefined) updateData.full_name = input.full_name;
   if (input.phone !== undefined) updateData.phone = input.phone;
+  if (input.alternate_phone !== undefined) updateData.alternate_phone = input.alternate_phone;
   if (input.address !== undefined) updateData.address = input.address;
+  if (input.id_proof_type !== undefined) updateData.id_proof_type = input.id_proof_type;
+  if (input.id_proof_number !== undefined) updateData.id_proof_number = input.id_proof_number;
+  if (input.photo_url !== undefined) updateData.photo_url = input.photo_url;
+  if (input.dob !== undefined) updateData.dob = input.dob ? new Date(input.dob) : null;
+  if (input.gender !== undefined) updateData.gender = input.gender;
+  if (input.emergency_contact_name !== undefined) updateData.emergency_contact_name = input.emergency_contact_name;
+  if (input.emergency_contact_phone !== undefined) updateData.emergency_contact_phone = input.emergency_contact_phone;
+  if (input.emergency_relationship !== undefined) updateData.emergency_relationship = input.emergency_relationship;
   if (input.category !== undefined) {
     const validPaymentTypes = ["PIECE_RATE", "DAILY_WAGE", "MONTHLY_SALARY"];
     if (validPaymentTypes.includes(input.category)) {
@@ -312,9 +376,16 @@ export async function updateWorker(
     organization_id: updated.business_unit_id,
     full_name: updated.full_name,
     phone: updated.phone,
+    alternate_phone: updated.alternate_phone,
     address: updated.address,
-    id_proof_number: null,
-    photo_url: null,
+    id_proof_type: updated.id_proof_type,
+    id_proof_number: updated.id_proof_number,
+    photo_url: updated.photo_url,
+    dob: updated.dob ? updated.dob.toISOString().split("T")[0] : null,
+    gender: updated.gender,
+    emergency_contact_name: updated.emergency_contact_name,
+    emergency_contact_phone: updated.emergency_contact_phone,
+    emergency_relationship: updated.emergency_relationship,
     category: updated.payment_type,
     joining_date: updated.joining_date.toISOString().split("T")[0],
     status: (updated.is_active ? "active" : "inactive") as

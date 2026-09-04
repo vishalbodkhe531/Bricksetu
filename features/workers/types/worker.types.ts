@@ -6,12 +6,20 @@ import { z } from 'zod';
 
 export interface Worker {
   id: string;
+  code?: string | null;
   organization_id: string;
   full_name: string;
   phone: string | null;
+  alternate_phone?: string | null;
   address: string | null;
+  id_proof_type?: string | null;
   id_proof_number: string | null;
   photo_url: string | null;
+  dob?: string | null;
+  gender?: string | null;
+  emergency_contact_name?: string | null;
+  emergency_contact_phone?: string | null;
+  emergency_relationship?: string | null;
   category: string | null;
   joining_date: string | null;
   status: 'active' | 'inactive';
@@ -66,25 +74,157 @@ export interface WorkerWithDetails extends Worker {
 // Zod validation schemas
 // ---------------------------------------------------------------------------
 
-/** Create Worker Schema (includes optional initial moulding rate) */
+// Phone number regex helper (Indian 10-digit mobile numbers starting with 6-9)
+const phoneRegex = /^[6-9]\d{9}$/;
+
+/** Create Worker Schema (includes optional initial rate & opening advance) */
 export const workerInputSchema = z.object({
-  full_name: z.string().min(1, 'Full name is required'),
-  phone: z.string().optional().nullable(),
-  address: z.string().optional().nullable(),
+  full_name: z
+    .string()
+    .trim()
+    .min(1, 'Full name cannot be blank or whitespace')
+    .min(2, 'Full name must be at least 2 characters')
+    .max(100, 'Full name must be under 100 characters'),
+
+  phone: z
+    .string()
+    .trim()
+    .min(1, 'Primary phone number is required')
+    .regex(phoneRegex, 'Enter a valid 10-digit mobile number (e.g. 9876543210)'),
+
+  alternate_phone: z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .refine((val) => !val || phoneRegex.test(val), {
+      message: 'Enter a valid 10-digit mobile number',
+    }),
+
+  address: z
+    .string()
+    .trim()
+    .min(1, 'Residential address cannot be blank or whitespace')
+    .min(5, 'Residential address must be at least 5 characters')
+    .max(255, 'Address must be under 255 characters'),
+
   category: z.enum(['PIECE_RATE', 'DAILY_WAGE', 'MONTHLY_SALARY']).default('PIECE_RATE'),
-  joining_date: z.string().optional().nullable(),
+
+  joining_date: z
+    .string()
+    .trim()
+    .min(1, 'Joining date is required')
+    .optional()
+    .nullable(),
+
   status: z.enum(['active', 'inactive']).default('active'),
-  initial_rate_amount: z.coerce.number().min(0, 'Rate must be positive').optional().nullable(),
+
+  initial_rate_amount: z
+    .coerce
+    .number()
+    .min(0, 'Rate must be a non-negative number')
+    .optional()
+    .nullable(),
+
+  // Personal Identity & ID Proof
+  dob: z.string().trim().optional().nullable(),
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional().nullable(),
+  id_proof_type: z.string().trim().optional().nullable(),
+  id_proof_number: z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .refine((val) => !val || val.length >= 4, {
+      message: 'ID proof number must be at least 4 characters long',
+    }),
+  photo_url: z.string().trim().optional().nullable(),
+
+  // Opening Advance (Peshgi given at joining)
+  opening_advance_amount: z
+    .coerce
+    .number()
+    .min(0, 'Opening advance amount must be a non-negative number')
+    .optional()
+    .nullable(),
+
+  opening_advance_date: z.string().trim().optional().nullable(),
+  opening_advance_reason: z.string().trim().optional().nullable(),
+
+  // Emergency Contact
+  emergency_contact_name: z.string().trim().optional().nullable(),
+  emergency_contact_phone: z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .refine((val) => !val || phoneRegex.test(val), {
+      message: 'Enter a valid 10-digit emergency contact phone number',
+    }),
+  emergency_relationship: z.string().trim().optional().nullable(),
 });
 
 /** Update Worker Profile Schema (EXCLUDES wage rates - rate changes use rateChangeSchema) */
 export const workerUpdateSchema = z.object({
-  full_name: z.string().min(1, 'Full name is required').optional(),
-  phone: z.string().optional().nullable(),
-  address: z.string().optional().nullable(),
+  full_name: z
+    .string()
+    .trim()
+    .min(1, 'Full name cannot be blank or whitespace')
+    .min(2, 'Full name must be at least 2 characters')
+    .max(100, 'Full name must be under 100 characters')
+    .optional(),
+
+  phone: z
+    .string()
+    .trim()
+    .min(1, 'Primary phone number is required')
+    .regex(phoneRegex, 'Enter a valid 10-digit mobile number (e.g. 9876543210)')
+    .optional(),
+
+  alternate_phone: z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .refine((val) => !val || phoneRegex.test(val), {
+      message: 'Enter a valid 10-digit mobile number',
+    }),
+
+  address: z
+    .string()
+    .trim()
+    .min(1, 'Residential address cannot be blank or whitespace')
+    .min(5, 'Residential address must be at least 5 characters')
+    .max(255, 'Address must be under 255 characters')
+    .optional(),
+
   category: z.enum(['PIECE_RATE', 'DAILY_WAGE', 'MONTHLY_SALARY']).optional(),
-  joining_date: z.string().optional().nullable(),
+  joining_date: z.string().trim().optional().nullable(),
   status: z.enum(['active', 'inactive']).optional(),
+
+  dob: z.string().trim().optional().nullable(),
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional().nullable(),
+  id_proof_type: z.string().trim().optional().nullable(),
+  id_proof_number: z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .refine((val) => !val || val.length >= 4, {
+      message: 'ID proof number must be at least 4 characters long',
+    }),
+  photo_url: z.string().trim().optional().nullable(),
+
+  emergency_contact_name: z.string().trim().optional().nullable(),
+  emergency_contact_phone: z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .refine((val) => !val || phoneRegex.test(val), {
+      message: 'Enter a valid 10-digit emergency contact phone number',
+    }),
+  emergency_relationship: z.string().trim().optional().nullable(),
 });
 
 /** Rate Change Schema (distinct business action) */
