@@ -107,17 +107,17 @@ export function WorkerForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="rounded-xl border border-border bg-card p-6 shadow-xs space-y-8">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="rounded-lg border border-border bg-card p-4 sm:p-5 shadow-xs space-y-5">
           {/* Form Header */}
-          <div className="flex items-center gap-3 border-b border-border pb-4">
+          <div className="flex items-center gap-2.5 border-b border-border pb-3">
             <Link href="/workers">
-              <Button variant="ghost" size="sm" className="gap-1.5 text-xs">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-xs">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
             <div>
-              <h2 className="text-lg font-bold text-foreground">
+              <h2 className="text-base font-bold text-foreground">
                 {mode === "create"
                   ? "Register New Worker"
                   : "Edit Worker Profile"}
@@ -131,19 +131,18 @@ export function WorkerForm({
           </div>
 
           {/* Section 1: Basic Profile & Contact */}
-          <div className="space-y-4">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <User className="h-3.5 w-3.5 text-primary" /> 1. Personal &
-              Contact Information
+          <div className="space-y-3">
+            <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <User className="h-3.5 w-3.5 text-primary" /> 1. Personal & Contact Information
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {/* Full Name */}
               <FormField
                 control={form.control}
                 name="full_name"
                 render={({ field }) => (
-                  <FormItem className="space-y-1.5 md:col-span-1">
+                  <FormItem className="space-y-1 md:col-span-1">
                     <FormLabel>
                       Full Name <span className="text-destructive">*</span>
                     </FormLabel>
@@ -164,7 +163,7 @@ export function WorkerForm({
                 control={form.control}
                 name="phone"
                 render={({ field }) => (
-                  <FormItem className="space-y-1.5">
+                  <FormItem className="space-y-1">
                     <FormLabel className="flex items-center gap-1">
                       <Phone className="h-3 w-3 text-muted-foreground" />{" "}
                       Primary Phone <span className="text-destructive">*</span>
@@ -186,7 +185,7 @@ export function WorkerForm({
                 control={form.control}
                 name="alternate_phone"
                 render={({ field }) => (
-                  <FormItem className="space-y-1.5">
+                  <FormItem className="space-y-1">
                     <FormLabel className="flex items-center gap-1">
                       <Phone className="h-3 w-3 text-muted-foreground" />{" "}
                       Alternate / Family Phone
@@ -208,7 +207,7 @@ export function WorkerForm({
                 control={form.control}
                 name="dob"
                 render={({ field }) => (
-                  <FormItem className="space-y-1.5">
+                  <FormItem className="space-y-1">
                     <FormLabel className="flex items-center gap-1">
                       <Calendar className="h-3 w-3 text-muted-foreground" />{" "}
                       Date of Birth
@@ -226,7 +225,7 @@ export function WorkerForm({
                 control={form.control}
                 name="gender"
                 render={({ field }) => (
-                  <FormItem className="space-y-1.5">
+                  <FormItem className="space-y-1">
                     <FormLabel>Gender</FormLabel>
                     <FormControl>
                       <Select
@@ -246,11 +245,10 @@ export function WorkerForm({
                 control={form.control}
                 name="address"
                 render={({ field }) => (
-                  <FormItem className="space-y-1.5 md:col-span-3">
+                  <FormItem className="space-y-1 md:col-span-3">
                     <FormLabel className="flex items-center gap-1">
                       <MapPin className="h-3 w-3 text-muted-foreground" />{" "}
-                      Residential Address{" "}
-                      <span className="text-destructive">*</span>
+                      Residential Address <span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -267,19 +265,18 @@ export function WorkerForm({
           </div>
 
           {/* Section 2: Identity Proof & Photo */}
-          <div className="space-y-4 pt-4 border-t border-border">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <FileText className="h-3.5 w-3.5 text-primary" /> 2. ID
-              Verification & Photo
+          <div className="space-y-3 pt-3 border-t border-border">
+            <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5 text-primary" /> 2. ID Verification & Photo
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* ID Proof Type (shadCN Select) */}
               <FormField
                 control={form.control}
                 name="id_proof_type"
                 render={({ field }) => (
-                  <FormItem className="space-y-1.5">
+                  <FormItem className="space-y-1">
                     <FormLabel>ID Document Type</FormLabel>
                     <FormControl>
                       <Select
@@ -299,7 +296,7 @@ export function WorkerForm({
                 control={form.control}
                 name="id_proof_number"
                 render={({ field }) => (
-                  <FormItem className="space-y-1.5">
+                  <FormItem className="space-y-1">
                     <FormLabel>ID Number / Card No.</FormLabel>
                     <FormControl>
                       <Input
@@ -328,22 +325,20 @@ export function WorkerForm({
           </div>
 
           {/* Section 3: Employment Details & Pay Rate */}
-          <div className="space-y-4 pt-4 border-t border-border">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Briefcase className="h-3.5 w-3.5 text-primary" /> 3. Employment &
-              Rate Setup
+          <div className="space-y-3 pt-3 border-t border-border">
+            <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Briefcase className="h-3.5 w-3.5 text-primary" /> 3. Employment & Rate Setup
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {/* Category / Role (shadCN Select) */}
               <FormField
                 control={form.control}
                 name="category"
                 render={({ field }) => (
-                  <FormItem className="space-y-1.5">
+                  <FormItem className="space-y-1">
                     <FormLabel>
-                      Category / Role{" "}
-                      <span className="text-destructive">*</span>
+                      Category / Role <span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
                       <Select
@@ -363,10 +358,9 @@ export function WorkerForm({
                 control={form.control}
                 name="joining_date"
                 render={({ field }) => (
-                  <FormItem className="space-y-1.5">
+                  <FormItem className="space-y-1">
                     <FormLabel className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3 text-muted-foreground" />{" "}
-                      Joining Date
+                      <Calendar className="h-3 w-3 text-muted-foreground" /> Joining Date
                     </FormLabel>
                     <FormControl>
                       <Input type="date" {...field} value={field.value || ""} />
@@ -382,7 +376,7 @@ export function WorkerForm({
                   control={form.control}
                   name="status"
                   render={({ field }) => (
-                    <FormItem className="space-y-1.5">
+                    <FormItem className="space-y-1">
                       <FormLabel>Status</FormLabel>
                       <FormControl>
                         <Select
@@ -397,13 +391,12 @@ export function WorkerForm({
                   )}
                 />
               ) : (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-foreground">
                     Initial Status
                   </label>
                   <div className="px-3 py-2 border border-border rounded-md bg-muted/20 text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Active Roster
-                    Worker
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Active Roster Worker
                   </div>
                 </div>
               )}
@@ -411,14 +404,14 @@ export function WorkerForm({
 
             {/* Initial Rate Setup */}
             {mode === "create" ? (
-              <div className="mt-3 p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Banknote className="h-4 w-4 text-primary" />
-                  <span className="text-xs font-bold text-foreground uppercase tracking-wide">
+              <div className="mt-2.5 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <Banknote className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-[11px] font-bold text-foreground uppercase tracking-wide">
                     {rateInfo.label}
                   </span>
                 </div>
-                <div className="max-w-md space-y-1.5">
+                <div className="max-w-md space-y-1">
                   <FormField
                     control={form.control}
                     name="initial_rate_amount"
@@ -430,7 +423,7 @@ export function WorkerForm({
                             step="0.01"
                             min="0"
                             placeholder={rateInfo.placeholder}
-                            className="bg-card"
+                            className="bg-card h-9"
                             {...field}
                             value={field.value ?? ""}
                           />
@@ -445,22 +438,20 @@ export function WorkerForm({
                 </div>
               </div>
             ) : (
-              <div className="p-3 bg-muted/20 rounded-lg border border-border flex items-center justify-between text-xs">
+              <div className="p-2.5 bg-muted/20 rounded-md border border-border flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
-                  <Banknote className="h-4 w-4 text-primary" />
+                  <Banknote className="h-3.5 w-3.5 text-primary" />
                   <div>
                     <span className="font-semibold text-foreground block">
                       Current Rate Record
                     </span>
-                    <span className="text-muted-foreground">
-                      ₹
-                      {Number(initialData?.current_rate_amount || 0).toFixed(2)}
+                    <span className="text-muted-foreground text-[11px]">
+                      ₹{Number(initialData?.current_rate_amount || 0).toFixed(2)}
                     </span>
                   </div>
                 </div>
                 <div className="text-muted-foreground text-[11px]">
-                  Note: Wage rate changes are recorded with effective date
-                  tracking via <strong>Change Rate</strong>.
+                  Note: Wage rate changes are recorded with effective date tracking via <strong>Change Rate</strong>.
                 </div>
               </div>
             )}
@@ -468,31 +459,28 @@ export function WorkerForm({
 
           {/* Section 4: Opening Advance (Peshgi at Joining) - Create Mode Only */}
           {mode === "create" && (
-            <div className="space-y-4 pt-4 border-t border-border">
+            <div className="space-y-3 pt-3 border-t border-border">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Coins className="h-4 w-4" /> 4. Opening Advance (Peshgi at
-                  Onboarding)
+                <h3 className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Coins className="h-3.5 w-3.5" /> 4. Opening Advance (Peshgi at Onboarding)
                 </h3>
                 <span className="text-[11px] font-medium text-muted-foreground">
                   Optional
                 </span>
               </div>
 
-              <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-4">
+              <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/5 space-y-3">
                 <p className="text-xs text-muted-foreground">
-                  If advance payment (peshgi) was handed to the worker prior to
-                  moulding, enter it here to populate their ledger balance
-                  immediately.
+                  If advance payment (peshgi) was handed to the worker prior to moulding, enter it here to populate their ledger balance immediately.
                 </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {/* Advance Amount */}
                   <FormField
                     control={form.control}
                     name="opening_advance_amount"
                     render={({ field }) => (
-                      <FormItem className="space-y-1.5">
+                      <FormItem className="space-y-1">
                         <FormLabel>Advance Amount (₹)</FormLabel>
                         <FormControl>
                           <Input
@@ -500,7 +488,7 @@ export function WorkerForm({
                             step="1"
                             min="0"
                             placeholder="e.g. 5000"
-                            className="bg-card"
+                            className="bg-card h-9"
                             {...field}
                             value={field.value ?? ""}
                           />
@@ -515,12 +503,12 @@ export function WorkerForm({
                     control={form.control}
                     name="opening_advance_date"
                     render={({ field }) => (
-                      <FormItem className="space-y-1.5">
+                      <FormItem className="space-y-1">
                         <FormLabel>Date Handed Over</FormLabel>
                         <FormControl>
                           <Input
                             type="date"
-                            className="bg-card"
+                            className="bg-card h-9"
                             {...field}
                             value={field.value || ""}
                           />
@@ -535,12 +523,12 @@ export function WorkerForm({
                     control={form.control}
                     name="opening_advance_reason"
                     render={({ field }) => (
-                      <FormItem className="space-y-1.5">
+                      <FormItem className="space-y-1">
                         <FormLabel>Notes / Reason</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="e.g. Peshgi advance at joining"
-                            className="bg-card"
+                            className="bg-card h-9"
                             {...field}
                             value={field.value || ""}
                           />
@@ -552,11 +540,10 @@ export function WorkerForm({
                 </div>
 
                 {Number(openingAdvanceAmount) > 0 && (
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-medium border border-amber-500/20">
-                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <div className="flex items-center gap-2 p-2 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-medium border border-amber-500/20">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                     <span>
-                      Worker will be initialized with an outstanding advance
-                      ledger balance of{" "}
+                      Worker will be initialized with an outstanding advance ledger balance of{" "}
                       <strong>
                         ₹{Number(openingAdvanceAmount).toLocaleString("en-IN")}
                       </strong>
@@ -569,19 +556,19 @@ export function WorkerForm({
           )}
 
           {/* Section 5: Emergency & Family Contact */}
-          <div className="space-y-4 pt-4 border-t border-border">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <div className="space-y-3 pt-3 border-t border-border">
+            <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <HeartHandshake className="h-3.5 w-3.5 text-primary" />{" "}
               {mode === "create" ? "5" : "4"}. Emergency & Nominee Contact
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {/* Emergency Contact Name */}
               <FormField
                 control={form.control}
                 name="emergency_contact_name"
                 render={({ field }) => (
-                  <FormItem className="space-y-1.5">
+                  <FormItem className="space-y-1">
                     <FormLabel>Nominee / Contact Person</FormLabel>
                     <FormControl>
                       <Input
@@ -600,7 +587,7 @@ export function WorkerForm({
                 control={form.control}
                 name="emergency_relationship"
                 render={({ field }) => (
-                  <FormItem className="space-y-1.5">
+                  <FormItem className="space-y-1">
                     <FormLabel>Relationship</FormLabel>
                     <FormControl>
                       <Select
@@ -620,7 +607,7 @@ export function WorkerForm({
                 control={form.control}
                 name="emergency_contact_phone"
                 render={({ field }) => (
-                  <FormItem className="space-y-1.5">
+                  <FormItem className="space-y-1">
                     <FormLabel className="flex items-center gap-1">
                       <Phone className="h-3 w-3 text-muted-foreground" />{" "}
                       Contact Phone Number
@@ -640,21 +627,24 @@ export function WorkerForm({
           </div>
 
           {/* Form Actions */}
-          <div className="flex items-center justify-end gap-3 pt-6 border-t border-border">
+          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border">
             {onCancel && (
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 onClick={onCancel}
                 disabled={isSubmitting}
+                className="h-9"
               >
                 Cancel
               </Button>
             )}
             <Button
               type="submit"
+              size="sm"
               disabled={isSubmitting}
-              className="gap-2 px-6"
+              className="gap-2 px-5 h-9"
             >
               {isSubmitting ? (
                 "Saving Worker Profile..."

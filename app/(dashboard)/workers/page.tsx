@@ -83,9 +83,9 @@ export default function WorkersPage() {
     reason: string;
   };
   type AdvanceAction =
-    | { type: 'open'; workerId?: string }
-    | { type: 'close' }
-    | { type: 'set'; field: keyof Omit<AdvanceState, 'show'>; value: string };
+    | { type: "open"; workerId?: string }
+    | { type: "close" }
+    | { type: "set"; field: keyof Omit<AdvanceState, "show">; value: string };
 
   const initialAdvanceState: AdvanceState = {
     show: false,
@@ -98,10 +98,14 @@ export default function WorkersPage() {
   const [advanceState, dispatchAdvance] = useReducer(
     (state: AdvanceState, action: AdvanceAction): AdvanceState => {
       switch (action.type) {
-        case 'open': return { ...state, show: true, workerId: action.workerId ?? "" };
-        case 'close': return { ...initialAdvanceState };
-        case 'set': return { ...state, [action.field]: action.value };
-        default: return state;
+        case "open":
+          return { ...state, show: true, workerId: action.workerId ?? "" };
+        case "close":
+          return { ...initialAdvanceState };
+        case "set":
+          return { ...state, [action.field]: action.value };
+        default:
+          return state;
       }
     },
     initialAdvanceState,
@@ -132,7 +136,7 @@ export default function WorkersPage() {
       {
         onSuccess: () => {
           toast.success("Advance recorded successfully");
-          dispatchAdvance({ type: 'close' });
+          dispatchAdvance({ type: "close" });
         },
         onError: (err: Error) => {
           toast.error(err.message || "Failed to record advance");
@@ -177,7 +181,7 @@ export default function WorkersPage() {
             {row.original.photo_url ? (
               <Image
                 src={row.original.photo_url}
-                alt={row.original.full_name || 'Worker'}
+                alt={row.original.full_name || "Worker"}
                 width={36}
                 height={36}
                 className="h-9 w-9 rounded-full object-cover border border-border shrink-0"
@@ -307,7 +311,7 @@ export default function WorkersPage() {
                     <Link
                       href={`/workers/${row.original.id}/edit`}
                       onClick={() => setOpenMenuId(null)}
-                      className="flex w-full items-center gap-2 rounded-sm px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                      className="flex w-full items-center py-1.5 gap-2 rounded-sm px-2.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                     >
                       <Edit className="h-3.5 w-3.5 text-muted-foreground" />
                       Edit
@@ -413,7 +417,7 @@ export default function WorkersPage() {
                 Record Advance Payment
               </h3>
               <button
-                onClick={() => dispatchAdvance({ type: 'close' })}
+                onClick={() => dispatchAdvance({ type: "close" })}
                 className="text-muted-foreground hover:text-foreground rounded p-1"
               >
                 <X className="h-4 w-4" />
@@ -426,7 +430,13 @@ export default function WorkersPage() {
                 </label>
                 <select
                   value={selectedWorkerId}
-                  onChange={(e) => dispatchAdvance({ type: 'set', field: 'workerId', value: e.target.value })}
+                  onChange={(e) =>
+                    dispatchAdvance({
+                      type: "set",
+                      field: "workerId",
+                      value: e.target.value,
+                    })
+                  }
                   required
                   className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
@@ -447,7 +457,13 @@ export default function WorkersPage() {
                   step="0.01"
                   min="1"
                   value={advanceAmount}
-                  onChange={(e) => dispatchAdvance({ type: 'set', field: 'amount', value: e.target.value })}
+                  onChange={(e) =>
+                    dispatchAdvance({
+                      type: "set",
+                      field: "amount",
+                      value: e.target.value,
+                    })
+                  }
                   placeholder="e.g. 2000"
                   required
                 />
@@ -459,7 +475,13 @@ export default function WorkersPage() {
                 <Input
                   type="date"
                   value={advanceDateGiven}
-                  onChange={(e) => dispatchAdvance({ type: 'set', field: 'dateGiven', value: e.target.value })}
+                  onChange={(e) =>
+                    dispatchAdvance({
+                      type: "set",
+                      field: "dateGiven",
+                      value: e.target.value,
+                    })
+                  }
                   required
                 />
               </div>
@@ -469,7 +491,13 @@ export default function WorkersPage() {
                 </label>
                 <Input
                   value={advanceReason}
-                  onChange={(e) => dispatchAdvance({ type: 'set', field: 'reason', value: e.target.value })}
+                  onChange={(e) =>
+                    dispatchAdvance({
+                      type: "set",
+                      field: "reason",
+                      value: e.target.value,
+                    })
+                  }
                   placeholder="Optional reason for advance"
                 />
               </div>
@@ -477,7 +505,7 @@ export default function WorkersPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => dispatchAdvance({ type: 'close' })}
+                  onClick={() => dispatchAdvance({ type: "close" })}
                 >
                   Cancel
                 </Button>
