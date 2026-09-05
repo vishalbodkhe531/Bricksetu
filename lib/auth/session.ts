@@ -23,7 +23,7 @@ export async function getSessionUser(): Promise<AuthUser | null> {
     if (error || !user) return null;
 
     // Fetch user profile from Prisma
-    const dbUser = await prisma.users.findUnique({
+    let dbUser = await prisma.users.findUnique({
       where: { id: user.id },
       select: {
         id: true,
@@ -34,6 +34,26 @@ export async function getSessionUser(): Promise<AuthUser | null> {
         is_active: true,
       },
     });
+
+    if (!dbUser && user.email) {
+      dbUser = await prisma.users.findFirst({
+        where: { email: user.email },
+        select: {
+          id: true,
+          business_unit_id: true,
+          full_name: true,
+          email: true,
+          role: true,
+          is_active: true,
+        },
+      });
+      if (dbUser) {
+        await prisma.users.update({
+          where: { email: user.email },
+          data: { id: user.id },
+        }).catch(() => {});
+      }
+    }
 
     if (!dbUser || !dbUser.is_active) return null;
 
