@@ -26,12 +26,13 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { ActionMenu, type ActionMenuItem } from "@/components/ui/action-menu";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CATEGORY_OPTIONS,
   formatWorkerCategory,
 } from "@/features/workers/constants/worker-options";
-import React, { useCallback, useMemo, useReducer, useRef, useState } from "react";
+import React, { useMemo, useReducer, useState } from "react";
 import { toast } from "sonner";
 
 export default function WorkersPage() {
@@ -47,32 +48,6 @@ export default function WorkersPage() {
   const deactivateWorker = useDeactivateWorker(orgId);
   const changeWorkerRate = useChangeWorkerRate(orgId, "");
   const recordAdvance = useRecordAdvance(orgId, "");
-
-  // Pop-up Menu State
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-
-  /**
-   * Click-outside handler for the action pop-up menu.
-   * Uses a stable ref callback instead of a useEffect that re-registers
-   * on every openMenuId change — avoids unnecessary listener churn.
-   */
-  const openMenuIdRef = useRef(openMenuId);
-  openMenuIdRef.current = openMenuId;
-
-  const handleDocumentClick = useCallback((e: MouseEvent) => {
-    if (
-      openMenuIdRef.current &&
-      !(e.target as HTMLElement).closest(".action-menu-container")
-    ) {
-      setOpenMenuId(null);
-    }
-  }, []);
-
-  // Register once on mount, not on every openMenuId change
-  React.useEffect(() => {
-    document.addEventListener("mousedown", handleDocumentClick);
-    return () => document.removeEventListener("mousedown", handleDocumentClick);
-  }, [handleDocumentClick]);
 
   // Dialog States
   const [rateChangeWorker, setRateChangeWorker] = useState<Worker | null>(null);
@@ -272,67 +247,31 @@ export default function WorkersPage() {
       header: "Actions",
       align: "center",
       cell: ({ row }) => {
-        const isMenuOpen = openMenuId === row.original.id;
-        const index = (row as any).index ?? 0;
-        const totalRows = (row as any).totalRows ?? 1;
-        const isNearBottom = totalRows > 1 && index >= totalRows - 2;
+        const items: ActionMenuItem[] = [
+          {
+            label: "View",
+            icon: <Eye className="h-3.5 w-3.5 text-muted-foreground" />,
+            href: `/workers/${row.original.id}`,
+          },
+        ];
+
+        if (canWrite) {
+          items.push({
+            label: "Edit",
+            icon: <Edit className="h-3.5 w-3.5 text-muted-foreground" />,
+            href: `/workers/${row.original.id}/edit`,
+          });
+          items.push({
+            label: "Delete",
+            icon: <Trash2 className="h-3.5 w-3.5 text-destructive" />,
+            onClick: () => setDeactivateWorkerItem(row.original),
+            variant: "destructive",
+          });
+        }
 
         return (
-          <div className="relative action-menu-container flex justify-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0 hover:bg-muted rounded-md"
-              onClick={(e) => {
-                e.stopPropagation();
-                setOpenMenuId(isMenuOpen ? null : row.original.id);
-              }}
-              title="Actions"
-            >
-              <MoreVertical className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-            </Button>
-
-            {isMenuOpen && (
-              <div
-                className={`absolute right-0 z-50 min-w-30 rounded-md border border-border bg-card p-1 shadow-lg animate-in fade-in-80 zoom-in-95 ${
-                  isNearBottom ? "bottom-8" : "top-8"
-                }`}
-              >
-                <Link
-                  href={`/workers/${row.original.id}`}
-                  onClick={() => setOpenMenuId(null)}
-                  className="flex w-full items-center gap-2 rounded-sm px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
-                >
-                  <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                  View
-                </Link>
-
-                {canWrite && (
-                  <>
-                    <Link
-                      href={`/workers/${row.original.id}/edit`}
-                      onClick={() => setOpenMenuId(null)}
-                      className="flex w-full items-center py-1.5 gap-2 rounded-sm px-2.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
-                    >
-                      <Edit className="h-3.5 w-3.5 text-muted-foreground" />
-                      Edit
-                    </Link>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpenMenuId(null);
-                        setDeactivateWorkerItem(row.original);
-                      }}
-                      className="flex w-full items-center gap-2 rounded-sm px-2.5 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
-                    >
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      Delete
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
+          <div className="flex justify-center">
+            <ActionMenu items={items} />
           </div>
         );
       },
