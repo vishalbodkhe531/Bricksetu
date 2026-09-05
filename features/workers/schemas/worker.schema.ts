@@ -34,7 +34,7 @@ export const workerInputSchema = z.object({
     .min(5, "Residential address must be at least 5 characters")
     .max(255, "Address must be under 255 characters"),
 
-  category: z.enum(["PIECE_RATE", "DAILY_WAGE", "MONTHLY_SALARY"]).default("PIECE_RATE"),
+  category: z.string().min(1, "Category is required").default("AALYAWALE"),
 
   joining_date: z
     .string()
@@ -124,7 +124,7 @@ export const workerUpdateSchema = z.object({
     .max(255, "Address must be under 255 characters")
     .optional(),
 
-  category: z.enum(["PIECE_RATE", "DAILY_WAGE", "MONTHLY_SALARY"]).optional(),
+  category: z.string().optional(),
   joining_date: z.string().trim().optional().nullable(),
   status: z.enum(["active", "inactive"]).optional(),
 

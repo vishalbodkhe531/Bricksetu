@@ -26,6 +26,10 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import {
+  CATEGORY_OPTIONS,
+  formatWorkerCategory,
+} from "@/features/workers/constants/worker-options";
 import React, { useCallback, useReducer, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -146,11 +150,7 @@ export default function WorkersPage() {
   };
 
   const formatCategory = (cat: string | null) => {
-    if (!cat) return "";
-    if (cat === "PIECE_RATE") return "Piece Rate";
-    if (cat === "DAILY_WAGE") return "Daily Wage";
-    if (cat === "MONTHLY_SALARY") return "Monthly Salary";
-    return cat;
+    return formatWorkerCategory(cat);
   };
 
   const getInitials = (name: string) => {

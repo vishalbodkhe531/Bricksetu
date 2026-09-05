@@ -32,6 +32,7 @@ import {
   useDeactivateWorker,
   useWorkerDetail,
 } from "@/features/workers/hooks/useWorkers";
+import { formatWorkerCategory } from "@/features/workers/constants/worker-options";
 
 interface WorkerDetailPageProps {
   params: Promise<{ id: string }>;
@@ -135,13 +136,7 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
               <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
                 <span className="flex items-center gap-1 font-medium">
                   <Briefcase className="h-3 w-3 text-primary" />{" "}
-                  {worker.category === "PIECE_RATE"
-                    ? "Piece Rate Moulder"
-                    : worker.category === "DAILY_WAGE"
-                      ? "Daily Wage"
-                      : worker.category === "MONTHLY_SALARY"
-                        ? "Monthly Salary"
-                        : (worker.category ?? "Piece Rate Moulder")}
+                  {formatWorkerCategory(worker.category)}
                 </span>
                 {worker.phone && (
                   <a

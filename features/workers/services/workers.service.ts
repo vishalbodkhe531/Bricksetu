@@ -211,23 +211,7 @@ export async function getWorkerById(id: string, organizationId: string) {
 export async function createWorker(organizationId: string, input: WorkerInput) {
   const code = `W-${Date.now()}`;
 
-  const validPaymentTypes = ["PIECE_RATE", "DAILY_WAGE", "MONTHLY_SALARY"];
-  let paymentType = "PIECE_RATE";
-  if (input.category && validPaymentTypes.includes(input.category)) {
-    paymentType = input.category;
-  } else if (input.category) {
-    const cat = String(input.category).toLowerCase();
-    if (cat.includes("piece")) paymentType = "PIECE_RATE";
-    else if (
-      cat.includes("daily") ||
-      cat.includes("loader") ||
-      cat.includes("fireman") ||
-      cat.includes("general")
-    )
-      paymentType = "DAILY_WAGE";
-    else if (cat.includes("monthly") || cat.includes("salary"))
-      paymentType = "MONTHLY_SALARY";
-  }
+  const paymentType = input.category || "AALYAWALE";
 
   return await prisma.$transaction(async (tx: any) => {
     const created = await tx.profiles.create({
@@ -341,23 +325,7 @@ export async function updateWorker(
   if (input.emergency_contact_phone !== undefined) updateData.emergency_contact_phone = input.emergency_contact_phone;
   if (input.emergency_relationship !== undefined) updateData.emergency_relationship = input.emergency_relationship;
   if (input.category !== undefined) {
-    const validPaymentTypes = ["PIECE_RATE", "DAILY_WAGE", "MONTHLY_SALARY"];
-    if (validPaymentTypes.includes(input.category)) {
-      updateData.payment_type = input.category;
-    } else {
-      const cat = String(input.category).toLowerCase();
-      if (cat.includes("piece")) updateData.payment_type = "PIECE_RATE";
-      else if (
-        cat.includes("daily") ||
-        cat.includes("loader") ||
-        cat.includes("fireman") ||
-        cat.includes("general")
-      )
-        updateData.payment_type = "DAILY_WAGE";
-      else if (cat.includes("monthly") || cat.includes("salary"))
-        updateData.payment_type = "MONTHLY_SALARY";
-      else updateData.payment_type = "PIECE_RATE";
-    }
+    updateData.payment_type = input.category;
   }
   if (input.joining_date !== undefined)
     updateData.joining_date = input.joining_date
