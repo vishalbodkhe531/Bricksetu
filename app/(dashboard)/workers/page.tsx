@@ -26,11 +26,12 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CATEGORY_OPTIONS,
   formatWorkerCategory,
 } from "@/features/workers/constants/worker-options";
-import React, { useCallback, useReducer, useRef, useState } from "react";
+import React, { useCallback, useMemo, useReducer, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function WorkersPage() {
@@ -338,6 +339,44 @@ export default function WorkersPage() {
     },
   ];
 
+  const WORKER_TABS = [
+    { id: "ALL", label: "सर्व मजूर" },
+    { id: "AALYAWALE", label: "आल्यावाले" },
+    { id: "BHATKAR", label: "भटकर" },
+    { id: "KACHA_MAAL", label: "कच्चा माल मजूर" },
+    { id: "PAKKA_MAAL", label: "पक्का माल मजूर" },
+  ];
+
+  const [activeTab, setActiveTab] = useState<string>("ALL");
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = {
+      ALL: workers.length,
+      AALYAWALE: 0,
+      BHATKAR: 0,
+      KACHA_MAAL: 0,
+      PAKKA_MAAL: 0,
+    };
+    for (const w of workers) {
+      const cat = w.category;
+      if (cat === "AALYAWALE" || cat === "PIECE_RATE") c.AALYAWALE++;
+      else if (cat === "BHATKAR") c.BHATKAR++;
+      else if (cat === "KACHA_MAAL") c.KACHA_MAAL++;
+      else if (cat === "PAKKA_MAAL") c.PAKKA_MAAL++;
+    }
+    return c;
+  }, [workers]);
+
+  const filteredWorkers = useMemo(() => {
+    if (activeTab === "ALL") return workers;
+    if (activeTab === "AALYAWALE") {
+      return workers.filter(
+        (w) => w.category === "AALYAWALE" || w.category === "PIECE_RATE",
+      );
+    }
+    return workers.filter((w) => w.category === activeTab);
+  }, [workers, activeTab]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -372,11 +411,37 @@ export default function WorkersPage() {
         </div>
       </div>
 
+      {/* Category Tabs */}
+      <TabsList>
+        {WORKER_TABS.map((tab) => {
+          const count = counts[tab.id] ?? 0;
+          return (
+            <TabsTrigger
+              key={tab.id}
+              active={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="flex items-center gap-2"
+            >
+              <span>{tab.label}</span>
+              <span
+                className={`px-1.5 py-0.5 text-[10px] rounded-full font-mono font-bold transition-colors ${
+                  activeTab === tab.id
+                    ? "bg-primary/15 text-primary"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {count}
+              </span>
+            </TabsTrigger>
+          );
+        })}
+      </TabsList>
+
       {/* Content */}
       <DataTable
         columns={workerColumns}
-        data={workers}
-        searchPlaceholder="Search worker by name, phone, category..."
+        data={filteredWorkers}
+        searchPlaceholder={`Search ${WORKER_TABS.find((t) => t.id === activeTab)?.label || "worker"} by name, phone...`}
         showExport={false}
       />
 
