@@ -48,12 +48,20 @@ export async function middleware(request: NextRequest) {
 
   if (!user && !isAuthPage) {
     const loginUrl = new URL('/login', request.url);
-    return NextResponse.redirect(loginUrl);
+    const redirectResponse = NextResponse.redirect(loginUrl);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value);
+    });
+    return redirectResponse;
   }
 
   if (user && isAuthPage) {
     const dashboardUrl = new URL('/dashboard', request.url);
-    return NextResponse.redirect(dashboardUrl);
+    const redirectResponse = NextResponse.redirect(dashboardUrl);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value);
+    });
+    return redirectResponse;
   }
 
   return supabaseResponse;

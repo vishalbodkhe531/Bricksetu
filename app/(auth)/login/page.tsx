@@ -1,40 +1,47 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ShieldCheck, ArrowRight, Flame, AlertCircle } from 'lucide-react';
-import { createBrowserSupabase } from '@/lib/supabase/client';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ShieldCheck, ArrowRight, Flame, AlertCircle } from "lucide-react";
+import { createBrowserSupabase } from "@/lib/supabase/client";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
-      const supabase = createBrowserSupabase();
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // Submit login to server-side route handler to write secure HTTP cookies
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
 
-      if (authError) {
-        setError(authError.message || 'Invalid email or password.');
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        setError(data.error || "Invalid email or password.");
         setLoading(false);
         return;
       }
 
-      router.push('/dashboard');
+      // Sync browser client state
+      const supabase = createBrowserSupabase();
+      await supabase.auth.signInWithPassword({ email, password }).catch(() => {});
+
+      router.push("/dashboard");
       router.refresh();
     } catch {
-      setError('Something went wrong. Please try again.');
+      setError("Something went wrong. Please try again.");
       setLoading(false);
     }
   };
@@ -104,7 +111,7 @@ export default function LoginPage() {
             className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-primary py-2.5 px-4 text-sm font-bold text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:opacity-50 mt-2"
           >
             {loading ? (
-              'Authenticating...'
+              "Authenticating..."
             ) : (
               <>
                 Sign In to Workspace <ArrowRight className="h-4 w-4" />
