@@ -17,6 +17,7 @@ model profiles {
   emergency_relationship  String?               @db.VarChar(50)
   payment_type            String                @default("PIECE_RATE") @db.VarChar(50)
   joining_date            DateTime              @db.Date
+  total_decided_advance_amount BigInt?               @default(0)
   is_active               Boolean               @default(true)
   archived_at             DateTime?             @db.Timestamptz(6)
   created_at              DateTime              @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)

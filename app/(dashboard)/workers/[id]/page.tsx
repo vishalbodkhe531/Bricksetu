@@ -9,6 +9,7 @@ import {
   Briefcase,
   Calendar,
   Clock,
+  Coins,
   Edit,
   FileText,
   HeartHandshake,
@@ -218,13 +219,13 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
 
         <div className="p-3 rounded-lg border border-border bg-card shadow-xs space-y-0.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-            <Receipt className="h-3 w-3 text-emerald-500" /> Settlements Count
+            <Coins className="h-3 w-3 text-emerald-500" /> Total Decided Amount
           </span>
           <span className="text-lg font-bold font-mono text-foreground block tabular-nums">
-            {worker.worker_settlements?.length || 0}
+            ₹{Number(worker.total_decided_advance_amount || 0).toLocaleString("en-IN")}
           </span>
           <span className="text-[10px] text-muted-foreground">
-            Processed wage payouts
+            Agreed Peshgi at onboarding
           </span>
         </div>
       </div>

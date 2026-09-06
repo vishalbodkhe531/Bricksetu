@@ -45,6 +45,7 @@ export interface Worker {
   // Derived fields
   current_rate_amount?: number;
   advance_balance?: number;
+  total_decided_advance_amount?: number;
 }
 
 export interface WorkerWageRate {
