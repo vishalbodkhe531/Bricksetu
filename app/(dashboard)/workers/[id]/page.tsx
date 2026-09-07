@@ -1,6 +1,7 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -47,6 +48,8 @@ interface WorkerDetailPageProps {
 export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
   const resolvedParams = use(params);
   const workerId = resolvedParams.id;
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab");
   const { profile } = useAuth();
   const orgId = profile?.organization_id ?? "";
 
@@ -58,7 +61,20 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
   const changeWorkerRate = useChangeWorkerRate(orgId, workerId);
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<"profile" | "record_work" | "ledger">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "record_work" | "ledger">(
+    initialTab === "record_work"
+      ? "record_work"
+      : initialTab === "ledger"
+      ? "ledger"
+      : "profile"
+  );
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "record_work" || tab === "ledger" || tab === "profile") {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   // Modal Dialog states
   const [showRateDialog, setShowRateDialog] = useState(false);

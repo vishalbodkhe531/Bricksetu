@@ -22,8 +22,11 @@ export function ActionMenu({ items }: ActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [coords, setCoords] = useState<{ top: number; right: number }>({
-    top: 0,
+  const [coords, setCoords] = useState<{
+    top?: number;
+    bottom?: number;
+    right: number;
+  }>({
     right: 0,
   });
 
@@ -35,8 +38,17 @@ export function ActionMenu({ items }: ActionMenuProps) {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       const right = document.documentElement.clientWidth - rect.right;
-      const top = rect.bottom + 4;
-      setCoords({ top, right });
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const estimatedMenuHeight = items.length * 38 + 16;
+
+      // If space below is limited, open UPWARDS above the action button
+      if (spaceBelow < estimatedMenuHeight && rect.top > estimatedMenuHeight) {
+        const bottom = window.innerHeight - rect.top + 4;
+        setCoords({ bottom, right });
+      } else {
+        const top = rect.bottom + 4;
+        setCoords({ top, right });
+      }
     }
   };
 
@@ -93,17 +105,19 @@ export function ActionMenu({ items }: ActionMenuProps) {
         mounted &&
         createPortal(
           <div
-            className="action-portal-menu fixed z-[9999] min-w-32 rounded-md border border-border bg-card p-1 shadow-lg animate-in fade-in-80 zoom-in-95"
+            className="action-portal-menu fixed z-[9999] min-w-36 rounded-xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-80 zoom-in-95"
             style={{
-              top: `${coords.top}px`,
+              ...(coords.bottom !== undefined
+                ? { bottom: `${coords.bottom}px` }
+                : { top: `${coords.top}px` }),
               right: `${coords.right}px`,
             }}
           >
             {items.map((item, idx) => {
-              const className = `flex w-full items-center gap-2 rounded-sm px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+              const className = `flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
                 item.variant === "destructive"
-                  ? "text-destructive hover:bg-destructive/10"
-                  : "text-foreground hover:bg-muted"
+                  ? "text-destructive hover:bg-destructive/15"
+                  : "text-foreground hover:bg-primary/10 hover:text-primary"
               }`;
 
               if (item.href) {
@@ -136,7 +150,7 @@ export function ActionMenu({ items }: ActionMenuProps) {
               );
             })}
           </div>,
-          document.body,
+          document.body
         )}
     </>
   );
