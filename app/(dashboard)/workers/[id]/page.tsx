@@ -22,6 +22,7 @@ import {
   User,
   UserX,
   Trash2,
+  PlusCircle,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +30,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { RateChangeDialog } from "@/features/workers/components/RateChangeDialog";
 import { WorkerDeactivateDialog } from "@/features/workers/components/WorkerDeactivateDialog";
-import { RecordWorkModal } from "@/features/workers/components/RecordWorkModal";
+import { EmbeddedRecordWorkForm } from "@/features/workers/components/EmbeddedRecordWorkForm";
 import {
   useChangeWorkerRate,
   useDeactivateWorker,
@@ -56,10 +57,12 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
   const deactivateWorker = useDeactivateWorker(orgId);
   const changeWorkerRate = useChangeWorkerRate(orgId, workerId);
 
+  // Tab State
+  const [activeTab, setActiveTab] = useState<"profile" | "record_work" | "ledger">("profile");
+
   // Modal Dialog states
   const [showRateDialog, setShowRateDialog] = useState(false);
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
-  const [showRecordWorkModal, setShowRecordWorkModal] = useState(false);
 
   const roleUpper = (profile?.role || "").toUpperCase();
   const canWrite =
@@ -166,16 +169,15 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
           {canWrite && (
             <div className="flex items-center gap-2 shrink-0 flex-wrap">
               <Button
-                variant="outline"
+                variant={activeTab === "record_work" ? "default" : "outline"}
                 size="sm"
-                className="h-8 gap-1.5 text-xs border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
-                onClick={() => setShowRecordWorkModal(true)}
+                onClick={() => setActiveTab("record_work")}
               >
-                <Coins className="h-3.5 w-3.5 text-amber-500" /> Record Daily Work
+                <Coins className="h-3.5 w-3.5" /> Record Daily Work
               </Button>
 
               <Link href={`/workers/${worker.id}/edit`}>
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                <Button variant="outline" size="sm">
                   <Edit className="h-3.5 w-3.5" /> Edit Profile
                 </Button>
               </Link>
@@ -183,7 +185,6 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
               <Button
                 variant="default"
                 size="sm"
-                className="h-8 gap-1.5 text-xs"
                 onClick={() => setShowRateDialog(true)}
               >
                 <Banknote className="h-3.5 w-3.5" /> Change Rate
@@ -193,7 +194,6 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                 <Button
                   variant="destructive"
                   size="sm"
-                  className="h-8 gap-1.5 text-xs"
                   onClick={() => setShowDeactivateDialog(true)}
                 >
                   <UserX className="h-3.5 w-3.5" /> Deactivate
@@ -247,303 +247,374 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
         </div>
       </div>
 
-      {/* Detailed Profile Information */}
-      <div className="rounded-lg border border-border bg-card p-4 shadow-xs space-y-4">
-        <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
-          Worker Profile & Verification Details
-        </h3>
+      {/* 3-Tab Header Navigation */}
+      <div className="flex border-b border-border bg-card rounded-t-lg px-2 pt-2 gap-1 overflow-x-auto">
+        <button
+          onClick={() => setActiveTab("profile")}
+          className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
+            activeTab === "profile"
+              ? "border-primary text-primary bg-primary/5 rounded-t-md"
+              : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30 rounded-t-md"
+          }`}
+        >
+          <User className="h-4 w-4" /> View Profile Details / प्रोफाइल माहिती
+        </button>
 
-        {/* 1. Personal & Contact Information */}
-        <div className="space-y-2">
-          <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-            <User className="h-3 w-3 text-primary" /> Personal & Contact Information
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5">
-            <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
-                Full Name
-              </span>
-              <p className="font-semibold text-foreground text-xs">
-                {worker.full_name}
-              </p>
-            </div>
-            <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
-                Primary Phone
-              </span>
-              <p className="font-mono text-foreground text-xs">
-                {worker.phone || "Not provided"}
-              </p>
-            </div>
-            <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
-                Alternate Phone
-              </span>
-              <p className="font-mono text-foreground text-xs">
-                {worker.alternate_phone || "Not provided"}
-              </p>
-            </div>
-            <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
-                Date of Birth
-              </span>
-              <p className="font-mono text-foreground text-xs">
-                {worker.dob ? worker.dob.split("T")[0] : "Not provided"}
-              </p>
-            </div>
-            <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
-                Gender
-              </span>
-              <p className="font-medium text-foreground text-xs capitalize">
-                {worker.gender ? worker.gender.toLowerCase() : "Not specified"}
-              </p>
-            </div>
-            <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border md:col-span-3">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1">
-                <MapPin className="h-3 w-3" /> Residential Address
-              </span>
-              <p className="text-foreground text-xs">
-                {worker.address || "No address recorded"}
-              </p>
-            </div>
-          </div>
-        </div>
+        {canWrite && (
+          <button
+            onClick={() => setActiveTab("record_work")}
+            className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
+              activeTab === "record_work"
+                ? "border-amber-500 text-amber-500 bg-amber-500/5 rounded-t-md"
+                : "border-transparent text-muted-foreground hover:text-amber-500 hover:bg-amber-500/5 rounded-t-md"
+            }`}
+          >
+            <PlusCircle className="h-4 w-4 text-amber-500" /> Record Daily Work / काम नोंदवा
+          </button>
+        )}
 
-        {/* 2. Identity Verification */}
-        <div className="space-y-2 pt-3 border-t border-border">
-          <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-            <FileText className="h-3 w-3 text-primary" /> Identity & Verification
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-            <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
-                ID Proof Document
-              </span>
-              <p className="font-medium text-foreground text-xs">
-                {worker.id_proof_type || "Not provided"}
-              </p>
-            </div>
-            <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
-                ID Number / Card No.
-              </span>
-              <p className="font-mono text-foreground text-xs">
-                {worker.id_proof_number || "Not provided"}
-              </p>
-            </div>
-            <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1">
-                <ShieldCheck className="h-3 w-3 text-emerald-500" /> Verification Status
-              </span>
-              <p className="font-medium text-emerald-600 dark:text-emerald-400 text-xs">
-                {worker.id_proof_number ? "Verified Document" : "Pending Document"}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* 3. Emergency & Nominee Contact */}
-        <div className="space-y-2 pt-3 border-t border-border">
-          <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-            <HeartHandshake className="h-3 w-3 text-primary" /> Emergency & Nominee Contact
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-            <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
-                Nominee / Contact Person
-              </span>
-              <p className="font-semibold text-foreground text-xs">
-                {worker.emergency_contact_name || "Not provided"}
-              </p>
-            </div>
-            <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
-                Relationship
-              </span>
-              <p className="font-medium text-foreground text-xs">
-                {worker.emergency_relationship || "Not specified"}
-              </p>
-            </div>
-            <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
-                Contact Phone
-              </span>
-              <p className="font-mono text-foreground text-xs">
-                {worker.emergency_contact_phone ? (
-                  <a
-                    href={`tel:${worker.emergency_contact_phone}`}
-                    className="hover:text-primary hover:underline"
-                  >
-                    {worker.emergency_contact_phone}
-                  </a>
-                ) : (
-                  "Not provided"
-                )}
-              </p>
-            </div>
-          </div>
-        </div>
+        <button
+          onClick={() => setActiveTab("ledger")}
+          className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
+            activeTab === "ledger"
+              ? "border-emerald-500 text-emerald-500 bg-emerald-500/5 rounded-t-md"
+              : "border-transparent text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/5 rounded-t-md"
+          }`}
+        >
+          <Receipt className="h-4 w-4 text-emerald-500" /> Work Ledger Logs / कामाची नोंदवही
+          {dailyWorkData?.logs && dailyWorkData.logs.length > 0 && (
+            <span className="ml-1 px-1.5 py-0.2 text-[10px] font-mono font-semibold rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+              {dailyWorkData.logs.length}
+            </span>
+          )}
+        </button>
       </div>
 
-      {/* Daily Work Logs & Earnings Ledger */}
-      <div className="rounded-lg border border-border bg-card p-4 shadow-xs space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-            <Coins className="h-3.5 w-3.5 text-amber-500" /> Daily Work Logs & Earnings Ledger
-          </h3>
-          {canWrite && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 gap-1 text-[11px] border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
-              onClick={() => setShowRecordWorkModal(true)}
-            >
-              <Coins className="h-3 w-3 text-amber-500" /> Log Daily Work
-            </Button>
-          )}
-        </div>
+      {/* Tab 1: Profile & Verification Details */}
+      {activeTab === "profile" && (
+        <div className="space-y-4">
+          <div className="rounded-b-lg border border-border bg-card p-4 shadow-xs space-y-4">
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
+              Worker Profile & Verification Details
+            </h3>
 
-        {dailyWorkData?.logs && dailyWorkData.logs.length > 0 ? (
-          <div className="border border-border rounded-md overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-muted/40 text-muted-foreground border-b border-border font-semibold uppercase text-[10px] tracking-wider">
-                <tr>
-                  <th className="py-2.5 px-3">Date</th>
-                  <th className="py-2.5 px-3">Entry Mode</th>
-                  <th className="py-2.5 px-3 text-right">Physical Qty</th>
-                  <th className="py-2.5 px-3 text-right">Billable Qty</th>
-                  <th className="py-2.5 px-3 text-right">Rate</th>
-                  <th className="py-2.5 px-3 text-right">Earned Amount</th>
-                  <th className="py-2.5 px-3">Batch / Ref</th>
-                  <th className="py-2.5 px-3 text-center">Status</th>
-                  {canWrite && <th className="py-2.5 px-3 text-center">Action</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border font-mono">
-                {dailyWorkData.logs.map((log: any) => (
-                  <tr key={log.id} className="hover:bg-muted/30">
-                    <td className="py-2 px-3 font-semibold text-foreground">{log.work_date}</td>
-                    <td className="py-2 px-3">
-                      <Badge variant="outline" className="text-[10px] font-sans">
-                        {log.entry_mode === 'PINJRI_COUNT'
-                          ? 'Pinjri (22/20)'
-                          : log.entry_mode === 'SHIFT_COUNT'
-                          ? 'Shift'
-                          : 'Direct'}
-                      </Badge>
-                    </td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">
-                      {log.physical_quantity?.toLocaleString()}
-                    </td>
-                    <td className="py-2 px-3 text-right font-bold text-foreground">
-                      {log.billable_quantity?.toLocaleString()}
-                    </td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">
-                      ₹{Number(log.rate || 0).toFixed(2)}
-                    </td>
-                    <td className="py-2 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
-                      ₹{Number(log.earned_amount || 0).toFixed(2)}
-                    </td>
-                    <td className="py-2 px-3 font-sans text-muted-foreground text-[11px]">
-                      {log.batch_number || log.reference_no || '—'}
-                    </td>
-                    <td className="py-2 px-3 text-center">
-                      {log.settlement_id ? (
-                        <Badge variant="success" className="text-[9px] font-sans">Settled</Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-[9px] font-sans">Unsettled</Badge>
-                      )}
-                    </td>
-                    {canWrite && (
+            {/* 1. Personal & Contact Information */}
+            <div className="space-y-2">
+              <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                <User className="h-3 w-3 text-primary" /> Personal & Contact Information
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5">
+                <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
+                    Full Name
+                  </span>
+                  <p className="font-semibold text-foreground text-xs">
+                    {worker.full_name}
+                  </p>
+                </div>
+                <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
+                    Primary Phone
+                  </span>
+                  <p className="font-mono text-foreground text-xs">
+                    {worker.phone || "Not provided"}
+                  </p>
+                </div>
+                <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
+                    Alternate Phone
+                  </span>
+                  <p className="font-mono text-foreground text-xs">
+                    {worker.alternate_phone || "Not provided"}
+                  </p>
+                </div>
+                <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
+                    Date of Birth
+                  </span>
+                  <p className="font-mono text-foreground text-xs">
+                    {worker.dob ? worker.dob.split("T")[0] : "Not provided"}
+                  </p>
+                </div>
+                <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
+                    Gender
+                  </span>
+                  <p className="font-medium text-foreground text-xs capitalize">
+                    {worker.gender ? worker.gender.toLowerCase() : "Not specified"}
+                  </p>
+                </div>
+                <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border md:col-span-3">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1">
+                    <MapPin className="h-3 w-3" /> Residential Address
+                  </span>
+                  <p className="text-foreground text-xs">
+                    {worker.address || "No address recorded"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Identity Verification */}
+            <div className="space-y-2 pt-3 border-t border-border">
+              <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                <FileText className="h-3 w-3 text-primary" /> Identity & Verification
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
+                    ID Proof Document
+                  </span>
+                  <p className="font-medium text-foreground text-xs">
+                    {worker.id_proof_type || "Not provided"}
+                  </p>
+                </div>
+                <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
+                    ID Number / Card No.
+                  </span>
+                  <p className="font-mono text-foreground text-xs">
+                    {worker.id_proof_number || "Not provided"}
+                  </p>
+                </div>
+                <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1">
+                    <ShieldCheck className="h-3 w-3 text-emerald-500" /> Verification Status
+                  </span>
+                  <p className="font-medium text-emerald-600 dark:text-emerald-400 text-xs">
+                    {worker.id_proof_number ? "Verified Document" : "Pending Document"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Emergency & Nominee Contact */}
+            <div className="space-y-2 pt-3 border-t border-border">
+              <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                <HeartHandshake className="h-3 w-3 text-primary" /> Emergency & Nominee Contact
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
+                    Nominee / Contact Person
+                  </span>
+                  <p className="font-semibold text-foreground text-xs">
+                    {worker.emergency_contact_name || "Not provided"}
+                  </p>
+                </div>
+                <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
+                    Relationship
+                  </span>
+                  <p className="font-medium text-foreground text-xs">
+                    {worker.emergency_relationship || "Not specified"}
+                  </p>
+                </div>
+                <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase block">
+                    Contact Phone
+                  </span>
+                  <p className="font-mono text-foreground text-xs">
+                    {worker.emergency_contact_phone ? (
+                      <a
+                        href={`tel:${worker.emergency_contact_phone}`}
+                        className="hover:text-primary hover:underline"
+                      >
+                        {worker.emergency_contact_phone}
+                      </a>
+                    ) : (
+                      "Not provided"
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Pay Rate History */}
+          <div className="rounded-lg border border-border bg-card p-4 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <History className="h-3.5 w-3.5 text-primary" /> Pay Rate History
+              </h3>
+              {canWrite && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1 text-[11px]"
+                  onClick={() => setShowRateDialog(true)}
+                >
+                  <Banknote className="h-3 w-3" /> Record Rate Change
+                </Button>
+              )}
+            </div>
+
+            {worker.worker_wage_rates && worker.worker_wage_rates.length > 0 ? (
+              <div className="border border-border rounded-md overflow-hidden">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-muted/40 text-muted-foreground border-b border-border font-semibold uppercase text-[10px] tracking-wider">
+                    <tr>
+                      <th className="py-2 px-3">Rate (₹)</th>
+                      <th className="py-2 px-3">Effective From</th>
+                      <th className="py-2 px-3">Type</th>
+                      <th className="py-2 px-3">Recorded Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {worker.worker_wage_rates.map((rate, index) => (
+                      <tr
+                        key={rate.id}
+                        className={index === 0 ? "bg-primary/5 font-semibold" : ""}
+                      >
+                        <td className="py-2 px-3 font-mono text-foreground font-bold">
+                          ₹{rate.rate_amount.toFixed(2)}
+                          {index === 0 && (
+                            <Badge
+                              variant="success"
+                              className="ml-2 py-0 px-1 text-[9px]"
+                            >
+                              CURRENT
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="py-2 px-3 font-mono">{rate.effective_from}</td>
+                        <td className="py-2 px-3 capitalize">
+                          {rate.rate_type.replace(/_/g, " ")}
+                        </td>
+                        <td className="py-2 px-3 text-muted-foreground font-mono">
+                          {new Date(rate.created_at).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">
+                No wage rates recorded yet.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab 2: Embedded Record Daily Work Form */}
+      {activeTab === "record_work" && (
+        <div className="rounded-b-lg border border-border bg-card p-4 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <div>
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Coins className="h-4 w-4 text-amber-500" /> Record Daily Work / दैनंदिन काम नोंदवा
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Log daily production for {worker.full_name} using Pinjrya count or direct quantity.
+              </p>
+            </div>
+          </div>
+
+          <EmbeddedRecordWorkForm
+            worker={worker}
+            orgId={orgId}
+            onSuccess={() => setActiveTab("ledger")}
+          />
+        </div>
+      )}
+
+      {/* Tab 3: Daily Work Ledger & Logs */}
+      {activeTab === "ledger" && (
+        <div className="rounded-b-lg border border-border bg-card p-4 shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Coins className="h-3.5 w-3.5 text-amber-500" /> Daily Work Logs & Earnings Ledger
+            </h3>
+            {canWrite && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1 text-[11px] border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+                onClick={() => setActiveTab("record_work")}
+              >
+                <PlusCircle className="h-3 w-3 text-amber-500" /> Log Daily Work
+              </Button>
+            )}
+          </div>
+
+          {dailyWorkData?.logs && dailyWorkData.logs.length > 0 ? (
+            <div className="border border-border rounded-md overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-muted/40 text-muted-foreground border-b border-border font-semibold uppercase text-[10px] tracking-wider">
+                  <tr>
+                    <th className="py-2.5 px-3">Date</th>
+                    <th className="py-2.5 px-3">Entry Mode</th>
+                    <th className="py-2.5 px-3 text-right">Physical Qty</th>
+                    <th className="py-2.5 px-3 text-right">Billable Qty</th>
+                    <th className="py-2.5 px-3 text-right">Rate</th>
+                    <th className="py-2.5 px-3 text-right">Earned Amount</th>
+                    <th className="py-2.5 px-3">Batch / Ref</th>
+                    <th className="py-2.5 px-3 text-center">Status</th>
+                    {canWrite && <th className="py-2.5 px-3 text-center">Action</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border font-mono">
+                  {dailyWorkData.logs.map((log: any) => (
+                    <tr key={log.id} className="hover:bg-muted/30">
+                      <td className="py-2 px-3 font-semibold text-foreground">{log.work_date}</td>
+                      <td className="py-2 px-3">
+                        <Badge variant="outline" className="text-[10px] font-sans">
+                          {log.entry_mode === 'PINJRI_COUNT'
+                            ? 'Pinjri (22/20)'
+                            : log.entry_mode === 'SHIFT_COUNT'
+                            ? 'Shift'
+                            : 'Direct'}
+                        </Badge>
+                      </td>
+                      <td className="py-2 px-3 text-right text-muted-foreground">
+                        {log.physical_quantity?.toLocaleString()}
+                      </td>
+                      <td className="py-2 px-3 text-right font-bold text-foreground">
+                        {log.billable_quantity?.toLocaleString()}
+                      </td>
+                      <td className="py-2 px-3 text-right text-muted-foreground">
+                        ₹{Number(log.rate || 0).toFixed(2)}
+                      </td>
+                      <td className="py-2 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                        ₹{Number(log.earned_amount || 0).toFixed(2)}
+                      </td>
+                      <td className="py-2 px-3 font-sans text-muted-foreground text-[11px]">
+                        {log.batch_number || log.reference_no || '—'}
+                      </td>
                       <td className="py-2 px-3 text-center">
-                        {!log.settlement_id && (
-                          <button
-                            onClick={() => deleteDailyWorkLog.mutate(log.id)}
-                            className="text-destructive hover:text-red-400 p-1 rounded"
-                            title="Delete Log"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                        {log.settlement_id ? (
+                          <Badge variant="success" className="text-[9px] font-sans">Settled</Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-[9px] font-sans">Unsettled</Badge>
                         )}
                       </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-xs text-muted-foreground italic py-2">
-            No daily work logs recorded yet for this worker.
-          </p>
-        )}
-      </div>
-
-      {/* Moulding Rate History */}
-      <div className="rounded-lg border border-border bg-card p-4 shadow-xs space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-            <History className="h-3.5 w-3.5 text-primary" /> Pay Rate History
-          </h3>
-          {canWrite && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 gap-1 text-[11px]"
-              onClick={() => setShowRateDialog(true)}
-            >
-              <Banknote className="h-3 w-3" /> Record Rate Change
-            </Button>
+                      {canWrite && (
+                        <td className="py-2 px-3 text-center">
+                          {!log.settlement_id && (
+                            <button
+                              onClick={() => deleteDailyWorkLog.mutate(log.id)}
+                              className="text-destructive hover:text-red-400 p-1 rounded"
+                              title="Delete Log"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground italic py-2">
+              No daily work logs recorded yet for this worker.
+            </p>
           )}
         </div>
-
-        {worker.worker_wage_rates && worker.worker_wage_rates.length > 0 ? (
-          <div className="border border-border rounded-md overflow-hidden">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-muted/40 text-muted-foreground border-b border-border font-semibold uppercase text-[10px] tracking-wider">
-                <tr>
-                  <th className="py-2 px-3">Rate (₹)</th>
-                  <th className="py-2 px-3">Effective From</th>
-                  <th className="py-2 px-3">Type</th>
-                  <th className="py-2 px-3">Recorded Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {worker.worker_wage_rates.map((rate, index) => (
-                  <tr
-                    key={rate.id}
-                    className={index === 0 ? "bg-primary/5 font-semibold" : ""}
-                  >
-                    <td className="py-2 px-3 font-mono text-foreground font-bold">
-                      ₹{rate.rate_amount.toFixed(2)}
-                      {index === 0 && (
-                        <Badge
-                          variant="success"
-                          className="ml-2 py-0 px-1 text-[9px]"
-                        >
-                          CURRENT
-                        </Badge>
-                      )}
-                    </td>
-                    <td className="py-2 px-3 font-mono">{rate.effective_from}</td>
-                    <td className="py-2 px-3 capitalize">
-                      {rate.rate_type.replace(/_/g, " ")}
-                    </td>
-                    <td className="py-2 px-3 text-muted-foreground font-mono">
-                      {new Date(rate.created_at).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-xs text-muted-foreground italic">
-            No wage rates recorded yet.
-          </p>
-        )}
-      </div>
+      )}
 
       {/* Dialogs */}
       {showRateDialog && (
@@ -571,14 +642,6 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
           }}
         />
       )}
-
-      {/* Record Work Modal */}
-      <RecordWorkModal
-        open={showRecordWorkModal}
-        onOpenChange={setShowRecordWorkModal}
-        orgId={orgId}
-        worker={worker}
-      />
     </div>
   );
 }

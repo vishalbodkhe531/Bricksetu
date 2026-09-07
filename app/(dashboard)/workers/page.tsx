@@ -364,26 +364,26 @@ export default function WorkersPage() {
             <>
               <Button
                 variant="outline"
-                className="gap-1.5 border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 text-xs"
+                size="sm"
                 onClick={() => {
                   setSelectedWorkerForWork(null);
                   setShowRecordWorkModal(true);
                 }}
               >
-                <Coins className="h-4 w-4 text-amber-500" /> Record Work
+                <Coins className="h-3.5 w-3.5 text-primary" /> Record Work
               </Button>
 
               <Button
                 variant="outline"
-                className="gap-1.5 text-xs"
+                size="sm"
                 onClick={() => setShowBulkRecordSheet(true)}
               >
-                <Layers className="h-4 w-4 text-slate-400" /> Bulk Entry
+                <Layers className="h-3.5 w-3.5 text-primary" /> Bulk Entry
               </Button>
 
               <Link href="/workers/new">
-                <Button variant="default" className="gap-1.5 text-xs shadow-xs">
-                  <Plus className="h-4 w-4" /> Add Worker
+                <Button variant="default" size="sm">
+                  <Plus className="h-3.5 w-3.5" /> Add Worker
                 </Button>
               </Link>
             </>
