@@ -125,13 +125,23 @@ export function WorkerEmploymentSection({
                 <FormItem>
                   <FormControl>
                     <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
+                      type="text"
+                      inputMode="decimal"
                       placeholder={rateInfo.placeholder}
                       className="bg-card h-9"
-                      {...field}
-                      value={field.value ?? ""}
+                      value={
+                        field.value !== undefined && field.value !== null && field.value !== ""
+                          ? Number(field.value).toLocaleString("en-IN")
+                          : ""
+                      }
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/,/g, "");
+                        if (raw === "") {
+                          field.onChange(undefined);
+                        } else if (!isNaN(Number(raw))) {
+                          field.onChange(Number(raw));
+                        }
+                      }}
                     />
                   </FormControl>
                   <FormMessage />

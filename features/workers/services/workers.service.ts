@@ -86,6 +86,7 @@ export async function getWorkers(
       updated_at: w.updated_at.toISOString(),
       current_rate_amount: currentRateAmount,
       advance_balance: advanceBalance,
+      total_decided_advance_amount: w.total_decided_advance_amount ? Number(w.total_decided_advance_amount) / 100 : 0,
       worker_wage_rates: w.rate_history.map((r: any) => ({
         id: r.id,
         worker_id: r.worker_id,
@@ -165,6 +166,7 @@ export async function getWorkerById(id: string, organizationId: string) {
     updated_at: w.updated_at.toISOString(),
     current_rate_amount: currentRateAmount,
     advance_balance: advanceBalance,
+    total_decided_advance_amount: w.total_decided_advance_amount ? Number(w.total_decided_advance_amount) / 100 : 0,
     current_rate: latestRate
       ? {
           id: latestRate.id,
@@ -234,6 +236,9 @@ export async function createWorker(organizationId: string, input: WorkerInput) {
         joining_date: input.joining_date
           ? new Date(input.joining_date)
           : new Date(),
+        total_decided_advance_amount: input.total_decided_advance_amount
+          ? BigInt(Math.round(input.total_decided_advance_amount * 100))
+          : null,
         is_active: input.status !== "inactive",
       },
     });
@@ -265,6 +270,12 @@ export async function createWorker(organizationId: string, input: WorkerInput) {
         ? new Date(input.joining_date)
         : new Date();
 
+      const descriptionText =
+        input.opening_advance_reason?.trim() ||
+        (input.total_decided_advance_amount && input.total_decided_advance_amount > 0
+          ? `Opening advance (Total Decided: ₹${input.total_decided_advance_amount})`
+          : "Opening advance at joining");
+
       await tx.charges.create({
         data: {
           business_unit_id: organizationId,
@@ -273,7 +284,7 @@ export async function createWorker(organizationId: string, input: WorkerInput) {
           charge_type: "ADVANCE",
           charge_date: advanceDate,
           amount_paise: advancePaise,
-          description: input.opening_advance_reason || "Opening advance at joining (Peshgi)",
+          description: descriptionText,
         },
       });
     }
@@ -302,6 +313,7 @@ export async function createWorker(organizationId: string, input: WorkerInput) {
       updated_at: created.updated_at.toISOString(),
       current_rate_amount: initialRateAmount,
       advance_balance: openingAdvanceBalance,
+      total_decided_advance_amount: input.total_decided_advance_amount || 0,
     };
   });
 }

@@ -63,9 +63,10 @@ export function WorkerForm({
       id_proof_number: initialData?.id_proof_number || "",
       photo_url: initialData?.photo_url || "",
       // Opening advance
+      total_decided_advance_amount: undefined,
       opening_advance_amount: undefined,
       opening_advance_date: new Date().toISOString().split("T")[0],
-      opening_advance_reason: "Peshgi at joining",
+      opening_advance_reason: "",
       // Emergency contact
       emergency_contact_name: initialData?.emergency_contact_name || "",
       emergency_contact_phone: initialData?.emergency_contact_phone || "",
@@ -75,6 +76,10 @@ export function WorkerForm({
 
   const selectedCategory =
     useWatch({ control: form.control, name: "category" }) || "PIECE_RATE";
+  const totalDecidedAmount = useWatch({
+    control: form.control,
+    name: "total_decided_advance_amount",
+  });
   const openingAdvanceAmount = useWatch({
     control: form.control,
     name: "opening_advance_amount",
@@ -128,6 +133,7 @@ export function WorkerForm({
             <WorkerOpeningAdvanceSection
               form={form}
               openingAdvanceAmount={openingAdvanceAmount}
+              totalDecidedAmount={totalDecidedAmount}
             />
           )}
 

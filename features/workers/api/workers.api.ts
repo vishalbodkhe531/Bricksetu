@@ -51,4 +51,19 @@ export const workersApi = {
 
   getSettlements: (orgId: string) =>
     api.get('/workers/settlements', { params: { orgId } }).then((r) => extractData<any>(r.data)),
+
+  recordDailyWork: (input: any) =>
+    api.post('/workers/daily-work', input).then((r) => extractData<any>(r.data)),
+
+  recordBulkDailyWork: (input: any) =>
+    api.post('/workers/daily-work', input).then((r) => extractData<any>(r.data)),
+
+  getDailyWorkLogs: (params?: { workerId?: string; category?: string; startDate?: string; endDate?: string }) =>
+    api.get('/workers/daily-work', { params }).then((r) => extractData<{ logs: any[]; summary: any }>(r.data)),
+
+  getTodaySummary: (date?: string) =>
+    api.get('/workers/daily-work', { params: { summary: 'true', date } }).then((r) => extractData<any>(r.data)),
+
+  deleteDailyWorkLog: (id: string) =>
+    api.delete(`/workers/daily-work/${id}`).then((r) => extractData<any>(r.data)),
 };

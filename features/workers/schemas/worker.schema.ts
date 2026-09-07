@@ -67,6 +67,13 @@ export const workerInputSchema = z.object({
   photo_url: z.string().trim().optional().nullable(),
 
   // Opening Advance (Peshgi given at joining)
+  total_decided_advance_amount: z
+    .coerce
+    .number()
+    .min(0, "Total decided amount must be a non-negative number")
+    .optional()
+    .nullable(),
+
   opening_advance_amount: z
     .coerce
     .number()

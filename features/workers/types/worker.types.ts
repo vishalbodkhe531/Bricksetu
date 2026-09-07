@@ -45,6 +45,7 @@ export interface Worker {
   // Derived fields
   current_rate_amount?: number;
   advance_balance?: number;
+  total_decided_advance_amount?: number;
 }
 
 export interface WorkerWageRate {
@@ -97,3 +98,37 @@ export type RateChangeInput = z.infer<typeof rateChangeSchema>;
 export type WageRateInput = z.infer<typeof wageRateInputSchema>;
 export type AdvanceInput = z.infer<typeof advanceInputSchema>;
 export type SettlementInput = z.infer<typeof settlementInputSchema>;
+
+export interface DailyWorkLog {
+  id: string;
+  business_unit_id: string;
+  worker_id: string;
+  worker_name?: string;
+  worker_code?: string;
+  work_date: string;
+  category: "AALYAWALE" | "KACHA_MAAL" | "PAKKA_MAAL" | "BHATKAR" | string;
+  entry_mode: "DIRECT_COUNT" | "PINJRI_COUNT" | "SHIFT_COUNT" | string;
+  input_quantity: number;
+  physical_quantity: number;
+  billable_quantity: number;
+  unit: "BRICKS" | "SHIFTS" | string;
+  conversion_physical_per_unit?: number | null;
+  conversion_billable_per_unit?: number | null;
+  rate: number;
+  earned_amount: number;
+  batch_id?: string | null;
+  batch_number?: string | null;
+  reference_no?: string | null;
+  notes?: string | null;
+  settlement_id?: string | null;
+  created_at: string;
+}
+
+export interface DailyWorkSummary {
+  date: string;
+  totalEntries: number;
+  totalPhysicalBricks: number;
+  totalBillableBricks: number;
+  totalEarnings: number;
+}
+

@@ -17,6 +17,8 @@ export interface Column<T> {
 interface DataTableProps<T extends Record<string, any>> {
   columns: Column<T>[];
   data: T[];
+  loading?: boolean;
+  searchKey?: keyof T | string;
   searchPlaceholder?: string;
   exportFileName?: string;
   showExport?: boolean;
@@ -25,6 +27,8 @@ interface DataTableProps<T extends Record<string, any>> {
 export function DataTable<T extends Record<string, any>>({
   columns,
   data,
+  loading = false,
+  searchKey,
   searchPlaceholder = 'Search records...',
   exportFileName = 'export.csv',
   showExport = true,
