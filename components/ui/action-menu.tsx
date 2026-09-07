@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -107,7 +108,7 @@ export function ActionMenu({ items }: ActionMenuProps) {
 
               if (item.href) {
                 return (
-                  <a
+                  <Link
                     key={idx}
                     href={item.href}
                     onClick={() => setIsOpen(false)}
@@ -115,7 +116,7 @@ export function ActionMenu({ items }: ActionMenuProps) {
                   >
                     {item.icon}
                     {item.label}
-                  </a>
+                  </Link>
                 );
               }
 

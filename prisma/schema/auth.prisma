@@ -37,6 +37,7 @@ model users {
   purchases                                  purchases[]
   batches                                    batches[]
   daily_moulding_logs                        daily_moulding_logs[]
+  daily_work_logs                            daily_work_logs[]
   stage_transitions                          stage_transitions[]
   records                                    records[]
   trips                                      trips[]

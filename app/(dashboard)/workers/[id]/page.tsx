@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   User,
   UserX,
+  Trash2,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -28,10 +29,13 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { RateChangeDialog } from "@/features/workers/components/RateChangeDialog";
 import { WorkerDeactivateDialog } from "@/features/workers/components/WorkerDeactivateDialog";
+import { RecordWorkModal } from "@/features/workers/components/RecordWorkModal";
 import {
   useChangeWorkerRate,
   useDeactivateWorker,
   useWorkerDetail,
+  useDailyWorkLogs,
+  useDeleteDailyWorkLog,
 } from "@/features/workers/hooks/useWorkers";
 import { formatWorkerCategory } from "@/features/workers/constants/worker-options";
 
@@ -46,12 +50,16 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
   const orgId = profile?.organization_id ?? "";
 
   const { data: worker, isLoading: loading } = useWorkerDetail(workerId);
+  const { data: dailyWorkData } = useDailyWorkLogs({ workerId });
+  const deleteDailyWorkLog = useDeleteDailyWorkLog(orgId);
+
   const deactivateWorker = useDeactivateWorker(orgId);
   const changeWorkerRate = useChangeWorkerRate(orgId, workerId);
 
   // Modal Dialog states
   const [showRateDialog, setShowRateDialog] = useState(false);
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
+  const [showRecordWorkModal, setShowRecordWorkModal] = useState(false);
 
   const roleUpper = (profile?.role || "").toUpperCase();
   const canWrite =
@@ -157,6 +165,15 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
 
           {canWrite && (
             <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-xs border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+                onClick={() => setShowRecordWorkModal(true)}
+              >
+                <Coins className="h-3.5 w-3.5 text-amber-500" /> Record Daily Work
+              </Button>
+
               <Link href={`/workers/${worker.id}/edit`}>
                 <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
                   <Edit className="h-3.5 w-3.5" /> Edit Profile
@@ -369,6 +386,100 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
         </div>
       </div>
 
+      {/* Daily Work Logs & Earnings Ledger */}
+      <div className="rounded-lg border border-border bg-card p-4 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <Coins className="h-3.5 w-3.5 text-amber-500" /> Daily Work Logs & Earnings Ledger
+          </h3>
+          {canWrite && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1 text-[11px] border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+              onClick={() => setShowRecordWorkModal(true)}
+            >
+              <Coins className="h-3 w-3 text-amber-500" /> Log Daily Work
+            </Button>
+          )}
+        </div>
+
+        {dailyWorkData?.logs && dailyWorkData.logs.length > 0 ? (
+          <div className="border border-border rounded-md overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-muted/40 text-muted-foreground border-b border-border font-semibold uppercase text-[10px] tracking-wider">
+                <tr>
+                  <th className="py-2.5 px-3">Date</th>
+                  <th className="py-2.5 px-3">Entry Mode</th>
+                  <th className="py-2.5 px-3 text-right">Physical Qty</th>
+                  <th className="py-2.5 px-3 text-right">Billable Qty</th>
+                  <th className="py-2.5 px-3 text-right">Rate</th>
+                  <th className="py-2.5 px-3 text-right">Earned Amount</th>
+                  <th className="py-2.5 px-3">Batch / Ref</th>
+                  <th className="py-2.5 px-3 text-center">Status</th>
+                  {canWrite && <th className="py-2.5 px-3 text-center">Action</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border font-mono">
+                {dailyWorkData.logs.map((log: any) => (
+                  <tr key={log.id} className="hover:bg-muted/30">
+                    <td className="py-2 px-3 font-semibold text-foreground">{log.work_date}</td>
+                    <td className="py-2 px-3">
+                      <Badge variant="outline" className="text-[10px] font-sans">
+                        {log.entry_mode === 'PINJRI_COUNT'
+                          ? 'Pinjri (22/20)'
+                          : log.entry_mode === 'SHIFT_COUNT'
+                          ? 'Shift'
+                          : 'Direct'}
+                      </Badge>
+                    </td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">
+                      {log.physical_quantity?.toLocaleString()}
+                    </td>
+                    <td className="py-2 px-3 text-right font-bold text-foreground">
+                      {log.billable_quantity?.toLocaleString()}
+                    </td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">
+                      ₹{Number(log.rate || 0).toFixed(2)}
+                    </td>
+                    <td className="py-2 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                      ₹{Number(log.earned_amount || 0).toFixed(2)}
+                    </td>
+                    <td className="py-2 px-3 font-sans text-muted-foreground text-[11px]">
+                      {log.batch_number || log.reference_no || '—'}
+                    </td>
+                    <td className="py-2 px-3 text-center">
+                      {log.settlement_id ? (
+                        <Badge variant="success" className="text-[9px] font-sans">Settled</Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-[9px] font-sans">Unsettled</Badge>
+                      )}
+                    </td>
+                    {canWrite && (
+                      <td className="py-2 px-3 text-center">
+                        {!log.settlement_id && (
+                          <button
+                            onClick={() => deleteDailyWorkLog.mutate(log.id)}
+                            className="text-destructive hover:text-red-400 p-1 rounded"
+                            title="Delete Log"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground italic py-2">
+            No daily work logs recorded yet for this worker.
+          </p>
+        )}
+      </div>
+
       {/* Moulding Rate History */}
       <div className="rounded-lg border border-border bg-card p-4 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
@@ -380,7 +491,7 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
               variant="outline"
               size="sm"
               className="h-7 gap-1 text-[11px]"
-              onClick={() => setShowRateDialog(false)}
+              onClick={() => setShowRateDialog(true)}
             >
               <Banknote className="h-3 w-3" /> Record Rate Change
             </Button>
@@ -460,6 +571,14 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
           }}
         />
       )}
+
+      {/* Record Work Modal */}
+      <RecordWorkModal
+        open={showRecordWorkModal}
+        onOpenChange={setShowRecordWorkModal}
+        orgId={orgId}
+        worker={worker}
+      />
     </div>
   );
 }

@@ -65,6 +65,8 @@ model business_units {
   trips              trips[]
   vehicles           vehicles[]
   profiles           profiles[]
+  daily_work_logs    daily_work_logs[]
+  work_unit_conversions work_unit_conversions[]
 
   @@schema("core")
 }

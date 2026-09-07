@@ -24,6 +24,7 @@ model profiles {
   updated_at              DateTime              @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   settlements             settlements[]
   daily_moulding_logs     daily_moulding_logs[]
+  daily_work_logs         daily_work_logs[]
   business_units          business_units        @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   rate_history            rate_history[]
 
@@ -47,3 +48,54 @@ model rate_history {
   @@index([worker_id, effective_date(sort: Desc)], map: "idx_worker_rate_lookup")
   @@schema("workers")
 }
+
+model daily_work_logs {
+  id                            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id              String         @db.Uuid
+  worker_id                     String         @db.Uuid
+  work_date                     DateTime       @db.Date
+  category                      String         @db.VarChar(50)
+  entry_mode                    String         @db.VarChar(20)
+  input_quantity                Decimal        @db.Decimal(10, 2)
+  physical_quantity             Decimal        @db.Decimal(10, 2)
+  billable_quantity             Decimal        @db.Decimal(10, 2)
+  unit                          String         @db.VarChar(20)
+  conversion_physical_per_unit  Int?
+  conversion_billable_per_unit  Int?
+  rate_paise                    BigInt
+  earned_amount_paise           BigInt
+  batch_id                      String?        @db.Uuid
+  reference_no                  String?        @db.VarChar(100)
+  notes                         String?
+  settlement_id                 String?        @db.Uuid
+  created_at                    DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  created_by                    String?        @db.Uuid
+
+  profiles                      profiles       @relation(fields: [worker_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  business_units                business_units @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  settlements                   settlements?   @relation(fields: [settlement_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  batches                       batches?       @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                         users?         @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([worker_id, work_date], map: "idx_work_logs_worker_date")
+  @@index([business_unit_id, category, work_date], map: "idx_work_logs_bu_cat_date")
+  @@schema("workers")
+}
+
+model work_unit_conversions {
+  id                       String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  business_unit_id         String         @db.Uuid
+  category                 String         @db.VarChar(50)
+  unit_name                String         @db.VarChar(20)
+  physical_count_per_unit  Int
+  billable_count_per_unit  Int
+  effective_from           DateTime       @db.Date
+  is_active                Boolean        @default(true)
+  created_at               DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+
+  business_units           business_units @relation(fields: [business_unit_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([business_unit_id, category, unit_name, effective_from])
+  @@schema("workers")
+}
+

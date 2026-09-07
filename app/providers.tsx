@@ -1,7 +1,7 @@
 'use client';
 
-import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from '@/lib/query/queryClient';
+import { useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/context/AuthContext';
 import { WebVitalsReporter } from '@/components/analytics/web-vitals';
 
@@ -11,11 +11,22 @@ import { WebVitalsReporter } from '@/components/analytics/web-vitals';
  *  - QueryClientProvider (TanStack Query)
  *  - AuthProvider (session context)
  *  - WebVitalsReporter (Core Web Vitals monitoring)
- *
- * Server Components still call the service layer directly — they never
- * go through Axios or React Query.
  */
 export function Providers({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 5 * 60 * 1000,    // 5 minutes caching (prevents constant loading spinners)
+            gcTime: 10 * 60 * 1000,     // Keep unused data in memory for 10 minutes
+            retry: 1,
+            refetchOnWindowFocus: false, // Don't refetch on window focus
+          },
+        },
+      })
+  );
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

@@ -118,6 +118,7 @@ model settlements {
   users_settlements_voided_byTousers   users?                @relation("settlements_voided_byTousers", fields: [voided_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   profiles                             profiles              @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   daily_moulding_logs                  daily_moulding_logs[]
+  daily_work_logs                      daily_work_logs[]
 
   @@unique([business_unit_id, settlement_number], map: "unique_settlement_number")
   @@index([worker_id, period_start_date, period_end_date], map: "idx_settlements_worker")

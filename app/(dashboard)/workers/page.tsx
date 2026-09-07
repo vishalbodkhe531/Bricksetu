@@ -7,11 +7,14 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { RateChangeDialog } from "@/features/workers/components/RateChangeDialog";
 import { WorkerDeactivateDialog } from "@/features/workers/components/WorkerDeactivateDialog";
+import { RecordWorkModal } from "@/features/workers/components/RecordWorkModal";
+import { BulkRecordWorkSheet } from "@/features/workers/components/BulkRecordWorkSheet";
 import {
   useChangeWorkerRate,
   useDeactivateWorker,
   useRecordAdvance,
   useWorkers,
+  useDailyWorkSummary,
 } from "@/features/workers/hooks/useWorkers";
 import type { Worker } from "@/features/workers/types/worker.types";
 import {
@@ -23,6 +26,9 @@ import {
   Trash2,
   Users,
   X,
+  Coins,
+  Layers,
+  CalendarCheck,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -53,6 +59,12 @@ export default function WorkersPage() {
   const [rateChangeWorker, setRateChangeWorker] = useState<Worker | null>(null);
   const [deactivateWorkerItem, setDeactivateWorkerItem] =
     useState<Worker | null>(null);
+
+  const [showRecordWorkModal, setShowRecordWorkModal] = useState(false);
+  const [showBulkRecordSheet, setShowBulkRecordSheet] = useState(false);
+  const [selectedWorkerForWork, setSelectedWorkerForWork] = useState<Worker | null>(null);
+
+  const { data: todaySummary } = useDailyWorkSummary();
 
   // Advance Modal State — consolidated into useReducer (5 related fields change together)
   type AdvanceState = {
@@ -257,6 +269,14 @@ export default function WorkersPage() {
 
         if (canWrite) {
           items.push({
+            label: "Record Daily Work",
+            icon: <Coins className="h-3.5 w-3.5 text-amber-500" />,
+            onClick: () => {
+              setSelectedWorkerForWork(row.original);
+              setShowRecordWorkModal(true);
+            },
+          });
+          items.push({
             label: "Edit",
             icon: <Edit className="h-3.5 w-3.5 text-muted-foreground" />,
             href: `/workers/${row.original.id}/edit`,
@@ -329,7 +349,7 @@ export default function WorkersPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap">
           <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none border border-border bg-card px-3 py-2 rounded-md shadow-xs hover:bg-accent/50 transition-colors">
             <input
               type="checkbox"
@@ -337,18 +357,81 @@ export default function WorkersPage() {
               onChange={(e) => setIncludeInactive(e.target.checked)}
               className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5"
             />
-            <Filter className="h-3 w-3" /> Show Deactivated Workers
+            <Filter className="h-3 w-3" /> Show Deactivated
           </label>
 
           {canWrite && (
-            <Link href="/workers/new">
-              <Button variant="default" className="gap-2 shadow-xs">
-                <Plus className="h-4 w-4" /> Add Worker
+            <>
+              <Button
+                variant="outline"
+                className="gap-1.5 border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 text-xs"
+                onClick={() => {
+                  setSelectedWorkerForWork(null);
+                  setShowRecordWorkModal(true);
+                }}
+              >
+                <Coins className="h-4 w-4 text-amber-500" /> Record Work
               </Button>
-            </Link>
+
+              <Button
+                variant="outline"
+                className="gap-1.5 text-xs"
+                onClick={() => setShowBulkRecordSheet(true)}
+              >
+                <Layers className="h-4 w-4 text-slate-400" /> Bulk Entry
+              </Button>
+
+              <Link href="/workers/new">
+                <Button variant="default" className="gap-1.5 text-xs shadow-xs">
+                  <Plus className="h-4 w-4" /> Add Worker
+                </Button>
+              </Link>
+            </>
           )}
         </div>
       </div>
+
+      {/* Today's Daily Work Summary Card */}
+      {todaySummary && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-900 border border-slate-800 p-4 rounded-xl text-slate-100 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-amber-500/15 border border-amber-500/30 rounded-xl text-amber-400 shrink-0">
+              <CalendarCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-[10px] text-slate-400 uppercase font-semibold tracking-wider">Today's Entries</div>
+              <div className="text-lg font-bold font-mono text-slate-100">{todaySummary.totalEntries} logged</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-500/15 border border-blue-500/30 rounded-xl text-blue-400 shrink-0">
+              <Layers className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-[10px] text-slate-400 uppercase font-semibold tracking-wider">Bricks Handled Today</div>
+              <div className="text-lg font-bold font-mono text-slate-100">
+                {(todaySummary.totalBillableBricks || 0).toLocaleString()}{' '}
+                <span className="text-xs text-slate-400 font-normal">
+                  ({(todaySummary.totalPhysicalBricks || 0).toLocaleString()} physical)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-emerald-500/15 border border-emerald-500/30 rounded-xl text-emerald-400 shrink-0">
+              <Coins className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-[10px] text-slate-400 uppercase font-semibold tracking-wider">Today's Accrued Wages</div>
+              <div className="text-lg font-bold font-mono text-emerald-400">
+                ₹ {Number(todaySummary.totalEarnings || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Category Tabs */}
       <TabsList>
@@ -521,6 +604,23 @@ export default function WorkersPage() {
           </div>
         </div>
       )}
+      {/* Modal: Record Work for Single Worker */}
+      <RecordWorkModal
+        open={showRecordWorkModal}
+        onOpenChange={setShowRecordWorkModal}
+        orgId={orgId}
+        worker={selectedWorkerForWork}
+        workers={workers}
+        defaultCategory={activeTab !== "ALL" ? activeTab : undefined}
+      />
+
+      {/* Sheet: Bulk Record Work */}
+      <BulkRecordWorkSheet
+        open={showBulkRecordSheet}
+        onOpenChange={setShowBulkRecordSheet}
+        orgId={orgId}
+        workers={workers}
+      />
     </div>
   );
 }

@@ -24,6 +24,7 @@ model batches {
   business_units      business_units        @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users               users?                @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   daily_moulding_logs daily_moulding_logs[]
+  daily_work_logs     daily_work_logs[]
   stage_transitions   stage_transitions[]
   trips               trips[]
 

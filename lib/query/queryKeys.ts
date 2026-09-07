@@ -9,6 +9,8 @@ export const queryKeys = {
     list: (orgId: string) => [...queryKeys.workers.all, 'list', orgId] as const,
     detail: (id: string) => [...queryKeys.workers.all, 'detail', id] as const,
     settlements: (orgId: string) => [...queryKeys.workers.all, 'settlements', orgId] as const,
+    dailyWork: (params?: Record<string, any>) => [...queryKeys.workers.all, 'dailyWork', params] as const,
+    todaySummary: (date?: string) => [...queryKeys.workers.all, 'todaySummary', date] as const,
   },
 
   production: {
