@@ -13,7 +13,6 @@ import {
   useDeactivateWorker,
   useRecordAdvance,
   useWorkers,
-  useDailyWorkSummary,
 } from "@/features/workers/hooks/useWorkers";
 import type { Worker } from "@/features/workers/types/worker.types";
 import {
@@ -26,7 +25,6 @@ import {
   X,
   Coins,
   Layers,
-  CalendarCheck,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -116,9 +114,6 @@ export default function WorkersPage() {
     dispatchAdvance,
   ] = useReducer(advanceReducer, initialAdvanceState);
 
-  const { data: todaySummary } = useDailyWorkSummary(
-    new Date().toISOString().split("T")[0],
-  );
 
   const roleUpper = (profile?.role || "").toUpperCase();
   const canWrite =
@@ -388,44 +383,6 @@ export default function WorkersPage() {
         </div>
       </div>
 
-      {/* Today's Daily Work Summary Card */}
-      {todaySummary && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-900 border border-slate-800 p-4 rounded-xl text-slate-100 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-amber-500/15 border border-amber-500/30 rounded-xl text-amber-400 shrink-0">
-              <CalendarCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-[10px] text-slate-400 uppercase font-semibold tracking-wider">Today's Entries</div>
-              <div className="text-lg font-bold font-mono text-slate-100">{todaySummary.totalEntries} logged</div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-500/15 border border-blue-500/30 rounded-xl text-blue-400 shrink-0">
-              <Layers className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-[10px] text-slate-400 uppercase font-semibold tracking-wider">Physical Production</div>
-              <div className="text-lg font-bold font-mono text-slate-100">
-                {todaySummary.totalPhysicalBricks?.toLocaleString() || 0} bricks
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-emerald-500/15 border border-emerald-500/30 rounded-xl text-emerald-400 shrink-0">
-              <Coins className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-[10px] text-slate-400 uppercase font-semibold tracking-wider">Total Earned Today</div>
-              <div className="text-lg font-bold font-mono text-emerald-400">
-                ₹{todaySummary.totalEarnings?.toFixed(2) || "0.00"}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Tabbed Filter Bar */}
       <div className="border-b border-border bg-card rounded-t-xl px-2 pt-2 flex gap-1 overflow-x-auto">
