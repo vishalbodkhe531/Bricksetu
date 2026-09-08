@@ -16,6 +16,8 @@ import { workersApi } from "@/features/workers/api/workers.api";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/queryKeys";
 
+import { isRateEditableForCategory } from "@/features/workers/utils/rate-permissions";
+
 interface EmbeddedRecordWorkFormProps {
   worker: {
     id: string;
@@ -51,26 +53,34 @@ export function EmbeddedRecordWorkForm({
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const ratePer1000 = worker.current_rate_amount || 0;
-
   // Determine category from worker profile or default to AALYAWALE
   const category = VALID_CATEGORIES.includes(worker.category as any)
     ? (worker.category as "AALYAWALE" | "KACHA_MAAL" | "PAKKA_MAAL" | "BHATKAR")
     : "AALYAWALE";
 
+  const isRateEditable = isRateEditableForCategory(category);
+
+  const [customRate, setCustomRate] = useState<string>(
+    worker.current_rate_amount !== undefined && worker.current_rate_amount !== null
+      ? String(worker.current_rate_amount)
+      : "0"
+  );
+
+  const effectiveRate = parseFloat(customRate) || 0;
+
   // Pinjri rule: 1 Pinjri = 22 raw bricks made, 20 billable bricks earned
   const numPinjri = parseFloat(pinjriCount) || 0;
   const pinjriRawMade = Math.round(numPinjri * 22);
   const pinjriBillableEarned = Math.round(numPinjri * 20);
-  const pinjriEarnedAmount = (pinjriBillableEarned * ratePer1000) / 1000;
+  const pinjriEarnedAmount = (pinjriBillableEarned * effectiveRate) / 1000;
 
   // Direct piece
   const numDirect = parseFloat(directQty) || 0;
-  const directEarnedAmount = (numDirect * ratePer1000) / 1000;
+  const directEarnedAmount = (numDirect * effectiveRate) / 1000;
 
   // Shift calculation
   const numShift = parseFloat(shiftCount) || 1;
-  const shiftEarnedAmount = numShift * ratePer1000;
+  const shiftEarnedAmount = numShift * effectiveRate;
 
   // Summary computed values
   const physicalQty =
@@ -128,7 +138,7 @@ export function EmbeddedRecordWorkForm({
         category,
         entry_mode: entryMode,
         input_quantity: inputQuantity,
-        rate_per_unit: ratePer1000,
+        rate_per_unit: effectiveRate,
         reference_no: batchNumber || null,
         notes: notes || null,
       });
@@ -167,7 +177,7 @@ export function EmbeddedRecordWorkForm({
               • Category: <strong className="text-amber-500 font-mono">{category}</strong>
             </span>{" "}
             <span className="text-muted-foreground">
-              • Current Rate: ₹{ratePer1000.toFixed(2)} / 1,000 bricks
+              • Current Rate: ₹{effectiveRate.toFixed(2)} / 1,000 bricks
             </span>
           </div>
         </div>
@@ -312,6 +322,42 @@ export function EmbeddedRecordWorkForm({
             </div>
           )}
 
+          {/* Rate Input Field */}
+          <div className="space-y-1 bg-muted/20 p-2.5 rounded-md border border-border">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Coins className="h-3.5 w-3.5 text-amber-500" />
+                Work Rate / दर ({entryMode === "SHIFT_COUNT" ? "₹ / shift" : "₹ / 1,000 bricks"})
+              </span>
+              {isRateEditable ? (
+                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                  Editable Rate
+                </span>
+              ) : (
+                <span className="text-[10px] text-muted-foreground font-mono">
+                  Fixed Rate
+                </span>
+              )}
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-2 text-xs font-semibold text-muted-foreground">
+                ₹
+              </span>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={customRate}
+                onChange={(e) => setCustomRate(e.target.value)}
+                disabled={!isRateEditable}
+                placeholder="Rate"
+                className={`w-full bg-background border border-input rounded-md pl-7 pr-3 py-1.5 text-xs font-bold font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 ${
+                  !isRateEditable ? "opacity-70 cursor-not-allowed bg-muted/50" : ""
+                }`}
+              />
+            </div>
+          </div>
+
           {/* Batch Number & Notes */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -376,7 +422,7 @@ export function EmbeddedRecordWorkForm({
                 <div className="flex justify-between items-center py-1 border-b border-border/50">
                   <span className="text-muted-foreground">Pay Rate:</span>
                   <span className="font-mono text-foreground">
-                    ₹{ratePer1000.toFixed(2)} / 1K
+                    ₹{effectiveRate.toFixed(2)} / 1K
                   </span>
                 </div>
               </div>
@@ -393,7 +439,7 @@ export function EmbeddedRecordWorkForm({
                 <div className="flex justify-between items-center py-1 border-b border-border/50">
                   <span className="text-muted-foreground">Pay Rate:</span>
                   <span className="font-mono text-foreground">
-                    ₹{ratePer1000.toFixed(2)}
+                    ₹{effectiveRate.toFixed(2)}
                   </span>
                 </div>
               </div>

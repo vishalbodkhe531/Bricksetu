@@ -65,7 +65,7 @@ export function WorkerOpeningAdvanceSection({
                     onChange={(e) => {
                       const raw = e.target.value.replace(/,/g, "");
                       if (raw === "") {
-                        field.onChange(undefined);
+                        field.onChange("");
                       } else if (!isNaN(Number(raw))) {
                         field.onChange(Number(raw));
                       }
@@ -100,7 +100,7 @@ export function WorkerOpeningAdvanceSection({
                     onChange={(e) => {
                       const raw = e.target.value.replace(/,/g, "");
                       if (raw === "") {
-                        field.onChange(undefined);
+                        field.onChange("");
                       } else if (!isNaN(Number(raw))) {
                         field.onChange(Number(raw));
                       }

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRecordDailyWork } from '../hooks/useWorkers';
 import type { Worker } from '../types/worker.types';
 import { Minus, Plus, Calendar, Coins, Package, Truck, FileText, CheckCircle2 } from 'lucide-react';
+import { isRateEditableForCategory } from '../utils/rate-permissions';
 
 interface RecordWorkModalProps {
   open: boolean;
@@ -420,18 +421,32 @@ export function RecordWorkModal({
 
           {/* Rate Input */}
           <div>
-            <label className="block text-xs text-slate-400 font-medium mb-1">
-              Rate / दर ({category === 'BHATKAR' || entryMode === 'SHIFT_COUNT' ? '₹ / shift' : '₹ / 1,000 bricks'})
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs text-slate-400 font-medium">
+                Rate / दर ({category === 'BHATKAR' || entryMode === 'SHIFT_COUNT' ? '₹ / shift' : '₹ / 1,000 bricks'})
+              </label>
+              {isRateEditableForCategory(category) ? (
+                <span className="text-[10px] text-amber-400 font-semibold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                  Editable Rate
+                </span>
+              ) : (
+                <span className="text-[10px] text-slate-500 font-mono">
+                  Fixed Rate
+                </span>
+              )}
+            </div>
             <div className="relative">
               <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-semibold">₹</span>
               <input
                 type="number"
                 step="0.01"
                 value={ratePerUnit}
+                disabled={!isRateEditableForCategory(category)}
                 onChange={(e) => setRatePerUnit(e.target.value === '' ? '' : parseFloat(e.target.value))}
                 placeholder="Rate"
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-8 pr-3 py-2.5 text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                className={`w-full bg-slate-800 border border-slate-700 rounded-xl pl-8 pr-3 py-2.5 text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/50 ${
+                  !isRateEditableForCategory(category) ? 'opacity-60 cursor-not-allowed bg-slate-800/50' : ''
+                }`}
               />
             </div>
           </div>

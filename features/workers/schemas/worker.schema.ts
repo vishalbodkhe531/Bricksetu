@@ -135,6 +135,13 @@ export const workerUpdateSchema = z.object({
   joining_date: z.string().trim().optional().nullable(),
   status: z.enum(["active", "inactive"]).optional(),
 
+  initial_rate_amount: z
+    .coerce
+    .number()
+    .min(0, "Rate must be a non-negative number")
+    .optional()
+    .nullable(),
+
   dob: z.string().trim().optional().nullable(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional().nullable(),
   id_proof_type: z.string().trim().optional().nullable(),
