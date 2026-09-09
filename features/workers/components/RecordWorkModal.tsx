@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRecordDailyWork } from '../hooks/useWorkers';
 import type { Worker } from '../types/worker.types';
-import { Minus, Plus, Calendar, Coins, Package, Truck, FileText, CheckCircle2 } from 'lucide-react';
+import { Minus, Plus, Calendar, Coins, Package, Truck, FileText, CheckCircle2, Users } from 'lucide-react';
+import { isRateEditableForCategory } from '../utils/rate-permissions';
 
 interface RecordWorkModalProps {
   open: boolean;
@@ -44,6 +45,7 @@ export function RecordWorkModal({
   const [batchId, setBatchId] = useState<string>('');
   const [referenceNo, setReferenceNo] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
+  const [aalyawalaQtyMap, setAalyawalaQtyMap] = useState<Record<string, string>>({});
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
 
@@ -109,37 +111,59 @@ export function RecordWorkModal({
     }
   };
 
-  // Calculation metrics
-  const numQty = typeof inputQuantity === 'number' ? inputQuantity : 0;
+  const isAalyawalaRequired = category === 'BHATKAR' || category === 'KACHA_MAAL';
+
+  const availableAalyawalas = useMemo(() => {
+    return workers.filter((w) => w.category === 'AALYAWALE' && w.status === 'active');
+  }, [workers]);
+
+  // Selected Aalyawalas formatted entries
+  const aalyawalaEntries = useMemo(() => {
+    if (!isAalyawalaRequired) return [];
+    return Object.entries(aalyawalaQtyMap)
+      .map(([aalId, qtyStr]) => ({
+        aalyawala_id: aalId,
+        input_quantity: parseFloat(qtyStr) || 0,
+      }))
+      .filter((e) => e.input_quantity > 0);
+  }, [isAalyawalaRequired, aalyawalaQtyMap]);
+
+  // Combined total input quantity
+  const totalInputQty = useMemo(() => {
+    if (isAalyawalaRequired) {
+      return aalyawalaEntries.reduce((sum, e) => sum + e.input_quantity, 0);
+    }
+    return typeof inputQuantity === 'number' ? inputQuantity : 0;
+  }, [isAalyawalaRequired, aalyawalaEntries, inputQuantity]);
+
   const numRate = typeof ratePerUnit === 'number' ? ratePerUnit : 0;
 
   const physicalBricks = useMemo(() => {
     if (entryMode === 'PINJRI_COUNT') {
-      return numQty * 22;
+      return Math.round(totalInputQty * 22);
     }
     if (category === 'BHATKAR' || entryMode === 'SHIFT_COUNT') {
       return 0;
     }
-    return numQty;
-  }, [entryMode, numQty, category]);
+    return totalInputQty;
+  }, [entryMode, totalInputQty, category]);
 
   const billableBricks = useMemo(() => {
     if (entryMode === 'PINJRI_COUNT') {
-      return numQty * 20;
+      return Math.round(totalInputQty * 20);
     }
     if (category === 'BHATKAR' || entryMode === 'SHIFT_COUNT') {
       return 0;
     }
-    return numQty;
-  }, [entryMode, numQty, category]);
+    return totalInputQty;
+  }, [entryMode, totalInputQty, category]);
 
   const calculatedEarnings = useMemo(() => {
     if (entryMode === 'SHIFT_COUNT' || category === 'BHATKAR') {
-      return numQty * numRate;
+      return totalInputQty * numRate;
     }
-    // Rate is per 1000 bricks
     return (billableBricks * numRate) / 1000;
-  }, [entryMode, category, numQty, numRate, billableBricks]);
+  }, [entryMode, category, totalInputQty, numRate, billableBricks]);
 
   // Stepper handlers
   const handleStep = (delta: number) => {
@@ -164,9 +188,16 @@ export function RecordWorkModal({
       return;
     }
 
-    if (numQty <= 0) {
-      setErrorMsg('Please enter a valid quantity');
-      return;
+    if (isAalyawalaRequired) {
+      if (aalyawalaEntries.length === 0) {
+        setErrorMsg('Please select at least one Aalyawala and enter a valid quantity / किमान एका आल्यावाल्याची संख्या टाका');
+        return;
+      }
+    } else {
+      if (totalInputQty <= 0) {
+        setErrorMsg('Please enter a valid quantity');
+        return;
+      }
     }
 
     try {
@@ -175,8 +206,9 @@ export function RecordWorkModal({
         work_date: workDate,
         category,
         entry_mode: entryMode,
-        input_quantity: numQty,
+        input_quantity: totalInputQty,
         rate_per_unit: numRate,
+        aalyawala_entries: isAalyawalaRequired ? aalyawalaEntries : undefined,
         batch_id: batchId || null,
         reference_no: referenceNo || null,
         notes: notes || null,
@@ -186,6 +218,7 @@ export function RecordWorkModal({
       setInputQuantity('');
       setReferenceNo('');
       setNotes('');
+      setAalyawalaQtyMap({});
       setErrorMsg('');
       onOpenChange(false);
     } catch (err: any) {
@@ -286,6 +319,107 @@ export function RecordWorkModal({
             </div>
           </div>
 
+          {/* Mandatory Aalyawala Selection with Per-Aalyawala Quantity Inputs for Bhatkar and Kaccha Maal workers */}
+          {isAalyawalaRequired && (
+            <div className="space-y-2 p-3 bg-amber-950/30 border border-amber-500/30 rounded-xl">
+              <label className="text-xs font-semibold text-amber-300 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-amber-400" />
+                  Select Aalyawala & Enter Quantities / आल्यावाले निवडा व संख्या टाका *
+                </span>
+                <span className="text-[10px] font-normal text-slate-400 font-mono">
+                  {aalyawalaEntries.length} Selected
+                </span>
+              </label>
+              <div className="border border-slate-700 rounded-xl p-2 space-y-2 max-h-48 overflow-y-auto bg-slate-900">
+                {availableAalyawalas.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic p-1">
+                    No active Aalyawala workers found.
+                  </p>
+                ) : (
+                  availableAalyawalas.map((aal) => {
+                    const isChecked = aal.id in aalyawalaQtyMap;
+                    const currentQty = aalyawalaQtyMap[aal.id] ?? '';
+                    return (
+                      <div
+                        key={aal.id}
+                        className={`p-2 rounded-lg border transition-colors flex items-center justify-between gap-3 ${
+                          isChecked
+                            ? 'bg-amber-500/15 border-amber-500/40 text-amber-200'
+                            : 'border-slate-800 hover:bg-slate-800/60 text-slate-300'
+                        }`}
+                      >
+                        <label className="flex items-center gap-2 text-xs font-medium cursor-pointer flex-1 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setAalyawalaQtyMap((prev) => ({
+                                  ...prev,
+                                  [aal.id]:
+                                    entryMode === 'PINJRI_COUNT'
+                                      ? '50'
+                                      : entryMode === 'SHIFT_COUNT'
+                                      ? '1'
+                                      : '1000',
+                                }));
+                              } else {
+                                setAalyawalaQtyMap((prev) => {
+                                  const copy = { ...prev };
+                                  delete copy[aal.id];
+                                  return copy;
+                                });
+                              }
+                            }}
+                            className="rounded border-slate-600 text-amber-500 focus:ring-amber-500 h-4 w-4 shrink-0"
+                          />
+                          <span className="truncate">{aal.full_name}</span>
+                          <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                            ({aal.code})
+                          </span>
+                        </label>
+
+                        {isChecked && (
+                          <div className="flex items-center gap-1.5 w-36 shrink-0">
+                            <input
+                              type="number"
+                              min="0.5"
+                              step={entryMode === 'PINJRI_COUNT' ? '0.5' : '1'}
+                              value={currentQty}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setAalyawalaQtyMap((prev) => ({
+                                  ...prev,
+                                  [aal.id]: val,
+                                }));
+                              }}
+                              placeholder={
+                                entryMode === 'PINJRI_COUNT'
+                                  ? 'Pinjri'
+                                  : entryMode === 'SHIFT_COUNT'
+                                  ? 'Shift'
+                                  : 'Bricks'
+                              }
+                              className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-bold font-mono text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                            />
+                            <span className="text-[10px] font-mono text-slate-400 font-medium">
+                              {entryMode === 'PINJRI_COUNT'
+                                ? 'Pinjri'
+                                : entryMode === 'SHIFT_COUNT'
+                                ? 'Shift'
+                                : 'Pcs'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Entry Mode Selector (Special Pinjri rule for Kaccha Maal) */}
           {category === 'KACHA_MAAL' && (
             <div className="bg-slate-950/60 border border-amber-500/20 p-3 rounded-xl">
@@ -324,114 +458,130 @@ export function RecordWorkModal({
             </div>
           )}
 
-          {/* Main Input Stepper */}
-          <div className="bg-slate-800/50 p-4 border border-slate-700/80 rounded-2xl space-y-3">
-            <label className="block text-xs font-medium text-slate-300">
-              {entryMode === 'PINJRI_COUNT'
-                ? 'Number of Pinjris / पिंजरी संख्या'
-                : entryMode === 'SHIFT_COUNT' || category === 'BHATKAR'
-                ? 'Shifts Worked / दिवस (Shift)'
-                : 'Bricks Moulded/Handled (नग)'}
-            </label>
+          {/* Main Input Stepper for Non-Aalyawala workers */}
+          {!isAalyawalaRequired && (
+            <div className="bg-slate-800/50 p-4 border border-slate-700/80 rounded-2xl space-y-3">
+              <label className="block text-xs font-medium text-slate-300">
+                {entryMode === 'PINJRI_COUNT'
+                  ? 'Number of Pinjris / पिंजरी संख्या'
+                  : entryMode === 'SHIFT_COUNT' || category === 'BHATKAR'
+                  ? 'Shifts Worked / दिवस (Shift)'
+                  : 'Bricks Moulded/Handled (नग)'}
+              </label>
 
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => handleStep(-1)}
-                className="w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 border border-slate-600 flex items-center justify-center text-xl text-slate-200 font-bold shrink-0 transition-colors shadow-sm"
-              >
-                <Minus className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleStep(-1)}
+                  className="w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 border border-slate-600 flex items-center justify-center text-xl text-slate-200 font-bold shrink-0 transition-colors shadow-sm"
+                >
+                  <Minus className="w-5 h-5" />
+                </button>
 
-              <input
-                type="number"
-                inputMode="decimal"
-                step={entryMode === 'PINJRI_COUNT' || entryMode === 'SHIFT_COUNT' ? '0.5' : '1'}
-                value={inputQuantity}
-                onChange={(e) => setInputQuantity(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                placeholder="0"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-center text-2xl font-bold text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-              />
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step={entryMode === 'PINJRI_COUNT' || entryMode === 'SHIFT_COUNT' ? '0.5' : '1'}
+                  value={inputQuantity}
+                  onChange={(e) => setInputQuantity(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                  placeholder="0"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-center text-2xl font-bold text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                />
 
-              <button
-                type="button"
-                onClick={() => handleStep(1)}
-                className="w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 border border-slate-600 flex items-center justify-center text-xl text-slate-200 font-bold shrink-0 transition-colors shadow-sm"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => handleStep(1)}
+                  className="w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 border border-slate-600 flex items-center justify-center text-xl text-slate-200 font-bold shrink-0 transition-colors shadow-sm"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              </div>
 
-            {/* Quick Add Buttons */}
-            <div className="flex flex-wrap gap-2 pt-1">
-              {entryMode === 'PINJRI_COUNT' ? (
-                <>
-                  <button type="button" onClick={() => handleQuickAdd(1)} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
-                    +1 Pinjri
-                  </button>
-                  <button type="button" onClick={() => handleQuickAdd(5)} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
-                    +5 Pinjris
-                  </button>
-                  <button type="button" onClick={() => handleQuickAdd(10)} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
-                    +10 Pinjris
-                  </button>
-                </>
-              ) : entryMode === 'SHIFT_COUNT' || category === 'BHATKAR' ? (
-                <>
-                  <button type="button" onClick={() => handleQuickAdd(0.5)} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
-                    +0.5 Shift
-                  </button>
-                  <button type="button" onClick={() => handleQuickAdd(1)} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
-                    +1 Shift
-                  </button>
-                  <button type="button" onClick={() => handleQuickAdd(1.5)} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
-                    +1.5 Shift
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button type="button" onClick={() => handleQuickAdd(500)} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
-                    +500
-                  </button>
-                  <button type="button" onClick={() => handleQuickAdd(1000)} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
-                    +1,000
-                  </button>
-                  <button type="button" onClick={() => handleQuickAdd(2500)} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
-                    +2,500
-                  </button>
-                </>
+              {/* Quick Add Buttons */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {entryMode === 'PINJRI_COUNT' ? (
+                  <>
+                    <button type="button" onClick={() => handleQuickAdd(1)} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
+                      +1 Pinjri
+                    </button>
+                    <button type="button" onClick={() => handleQuickAdd(5)} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
+                      +5 Pinjris
+                    </button>
+                    <button type="button" onClick={() => handleQuickAdd(10)} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
+                      +10 Pinjris
+                    </button>
+                  </>
+                ) : entryMode === 'SHIFT_COUNT' || category === 'BHATKAR' ? (
+                  <>
+                    <button type="button" onClick={() => handleQuickAdd(0.5)} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
+                      +0.5 Shift
+                    </button>
+                    <button type="button" onClick={() => handleQuickAdd(1)} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
+                      +1 Shift
+                    </button>
+                    <button type="button" onClick={() => handleQuickAdd(1.5)} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
+                      +1.5 Shift
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button type="button" onClick={() => handleQuickAdd(500)} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
+                      +500
+                    </button>
+                    <button type="button" onClick={() => handleQuickAdd(1000)} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
+                      +1,000
+                    </button>
+                    <button type="button" onClick={() => handleQuickAdd(2500)} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">
+                      +2,500
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Live Calculation Display */}
+              {entryMode === 'PINJRI_COUNT' && (
+                <div className="bg-slate-900/90 border border-slate-700/60 p-3 rounded-xl space-y-1.5 text-xs">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Physical Bricks (22/Pinjri):</span>
+                    <span className="font-mono text-slate-200 font-medium">{physicalBricks.toLocaleString()} bricks</span>
+                  </div>
+                  <div className="flex justify-between text-amber-300">
+                    <span className="font-semibold">Billable Bricks (20/Pinjri):</span>
+                    <span className="font-mono font-bold">{billableBricks.toLocaleString()} bricks</span>
+                  </div>
+                </div>
               )}
             </div>
-
-            {/* Live Calculation Display */}
-            {entryMode === 'PINJRI_COUNT' && (
-              <div className="bg-slate-900/90 border border-slate-700/60 p-3 rounded-xl space-y-1.5 text-xs">
-                <div className="flex justify-between text-slate-400">
-                  <span>Physical Bricks (22/Pinjri):</span>
-                  <span className="font-mono text-slate-200 font-medium">{physicalBricks.toLocaleString()} bricks</span>
-                </div>
-                <div className="flex justify-between text-amber-300">
-                  <span className="font-semibold">Billable Bricks (20/Pinjri):</span>
-                  <span className="font-mono font-bold">{billableBricks.toLocaleString()} bricks</span>
-                </div>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Rate Input */}
           <div>
-            <label className="block text-xs text-slate-400 font-medium mb-1">
-              Rate / दर ({category === 'BHATKAR' || entryMode === 'SHIFT_COUNT' ? '₹ / shift' : '₹ / 1,000 bricks'})
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs text-slate-400 font-medium">
+                Rate / दर ({category === 'BHATKAR' || entryMode === 'SHIFT_COUNT' ? '₹ / shift' : '₹ / 1,000 bricks'})
+              </label>
+              {isRateEditableForCategory(category) ? (
+                <span className="text-[10px] text-amber-400 font-semibold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                  Editable Rate
+                </span>
+              ) : (
+                <span className="text-[10px] text-slate-500 font-mono">
+                  Fixed Rate
+                </span>
+              )}
+            </div>
             <div className="relative">
               <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-semibold">₹</span>
               <input
                 type="number"
                 step="0.01"
                 value={ratePerUnit}
+                disabled={!isRateEditableForCategory(category)}
                 onChange={(e) => setRatePerUnit(e.target.value === '' ? '' : parseFloat(e.target.value))}
                 placeholder="Rate"
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-8 pr-3 py-2.5 text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                className={`w-full bg-slate-800 border border-slate-700 rounded-xl pl-8 pr-3 py-2.5 text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/50 ${
+                  !isRateEditableForCategory(category) ? 'opacity-60 cursor-not-allowed bg-slate-800/50' : ''
+                }`}
               />
             </div>
           </div>
@@ -448,11 +598,11 @@ export function RecordWorkModal({
             </div>
             <div className="text-right text-xs text-slate-400">
               {entryMode === 'PINJRI_COUNT' ? (
-                <div>{numQty} Pinjris ({billableBricks} billed)</div>
+                <div>{totalInputQty} Pinjris ({billableBricks} billed)</div>
               ) : entryMode === 'SHIFT_COUNT' ? (
-                <div>{numQty} Shifts</div>
+                <div>{totalInputQty} Shifts</div>
               ) : (
-                <div>{numQty.toLocaleString()} Bricks</div>
+                <div>{totalInputQty.toLocaleString()} Bricks</div>
               )}
             </div>
           </div>

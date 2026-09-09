@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useRecordBulkDailyWork } from '../hooks/useWorkers';
 import type { Worker } from '../types/worker.types';
+import { isRateEditableForCategory } from '../utils/rate-permissions';
 import {
   Calendar,
   Users,
@@ -394,6 +395,32 @@ export function BulkRecordWorkSheet({
                       </div>
                     </div>
 
+                    {/* Mobile Rate Input */}
+                    <div className="space-y-1 bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/50">
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <label className="text-slate-300 font-medium">Work Rate / दर (₹):</label>
+                        {isRateEditableForCategory(selectedCategory) ? (
+                          <span className="text-[10px] text-amber-400 font-semibold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                            Editable
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-500">Fixed</span>
+                        )}
+                      </div>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={currentWorkerRow.rate}
+                        disabled={!isRateEditableForCategory(selectedCategory)}
+                        onChange={(e) =>
+                          handleRateChange(currentWorkerRow.workerId, parseFloat(e.target.value) || 0)
+                        }
+                        className={`w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 font-mono font-bold text-slate-200 text-xs ${
+                          !isRateEditableForCategory(selectedCategory) ? 'opacity-60 cursor-not-allowed' : ''
+                        }`}
+                      />
+                    </div>
+
                     {/* Calculated row figure */}
                     {typeof currentWorkerRow.quantity === 'number' && currentWorkerRow.quantity > 0 && (
                       <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700/50 flex justify-between items-center text-xs">
@@ -510,10 +537,13 @@ export function BulkRecordWorkSheet({
                               type="number"
                               step="0.01"
                               value={r.rate}
+                              disabled={!isRateEditableForCategory(selectedCategory)}
                               onChange={(e) =>
                                 handleRateChange(r.workerId, parseFloat(e.target.value) || 0)
                               }
-                              className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200"
+                              className={`w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 ${
+                                !isRateEditableForCategory(selectedCategory) ? 'opacity-60 cursor-not-allowed' : ''
+                              }`}
                             />
                           </td>
                           <td className="py-3 px-3 text-right font-mono font-bold text-amber-400">

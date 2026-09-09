@@ -55,7 +55,11 @@ export function WorkerForm({
         ? initialData.joining_date.split("T")[0]
         : new Date().toISOString().split("T")[0],
       status: initialData?.status || "active",
-      initial_rate_amount: initialData?.current_rate_amount || undefined,
+      initial_rate_amount:
+        initialData?.current_rate_amount !== undefined &&
+        initialData?.current_rate_amount !== null
+          ? initialData.current_rate_amount
+          : undefined,
       // Identity
       dob: initialData?.dob ? initialData.dob.split("T")[0] : "",
       gender: initialData?.gender || undefined,

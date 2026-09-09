@@ -351,6 +351,29 @@ export async function updateWorker(
     data: updateData,
   });
 
+  if (input.initial_rate_amount !== undefined && input.initial_rate_amount !== null && input.initial_rate_amount >= 0) {
+    const ratePaise = BigInt(Math.round(input.initial_rate_amount * 100));
+    const latestRate = await prisma.rate_history.findFirst({
+      where: { worker_id: id },
+      orderBy: { effective_date: "desc" },
+    });
+
+    if (latestRate) {
+      await prisma.rate_history.update({
+        where: { id: latestRate.id },
+        data: { rate_per_1000_paise: ratePaise },
+      });
+    } else {
+      await prisma.rate_history.create({
+        data: {
+          worker_id: id,
+          effective_date: updated.joining_date || new Date(),
+          rate_per_1000_paise: ratePaise,
+        },
+      });
+    }
+  }
+
   return {
     id: updated.id,
     organization_id: updated.business_unit_id,

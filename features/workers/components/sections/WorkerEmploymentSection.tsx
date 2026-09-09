@@ -1,8 +1,5 @@
 "use client";
 
-import React from "react";
-import { UseFormReturn } from "react-hook-form";
-import { Banknote, Briefcase, Calendar, CheckCircle2 } from "lucide-react";
 import {
   FormControl,
   FormField,
@@ -12,10 +9,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { Banknote, Briefcase, Calendar, CheckCircle2 } from "lucide-react";
+import { UseFormReturn, useWatch } from "react-hook-form";
 import {
   CATEGORY_OPTIONS,
   STATUS_OPTIONS,
 } from "../../constants/worker-options";
+import { isRateEditableForCategory } from "../../utils/rate-permissions";
 
 interface WorkerEmploymentSectionProps {
   form: UseFormReturn<any>;
@@ -30,6 +30,9 @@ export function WorkerEmploymentSection({
   rateInfo,
   initialRateAmount,
 }: WorkerEmploymentSectionProps) {
+  const selectedCategory = useWatch({ control: form.control, name: "category" });
+  const isRateEditable = mode === "create" || isRateEditableForCategory(selectedCategory);
+
   return (
     <div className="space-y-3 pt-3 border-t border-border">
       <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
@@ -109,13 +112,20 @@ export function WorkerEmploymentSection({
       </div>
 
       {/* Rate Display / Input */}
-      {mode === "create" ? (
+      {isRateEditable ? (
         <div className="mt-2.5 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-1.5">
-          <div className="flex items-center gap-1.5">
-            <Banknote className="h-3.5 w-3.5 text-primary" />
-            <span className="text-[11px] font-bold text-foreground uppercase tracking-wide">
-              {rateInfo.label}
-            </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Banknote className="h-3.5 w-3.5 text-primary" />
+              <span className="text-[11px] font-bold text-foreground uppercase tracking-wide">
+                {mode === "create" ? rateInfo.label : `Rate / Wage (${rateInfo.label})`}
+              </span>
+            </div>
+            {mode === "edit" && (
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                Editable Rate
+              </span>
+            )}
           </div>
           <div className="max-w-md space-y-1">
             <FormField
@@ -125,21 +135,19 @@ export function WorkerEmploymentSection({
                 <FormItem>
                   <FormControl>
                     <Input
-                      type="text"
-                      inputMode="decimal"
+                      type="number"
+                      step="0.01"
+                      min="0"
                       placeholder={rateInfo.placeholder}
-                      className="bg-card h-9"
-                      value={
-                        field.value !== undefined && field.value !== null && field.value !== ""
-                          ? Number(field.value).toLocaleString("en-IN")
-                          : ""
-                      }
+                      className="bg-card h-9 font-mono font-bold"
+                      value={field.value ?? ""}
                       onChange={(e) => {
-                        const raw = e.target.value.replace(/,/g, "");
+                        const raw = e.target.value;
                         if (raw === "") {
-                          field.onChange(undefined);
-                        } else if (!isNaN(Number(raw))) {
-                          field.onChange(Number(raw));
+                          field.onChange("");
+                        } else {
+                          const num = parseFloat(raw);
+                          field.onChange(isNaN(num) ? raw : num);
                         }
                       }}
                     />

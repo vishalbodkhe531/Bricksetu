@@ -1,8 +1,5 @@
 "use client";
 
-import React from "react";
-import { UseFormReturn } from "react-hook-form";
-import { Calendar, MapPin, Phone, User } from "lucide-react";
 import {
   FormControl,
   FormField,
@@ -12,6 +9,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { Calendar, MapPin, Phone, User } from "lucide-react";
+import { UseFormReturn } from "react-hook-form";
 import { GENDER_OPTIONS } from "../../constants/worker-options";
 
 interface WorkerPersonalInfoSectionProps {

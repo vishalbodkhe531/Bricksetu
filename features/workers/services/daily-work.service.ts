@@ -68,14 +68,35 @@ export async function recordDailyWork(
     }
   }
 
-  // 2. Compute quantities & earnings based on entry mode
-  let physicalQty = input.input_quantity;
-  let billableQty = input.input_quantity;
-  let unit = "BRICKS";
+  // Build list of items to create: supports explicit aalyawala_entries or single/split fallback
+  const itemsToCreate: { aalyawalaId: string | null; quantity: number }[] = [];
+
+  if (input.aalyawala_entries && input.aalyawala_entries.length > 0) {
+    for (const item of input.aalyawala_entries) {
+      itemsToCreate.push({
+        aalyawalaId: item.aalyawala_id,
+        quantity: item.input_quantity,
+      });
+    }
+  } else {
+    const aalyawalaIds: (string | null)[] =
+      input.aalyawala_ids && input.aalyawala_ids.length > 0
+        ? input.aalyawala_ids
+        : input.aalyawala_id
+        ? [input.aalyawala_id]
+        : [null];
+    const count = aalyawalaIds.length;
+    const splitInputQty = input.input_quantity / count;
+    for (const aalId of aalyawalaIds) {
+      itemsToCreate.push({
+        aalyawalaId: aalId,
+        quantity: splitInputQty,
+      });
+    }
+  }
+
   let convPhysicalPerUnit: number | null = null;
   let convBillablePerUnit: number | null = null;
-  let earnedAmount = 0;
-
   if (input.entry_mode === "PINJRI_COUNT") {
     const conv = await getActiveConversion(
       businessUnitId,
@@ -85,59 +106,69 @@ export async function recordDailyWork(
     );
     convPhysicalPerUnit = conv.physical_count_per_unit;
     convBillablePerUnit = conv.billable_count_per_unit;
-
-    physicalQty = input.input_quantity * convPhysicalPerUnit;
-    billableQty = input.input_quantity * convBillablePerUnit;
-    unit = "BRICKS";
-
-    // Rate is per 1000 bricks
-    earnedAmount = (billableQty * rate) / 1000;
-  } else if (input.entry_mode === "DIRECT_COUNT") {
-    physicalQty = input.input_quantity;
-    billableQty = input.input_quantity;
-    unit = "BRICKS";
-
-    // Rate is per 1000 bricks
-    earnedAmount = (billableQty * rate) / 1000;
-  } else if (input.entry_mode === "SHIFT_COUNT") {
-    physicalQty = input.input_quantity;
-    billableQty = input.input_quantity;
-    unit = "SHIFTS";
-
-    // Rate is per shift
-    earnedAmount = input.input_quantity * rate;
   }
 
-  const ratePaise = BigInt(Math.round(rate * 100));
-  const earnedAmountPaise = BigInt(Math.round(earnedAmount * 100));
+  const createdLogs: any[] = [];
 
-  const log = await prisma.daily_work_logs.create({
-    data: {
-      business_unit_id: businessUnitId,
-      worker_id: input.worker_id,
-      work_date: workDate,
-      category: input.category,
-      entry_mode: input.entry_mode,
-      input_quantity: input.input_quantity,
-      physical_quantity: physicalQty,
-      billable_quantity: billableQty,
-      unit,
-      conversion_physical_per_unit: convPhysicalPerUnit,
-      conversion_billable_per_unit: convBillablePerUnit,
-      rate_paise: ratePaise,
-      earned_amount_paise: earnedAmountPaise,
-      batch_id: input.batch_id || null,
-      reference_no: input.reference_no || null,
-      notes: input.notes || null,
-      created_by: userId || null,
-    },
-    include: {
-      profiles: true,
-      batches: true,
-    },
-  });
+  for (const item of itemsToCreate) {
+    const itemQty = item.quantity;
+    let physicalQty = itemQty;
+    let billableQty = itemQty;
+    let unit = "BRICKS";
+    let earnedAmount = 0;
 
-  return formatDailyWorkLog(log);
+    if (input.entry_mode === "PINJRI_COUNT") {
+      physicalQty = itemQty * (convPhysicalPerUnit || 22);
+      billableQty = itemQty * (convBillablePerUnit || 20);
+      unit = "BRICKS";
+      earnedAmount = (billableQty * rate) / 1000;
+    } else if (input.entry_mode === "DIRECT_COUNT") {
+      physicalQty = itemQty;
+      billableQty = itemQty;
+      unit = "BRICKS";
+      earnedAmount = (billableQty * rate) / 1000;
+    } else if (input.entry_mode === "SHIFT_COUNT") {
+      physicalQty = itemQty;
+      billableQty = itemQty;
+      unit = "SHIFTS";
+      earnedAmount = itemQty * rate;
+    }
+
+    const ratePaise = BigInt(Math.round(rate * 100));
+    const earnedAmountPaise = BigInt(Math.round(earnedAmount * 100));
+
+    const log = await prisma.daily_work_logs.create({
+      data: {
+        business_unit_id: businessUnitId,
+        worker_id: input.worker_id,
+        aalyawala_id: item.aalyawalaId,
+        work_date: workDate,
+        category: input.category,
+        entry_mode: input.entry_mode,
+        input_quantity: itemQty,
+        physical_quantity: physicalQty,
+        billable_quantity: billableQty,
+        unit,
+        conversion_physical_per_unit: convPhysicalPerUnit,
+        conversion_billable_per_unit: convBillablePerUnit,
+        rate_paise: ratePaise,
+        earned_amount_paise: earnedAmountPaise,
+        batch_id: input.batch_id || null,
+        reference_no: input.reference_no || null,
+        notes: input.notes || null,
+        created_by: userId || null,
+      },
+      include: {
+        profiles: true,
+        aalyawala: true,
+        batches: true,
+      },
+    });
+
+    createdLogs.push(formatDailyWorkLog(log));
+  }
+
+  return createdLogs.length === 1 ? createdLogs[0] : createdLogs;
 }
 
 export async function recordBulkDailyWork(
@@ -182,62 +213,76 @@ export async function recordBulkDailyWork(
         }
       }
 
-      let physicalQty = entry.input_quantity;
-      let billableQty = entry.input_quantity;
-      let unit = "BRICKS";
-      let convPhysicalPerUnit: number | null = null;
-      let convBillablePerUnit: number | null = null;
-      let earnedAmount = 0;
+      const aalyawalaIds: (string | null)[] =
+        entry.aalyawala_ids && entry.aalyawala_ids.length > 0
+          ? entry.aalyawala_ids
+          : entry.aalyawala_id
+          ? [entry.aalyawala_id]
+          : [null];
 
-      if (entry.entry_mode === "PINJRI_COUNT") {
-        convPhysicalPerUnit = conv.physical_count_per_unit;
-        convBillablePerUnit = conv.billable_count_per_unit;
-        physicalQty = entry.input_quantity * convPhysicalPerUnit;
-        billableQty = entry.input_quantity * convBillablePerUnit;
-        unit = "BRICKS";
-        earnedAmount = (billableQty * rate) / 1000;
-      } else if (entry.entry_mode === "DIRECT_COUNT") {
-        physicalQty = entry.input_quantity;
-        billableQty = entry.input_quantity;
-        unit = "BRICKS";
-        earnedAmount = (billableQty * rate) / 1000;
-      } else if (entry.entry_mode === "SHIFT_COUNT") {
-        physicalQty = entry.input_quantity;
-        billableQty = entry.input_quantity;
-        unit = "SHIFTS";
-        earnedAmount = entry.input_quantity * rate;
+      const count = aalyawalaIds.length;
+      const splitInputQty = entry.input_quantity / count;
+
+      for (const aalyawalaId of aalyawalaIds) {
+        let physicalQty = splitInputQty;
+        let billableQty = splitInputQty;
+        let unit = "BRICKS";
+        let convPhysicalPerUnit: number | null = null;
+        let convBillablePerUnit: number | null = null;
+        let earnedAmount = 0;
+
+        if (entry.entry_mode === "PINJRI_COUNT") {
+          convPhysicalPerUnit = conv.physical_count_per_unit;
+          convBillablePerUnit = conv.billable_count_per_unit;
+          physicalQty = splitInputQty * convPhysicalPerUnit;
+          billableQty = splitInputQty * convBillablePerUnit;
+          unit = "BRICKS";
+          earnedAmount = (billableQty * rate) / 1000;
+        } else if (entry.entry_mode === "DIRECT_COUNT") {
+          physicalQty = splitInputQty;
+          billableQty = splitInputQty;
+          unit = "BRICKS";
+          earnedAmount = (billableQty * rate) / 1000;
+        } else if (entry.entry_mode === "SHIFT_COUNT") {
+          physicalQty = splitInputQty;
+          billableQty = splitInputQty;
+          unit = "SHIFTS";
+          earnedAmount = splitInputQty * rate;
+        }
+
+        const ratePaise = BigInt(Math.round(rate * 100));
+        const earnedAmountPaise = BigInt(Math.round(earnedAmount * 100));
+
+        const log = await tx.daily_work_logs.create({
+          data: {
+            business_unit_id: businessUnitId,
+            worker_id: entry.worker_id,
+            aalyawala_id: aalyawalaId,
+            work_date: workDate,
+            category: bulkInput.category,
+            entry_mode: entry.entry_mode,
+            input_quantity: splitInputQty,
+            physical_quantity: physicalQty,
+            billable_quantity: billableQty,
+            unit,
+            conversion_physical_per_unit: convPhysicalPerUnit,
+            conversion_billable_per_unit: convBillablePerUnit,
+            rate_paise: ratePaise,
+            earned_amount_paise: earnedAmountPaise,
+            batch_id: entry.batch_id || null,
+            reference_no: entry.reference_no || null,
+            notes: entry.notes || null,
+            created_by: userId || null,
+          },
+          include: {
+            profiles: true,
+            aalyawala: true,
+            batches: true,
+          },
+        });
+
+        results.push(formatDailyWorkLog(log));
       }
-
-      const ratePaise = BigInt(Math.round(rate * 100));
-      const earnedAmountPaise = BigInt(Math.round(earnedAmount * 100));
-
-      const log = await tx.daily_work_logs.create({
-        data: {
-          business_unit_id: businessUnitId,
-          worker_id: entry.worker_id,
-          work_date: workDate,
-          category: bulkInput.category,
-          entry_mode: entry.entry_mode,
-          input_quantity: entry.input_quantity,
-          physical_quantity: physicalQty,
-          billable_quantity: billableQty,
-          unit,
-          conversion_physical_per_unit: convPhysicalPerUnit,
-          conversion_billable_per_unit: convBillablePerUnit,
-          rate_paise: ratePaise,
-          earned_amount_paise: earnedAmountPaise,
-          batch_id: entry.batch_id || null,
-          reference_no: entry.reference_no || null,
-          notes: entry.notes || null,
-          created_by: userId || null,
-        },
-        include: {
-          profiles: true,
-          batches: true,
-        },
-      });
-
-      results.push(formatDailyWorkLog(log));
     }
 
     return results;
@@ -279,6 +324,7 @@ export async function getDailyWorkLogs(
     where: whereClause,
     include: {
       profiles: true,
+      aalyawala: true,
       batches: true,
     },
     orderBy: { work_date: "desc" },
@@ -397,6 +443,8 @@ function formatDailyWorkLog(log: any) {
     worker_id: log.worker_id,
     worker_name: log.profiles?.full_name || "Unknown Worker",
     worker_code: log.profiles?.code || "",
+    aalyawala_id: log.aalyawala_id || null,
+    aalyawala_name: log.aalyawala?.full_name || null,
     work_date: log.work_date.toISOString().split("T")[0],
     category: log.category,
     entry_mode: log.entry_mode,
