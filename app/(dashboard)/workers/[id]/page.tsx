@@ -672,9 +672,9 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
           </div>
 
           {groupedDailyLogs && groupedDailyLogs.length > 0 ? (
-            <div className="border border-border rounded-lg overflow-hidden shadow-xs">
-              <table className="w-full text-xs text-left border-collapse">
-                <thead className="bg-muted/60 text-muted-foreground border-b border-border font-semibold uppercase text-[10px] tracking-wider">
+            <div className="border border-border rounded-lg overflow-x-auto shadow-xs">
+              <table className="w-full min-w-[680px] text-xs text-left border-collapse">
+                <thead className="bg-muted/60 text-muted-foreground border-b border-border font-semibold uppercase text-[10px] tracking-wider whitespace-nowrap">
                   <tr>
                     <th className="py-3 px-3.5">Day / वार</th>
                     <th className="py-3 px-3.5">Date</th>
@@ -709,13 +709,13 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                               : ""
                           }`}
                         >
-                          <td className="py-3 px-3.5 font-sans font-semibold text-amber-600 dark:text-amber-400 text-xs">
+                          <td className="py-3 px-3.5 font-sans font-semibold text-amber-600 dark:text-amber-400 text-xs whitespace-nowrap">
                             {getMarathiDay(logGroup.work_date)}
                           </td>
-                          <td className="py-3 px-3.5 font-semibold text-foreground">
+                          <td className="py-3 px-3.5 font-semibold text-foreground whitespace-nowrap">
                             {formatDateDdMmYyyy(logGroup.work_date)}
                           </td>
-                          <td className="py-3 px-3.5">
+                          <td className="py-3 px-3.5 whitespace-nowrap">
                             <Badge
                               variant="outline"
                               className="text-[10px] font-sans"
@@ -727,19 +727,19 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                                   : "Direct"}
                             </Badge>
                           </td>
-                          <td className="py-3 px-3.5 text-right text-muted-foreground font-semibold">
+                          <td className="py-3 px-3.5 text-right text-muted-foreground font-semibold whitespace-nowrap">
                             {logGroup.physical_quantity?.toLocaleString()}
                           </td>
-                          <td className="py-3 px-3.5 text-right font-bold text-foreground">
+                          <td className="py-3 px-3.5 text-right font-bold text-foreground whitespace-nowrap">
                             {logGroup.billable_quantity?.toLocaleString()}
                           </td>
-                          <td className="py-3 px-3.5 text-right text-muted-foreground">
+                          <td className="py-3 px-3.5 text-right text-muted-foreground whitespace-nowrap">
                             ₹{Number(logGroup.rate || 0).toFixed(2)}
                           </td>
-                          <td className="py-3 px-3.5 text-right font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+                          <td className="py-3 px-3.5 text-right font-bold text-emerald-600 dark:text-emerald-400 text-xs whitespace-nowrap">
                             ₹{Number(logGroup.earned_amount || 0).toFixed(2)}
                           </td>
-                          <td className="py-3 px-3.5 font-sans text-foreground text-[11px] font-medium">
+                          <td className="py-3 px-3.5 font-sans text-foreground text-[11px] font-medium whitespace-nowrap">
                             {isMulti ? (
                               <div className="flex items-center gap-1.5">
                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
@@ -802,8 +802,8 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
 
                                 {/* Responsive Sub-table */}
                                 <div className="overflow-x-auto rounded-md border border-border/80 bg-background/50">
-                                  <table className="w-full text-xs text-left border-collapse font-mono">
-                                    <thead className="bg-muted/70 text-muted-foreground border-b border-border text-[10px] uppercase font-sans tracking-wider font-semibold">
+                                  <table className="w-full min-w-[580px] text-xs text-left border-collapse font-mono">
+                                    <thead className="bg-muted/70 text-muted-foreground border-b border-border text-[10px] uppercase font-sans tracking-wider font-semibold whitespace-nowrap">
                                       <tr>
                                         <th className="py-2 px-3">#</th>
                                         <th className="py-2 px-3">Aalyawala Name</th>
@@ -824,32 +824,32 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                                           key={item.id || idx}
                                           className="hover:bg-muted/40 transition-colors"
                                         >
-                                          <td className="py-2 px-3 font-sans text-muted-foreground text-[10px]">
+                                          <td className="py-2 px-3 font-sans text-muted-foreground text-[10px] whitespace-nowrap">
                                             {idx + 1}
                                           </td>
-                                          <td className="py-2 px-3 font-sans font-bold text-foreground">
+                                          <td className="py-2 px-3 font-sans font-bold text-foreground whitespace-nowrap">
                                             {item.aalyawala_name || `Aalyawala #${idx + 1}`}
                                           </td>
-                                          <td className="py-2 px-3 text-right text-muted-foreground">
+                                          <td className="py-2 px-3 text-right text-muted-foreground whitespace-nowrap">
                                             {item.input_quantity?.toLocaleString()}{" "}
                                             {logGroup.entry_mode === "PINJRI_COUNT" ? "Pinjri" : ""}
                                           </td>
-                                          <td className="py-2 px-3 text-right text-muted-foreground">
+                                          <td className="py-2 px-3 text-right text-muted-foreground whitespace-nowrap">
                                             {item.physical_quantity?.toLocaleString()} pcs
                                           </td>
-                                          <td className="py-2 px-3 text-right font-semibold text-foreground">
+                                          <td className="py-2 px-3 text-right font-semibold text-foreground whitespace-nowrap">
                                             {item.billable_quantity?.toLocaleString()} pcs
                                           </td>
-                                          <td className="py-2 px-3 text-right text-muted-foreground">
+                                          <td className="py-2 px-3 text-right text-muted-foreground whitespace-nowrap">
                                             ₹{Number(logGroup.rate || 0).toFixed(2)}
                                           </td>
-                                          <td className="py-2 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                                          <td className="py-2 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                                             ₹{Number(item.earned_amount || 0).toFixed(2)}
                                           </td>
                                         </tr>
                                       ))}
                                     </tbody>
-                                    <tfoot className="bg-muted/40 font-bold border-t border-border text-foreground text-[11px]">
+                                    <tfoot className="bg-muted/40 font-bold border-t border-border text-foreground text-[11px] whitespace-nowrap">
                                       <tr>
                                         <td
                                           colSpan={2}
