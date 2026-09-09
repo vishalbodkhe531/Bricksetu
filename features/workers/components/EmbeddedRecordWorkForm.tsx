@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Calendar,
   Coins,
@@ -9,12 +9,14 @@ import {
   CheckCircle2,
   Loader2,
   Layers,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { workersApi } from "@/features/workers/api/workers.api";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/queryKeys";
+import { useWorkers } from "@/features/workers/hooks/useWorkers";
 
 import { isRateEditableForCategory } from "@/features/workers/utils/rate-permissions";
 
@@ -37,6 +39,7 @@ export function EmbeddedRecordWorkForm({
   onSuccess,
 }: EmbeddedRecordWorkFormProps) {
   const qc = useQueryClient();
+  const { data: allWorkers = [] } = useWorkers(orgId);
 
   const [workDate, setWorkDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -52,11 +55,18 @@ export function EmbeddedRecordWorkForm({
   const [batchNumber, setBatchNumber] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [aalyawalaQtyMap, setAalyawalaQtyMap] = useState<Record<string, string>>({});
 
   // Determine category from worker profile or default to AALYAWALE
   const category = VALID_CATEGORIES.includes(worker.category as any)
     ? (worker.category as "AALYAWALE" | "KACHA_MAAL" | "PAKKA_MAAL" | "BHATKAR")
     : "AALYAWALE";
+
+  const isAalyawalaRequired = category === "BHATKAR" || category === "KACHA_MAAL";
+
+  const availableAalyawalas = useMemo(() => {
+    return allWorkers.filter((w) => w.category === "AALYAWALE" && w.status === "active");
+  }, [allWorkers]);
 
   const isRateEditable = isRateEditableForCategory(category);
 
@@ -68,41 +78,50 @@ export function EmbeddedRecordWorkForm({
 
   const effectiveRate = parseFloat(customRate) || 0;
 
-  // Pinjri rule: 1 Pinjri = 22 raw bricks made, 20 billable bricks earned
-  const numPinjri = parseFloat(pinjriCount) || 0;
-  const pinjriRawMade = Math.round(numPinjri * 22);
-  const pinjriBillableEarned = Math.round(numPinjri * 20);
-  const pinjriEarnedAmount = (pinjriBillableEarned * effectiveRate) / 1000;
+  // Selected Aalyawalas formatted entries
+  const aalyawalaEntries = useMemo(() => {
+    if (!isAalyawalaRequired) return [];
+    return Object.entries(aalyawalaQtyMap)
+      .map(([aalId, qtyStr]) => ({
+        aalyawala_id: aalId,
+        input_quantity: parseFloat(qtyStr) || 0,
+      }))
+      .filter((e) => e.input_quantity > 0);
+  }, [isAalyawalaRequired, aalyawalaQtyMap]);
 
-  // Direct piece
-  const numDirect = parseFloat(directQty) || 0;
-  const directEarnedAmount = (numDirect * effectiveRate) / 1000;
+  // Combined total input quantity
+  const totalInputQty = useMemo(() => {
+    if (isAalyawalaRequired) {
+      return aalyawalaEntries.reduce((sum, e) => sum + e.input_quantity, 0);
+    }
+    return entryMode === "PINJRI_COUNT"
+      ? parseFloat(pinjriCount) || 0
+      : entryMode === "SHIFT_COUNT"
+      ? parseFloat(shiftCount) || 0
+      : parseFloat(directQty) || 0;
+  }, [isAalyawalaRequired, aalyawalaEntries, entryMode, pinjriCount, shiftCount, directQty]);
 
-  // Shift calculation
-  const numShift = parseFloat(shiftCount) || 1;
-  const shiftEarnedAmount = numShift * effectiveRate;
-
-  // Summary computed values
+  // Pinjri & piece calculation rules
   const physicalQty =
     entryMode === "PINJRI_COUNT"
-      ? pinjriRawMade
+      ? Math.round(totalInputQty * 22)
       : entryMode === "DIRECT_COUNT"
-      ? numDirect
-      : Math.round(numShift * 1000);
+      ? totalInputQty
+      : Math.round(totalInputQty * 1000);
 
   const billableQty =
     entryMode === "PINJRI_COUNT"
-      ? pinjriBillableEarned
+      ? Math.round(totalInputQty * 20)
       : entryMode === "DIRECT_COUNT"
-      ? numDirect
-      : Math.round(numShift * 1000);
+      ? totalInputQty
+      : Math.round(totalInputQty * 1000);
 
   const earnedAmount =
     entryMode === "PINJRI_COUNT"
-      ? pinjriEarnedAmount
+      ? (billableQty * effectiveRate) / 1000
       : entryMode === "DIRECT_COUNT"
-      ? directEarnedAmount
-      : shiftEarnedAmount;
+      ? (billableQty * effectiveRate) / 1000
+      : totalInputQty * effectiveRate;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,22 +131,17 @@ export function EmbeddedRecordWorkForm({
       return;
     }
 
-    if (entryMode === "PINJRI_COUNT" && numPinjri <= 0) {
-      toast.error("Please enter a valid Pinjri count");
-      return;
+    if (isAalyawalaRequired) {
+      if (aalyawalaEntries.length === 0) {
+        toast.error("Please select at least one Aalyawala and enter a valid quantity / किमान एका आल्यावाल्याची संख्या टाका");
+        return;
+      }
+    } else {
+      if (totalInputQty <= 0) {
+        toast.error("Please enter a valid work quantity");
+        return;
+      }
     }
-
-    if (entryMode === "DIRECT_COUNT" && numDirect <= 0) {
-      toast.error("Please enter a valid brick quantity");
-      return;
-    }
-
-    const inputQuantity =
-      entryMode === "PINJRI_COUNT"
-        ? numPinjri
-        : entryMode === "SHIFT_COUNT"
-        ? numShift
-        : numDirect;
 
     setIsSubmitting(true);
 
@@ -137,8 +151,9 @@ export function EmbeddedRecordWorkForm({
         work_date: workDate,
         category,
         entry_mode: entryMode,
-        input_quantity: inputQuantity,
+        input_quantity: totalInputQty,
         rate_per_unit: effectiveRate,
+        aalyawala_entries: isAalyawalaRequired ? aalyawalaEntries : undefined,
         reference_no: batchNumber || null,
         notes: notes || null,
       });
@@ -204,6 +219,107 @@ export function EmbeddedRecordWorkForm({
             />
           </div>
 
+          {/* Mandatory Aalyawala Selection with Per-Aalyawala Quantity Inputs for Bhatkar and Kaccha Maal workers */}
+          {isAalyawalaRequired && (
+            <div className="space-y-2 p-3 bg-amber-500/5 border border-amber-500/30 rounded-lg">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5 text-amber-500" />
+                  Select Aalyawala & Enter Quantities / आल्यावाले निवडा व संख्या टाका *
+                </span>
+                <span className="text-[10px] font-normal text-muted-foreground font-mono">
+                  {aalyawalaEntries.length} Selected
+                </span>
+              </label>
+              <div className="border border-input rounded-md p-2 space-y-2 max-h-48 overflow-y-auto bg-background">
+                {availableAalyawalas.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic p-1">
+                    No active Aalyawala workers found.
+                  </p>
+                ) : (
+                  availableAalyawalas.map((aal) => {
+                    const isChecked = aal.id in aalyawalaQtyMap;
+                    const currentQty = aalyawalaQtyMap[aal.id] ?? "";
+                    return (
+                      <div
+                        key={aal.id}
+                        className={`p-2 rounded-md border transition-colors flex items-center justify-between gap-3 ${
+                          isChecked
+                            ? "bg-amber-500/10 border-amber-500/40"
+                            : "border-border hover:bg-muted/30"
+                        }`}
+                      >
+                        <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer flex-1 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setAalyawalaQtyMap((prev) => ({
+                                  ...prev,
+                                  [aal.id]:
+                                    entryMode === "PINJRI_COUNT"
+                                      ? "50"
+                                      : entryMode === "SHIFT_COUNT"
+                                      ? "1"
+                                      : "1000",
+                                }));
+                              } else {
+                                setAalyawalaQtyMap((prev) => {
+                                  const copy = { ...prev };
+                                  delete copy[aal.id];
+                                  return copy;
+                                });
+                              }
+                            }}
+                            className="rounded border-input text-amber-500 focus:ring-amber-500 h-4 w-4 shrink-0"
+                          />
+                          <span className="truncate">{aal.full_name}</span>
+                          <span className="text-[10px] text-muted-foreground font-mono shrink-0">
+                            ({aal.code})
+                          </span>
+                        </label>
+
+                        {isChecked && (
+                          <div className="flex items-center gap-1.5 w-36 shrink-0">
+                            <input
+                              type="number"
+                              min="0.5"
+                              step={entryMode === "PINJRI_COUNT" ? "0.5" : "1"}
+                              value={currentQty}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setAalyawalaQtyMap((prev) => ({
+                                  ...prev,
+                                  [aal.id]: val,
+                                }));
+                              }}
+                              placeholder={
+                                entryMode === "PINJRI_COUNT"
+                                  ? "Pinjri"
+                                  : entryMode === "SHIFT_COUNT"
+                                  ? "Shift"
+                                  : "Bricks"
+                              }
+                              className="w-full bg-background border border-input rounded px-2 py-1 text-xs font-bold font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                            />
+                            <span className="text-[10px] font-mono text-muted-foreground font-semibold">
+                              {entryMode === "PINJRI_COUNT"
+                                ? "Pinjri"
+                                : entryMode === "SHIFT_COUNT"
+                                ? "Shift"
+                                : "Pcs"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Entry Mode Selector */}
           <div>
             <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1.5">
@@ -257,8 +373,8 @@ export function EmbeddedRecordWorkForm({
             </div>
           </div>
 
-          {/* Mode-Specific Input Fields */}
-          {entryMode === "PINJRI_COUNT" && (
+          {/* Mode-Specific Single Input Field for non-Aalyawala workers */}
+          {!isAalyawalaRequired && entryMode === "PINJRI_COUNT" && (
             <div className="space-y-1.5 bg-amber-500/5 p-3 rounded-lg border border-amber-500/20">
               <label className="text-[11px] font-bold text-amber-600 dark:text-amber-400 mb-1 flex items-center justify-between">
                 <span>Pinjrya / पिंजऱ्या (Count)</span>
@@ -287,7 +403,7 @@ export function EmbeddedRecordWorkForm({
             </div>
           )}
 
-          {entryMode === "DIRECT_COUNT" && (
+          {!isAalyawalaRequired && entryMode === "DIRECT_COUNT" && (
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-muted-foreground mb-1 block">
                 Total Bricks Quantity / विटांची संख्या
@@ -304,7 +420,7 @@ export function EmbeddedRecordWorkForm({
             </div>
           )}
 
-          {entryMode === "SHIFT_COUNT" && (
+          {!isAalyawalaRequired && entryMode === "SHIFT_COUNT" && (
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-muted-foreground mb-1 block">
                 Shift Count / शिफ्ट प्रमाण
@@ -398,9 +514,9 @@ export function EmbeddedRecordWorkForm({
             {entryMode === "PINJRI_COUNT" && (
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between items-center py-1 border-b border-border/50">
-                  <span className="text-muted-foreground">Pinjri Count:</span>
+                  <span className="text-muted-foreground">Total Pinjri Count:</span>
                   <span className="font-bold font-mono text-foreground">
-                    {numPinjri} Pinjri
+                    {totalInputQty} Pinjri
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-1 border-b border-border/50">
@@ -408,7 +524,7 @@ export function EmbeddedRecordWorkForm({
                     Raw Made (22 Ratio):
                   </span>
                   <span className="font-semibold font-mono text-foreground">
-                    {pinjriRawMade.toLocaleString()} Bricks
+                    {physicalQty.toLocaleString()} Bricks
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-1 border-b border-border/50">
@@ -416,7 +532,7 @@ export function EmbeddedRecordWorkForm({
                     Billable (20 Ratio):
                   </span>
                   <span className="font-bold font-mono text-primary">
-                    {pinjriBillableEarned.toLocaleString()} Bricks
+                    {billableQty.toLocaleString()} Bricks
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-1 border-b border-border/50">

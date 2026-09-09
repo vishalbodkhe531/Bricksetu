@@ -105,6 +105,8 @@ export interface DailyWorkLog {
   worker_id: string;
   worker_name?: string;
   worker_code?: string;
+  aalyawala_id?: string | null;
+  aalyawala_name?: string | null;
   work_date: string;
   category: "AALYAWALE" | "KACHA_MAAL" | "PAKKA_MAAL" | "BHATKAR" | string;
   entry_mode: "DIRECT_COUNT" | "PINJRI_COUNT" | "SHIFT_COUNT" | string;

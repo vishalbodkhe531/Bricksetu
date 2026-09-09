@@ -1,8 +1,5 @@
 "use client";
 
-import React from "react";
-import { UseFormReturn } from "react-hook-form";
-import { AlertTriangle, Coins } from "lucide-react";
 import {
   FormControl,
   FormField,
@@ -11,6 +8,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { AlertTriangle, Coins } from "lucide-react";
+import { UseFormReturn } from "react-hook-form";
 
 interface WorkerOpeningAdvanceSectionProps {
   form: UseFormReturn<any>;

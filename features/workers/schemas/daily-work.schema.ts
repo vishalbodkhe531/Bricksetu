@@ -14,6 +14,17 @@ export const dailyWorkInputSchema = z
     entry_mode: entryModeEnum,
     input_quantity: z.number().positive('Quantity must be greater than 0'),
     rate_per_unit: z.number().nonnegative('Rate cannot be negative').optional(),
+    aalyawala_id: z.string().uuid().optional().nullable(),
+    aalyawala_ids: z.array(z.string().uuid()).optional().nullable(),
+    aalyawala_entries: z
+      .array(
+        z.object({
+          aalyawala_id: z.string().uuid('Invalid Aalyawala ID'),
+          input_quantity: z.number().positive('Quantity must be greater than 0'),
+        })
+      )
+      .optional()
+      .nullable(),
     batch_id: z.string().uuid().optional().nullable(),
     reference_no: z.string().optional().nullable(),
     notes: z.string().optional().nullable(),
@@ -58,6 +69,8 @@ export const bulkDailyWorkInputSchema = z.object({
       entry_mode: entryModeEnum,
       input_quantity: z.number().positive(),
       rate_per_unit: z.number().optional(),
+      aalyawala_id: z.string().uuid().optional().nullable(),
+      aalyawala_ids: z.array(z.string().uuid()).optional().nullable(),
       batch_id: z.string().uuid().optional().nullable(),
       reference_no: z.string().optional().nullable(),
       notes: z.string().optional().nullable(),

@@ -1,8 +1,5 @@
 "use client";
 
-import React from "react";
-import { UseFormReturn, useWatch } from "react-hook-form";
-import { Banknote, Briefcase, Calendar, CheckCircle2 } from "lucide-react";
 import {
   FormControl,
   FormField,
@@ -12,6 +9,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { Banknote, Briefcase, Calendar, CheckCircle2 } from "lucide-react";
+import { UseFormReturn, useWatch } from "react-hook-form";
 import {
   CATEGORY_OPTIONS,
   STATUS_OPTIONS,

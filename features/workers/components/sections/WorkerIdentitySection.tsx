@@ -1,8 +1,5 @@
 "use client";
 
-import React from "react";
-import { UseFormReturn } from "react-hook-form";
-import { FileText } from "lucide-react";
 import {
   FormControl,
   FormField,
@@ -12,6 +9,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { FileText } from "lucide-react";
+import { UseFormReturn } from "react-hook-form";
 import { ID_PROOF_OPTIONS } from "../../constants/worker-options";
 import { WorkerPhotoUpload } from "../WorkerPhotoUpload";
 

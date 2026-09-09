@@ -24,7 +24,8 @@ model profiles {
   updated_at              DateTime              @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   settlements             settlements[]
   daily_moulding_logs     daily_moulding_logs[]
-  daily_work_logs         daily_work_logs[]
+  daily_work_logs         daily_work_logs[]     @relation("daily_work_worker")
+  aalyawala_work_logs     daily_work_logs[]     @relation("daily_work_aalyawala")
   business_units          business_units        @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   rate_history            rate_history[]
 
@@ -64,6 +65,7 @@ model daily_work_logs {
   conversion_billable_per_unit  Int?
   rate_paise                    BigInt
   earned_amount_paise           BigInt
+  aalyawala_id                  String?        @db.Uuid
   batch_id                      String?        @db.Uuid
   reference_no                  String?        @db.VarChar(100)
   notes                         String?
@@ -71,7 +73,8 @@ model daily_work_logs {
   created_at                    DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   created_by                    String?        @db.Uuid
 
-  profiles                      profiles       @relation(fields: [worker_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles                      profiles       @relation("daily_work_worker", fields: [worker_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  aalyawala                     profiles?      @relation("daily_work_aalyawala", fields: [aalyawala_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   business_units                business_units @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   settlements                   settlements?   @relation(fields: [settlement_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   batches                       batches?       @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)

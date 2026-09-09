@@ -1,0 +1,89 @@
+# Permission Matrix & Role-Based Access Control (RBAC) Plan
+
+## Overview
+As BrickSetu expands from single-admin usage to multi-user brick kiln management, operational responsibilities are distributed across key staff roles (e.g., Owner, Munshi/Manager, Accountant, Dispatch Clerk, Field Supervisor). 
+
+This plan outlines a **centralized, granular Permission Matrix Architecture**. It defines exact functional access per role across all system modules and details how permissions will be enforced cleanly across the database, server API layer, and frontend UI.
+
+---
+
+## 1. Brick Kiln Operational Roles
+
+| Role Key | Role Name (Local Label) | Description & Key Responsibilities |
+| :--- | :--- | :--- |
+| `SUPER_ADMIN` | **मालिक (Owner / Super Admin)** | Unrestricted control over all financial, operational, rate, and user settings. |
+| `MANAGER` | **मुंशी (Manager / Head Munshi)** | Manages daily labor, moulding counts, daily work logs, and routine operational entries. |
+| `ACCOUNTANT` | **कॅशियर (Accountant / Cashier)** | Manages cash/bank advances, party payments, settlements, and expense tracking. |
+| `DISPATCH_CLERK` | **गेटकीपर (Dispatch / Sales Clerk)** | Handles customer sales, truck loading dispatches, and gate pass generation. |
+| `FIELD_SUPERVISOR` | **पाथरोड सुपरवायजर (Field Supervisor)** | Mobile-optimized logging of daily counts for assigned categories (Kacha/Pakka Maal, Jalai). |
+
+---
+
+## 2. Comprehensive Permission Matrix
+
+Legend: **Full** (✅), **Conditional / Dynamic** (🟡), **Read-Only** (👁️), **No Access** (❌)
+
+| System Domain | Action / Functionality | Permission Key | `SUPER_ADMIN` | `MANAGER` | `ACCOUNTANT` | `DISPATCH_CLERK` | `FIELD_SUPERVISOR` |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Worker Management** | View Worker Roster & Profiles | `workers:read` | ✅ | ✅ | 👁️ | ❌ | 👁️ |
+| | Register New Worker Profile | `workers:create` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| | Edit General Worker Details | `workers:edit` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| | Deactivate / Soft Delete Worker | `workers:delete` | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Rates & Wage Policy** | Edit Base Master Rates | `rates:edit_master` | ✅ | ❌ | ❌ | ❌ | ❌ |
+| | Override Daily Rate (Kacha/Pakka Maal) | `rates:override_daily` | ✅ | ✅ | ❌ | ❌ | 🟡 (Assigned only) |
+| | View Rate Change History | `rates:view_history` | ✅ | ✅ | 👁️ | ❌ | ❌ |
+| **Daily Work & Moulding** | Record Single / Modal Work Log | `daily_work:create` | ✅ | ✅ | ❌ | ❌ | ✅ |
+| | Bulk Sheet Work Log Entry | `daily_work:bulk_create` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| | Edit / Delete Past Work Logs | `daily_work:edit_past` | ✅ | 🟡 (Same Day) | ❌ | ❌ | ❌ |
+| **Advances & Financials** | Issue Worker Advance (Peshgi) | `advances:create` | ✅ | 🟡 (Up to Limit) | ✅ | ❌ | ❌ |
+| | Approve & Process Final Settlement | `settlements:approve` | ✅ | ❌ | ✅ | ❌ | ❌ |
+| | View Advance Balances & Ledgers | `advances:view_ledger` | ✅ | 👁️ | ✅ | ❌ | ❌ |
+| | Manage Kiln Operating Expenses | `expenses:manage` | ✅ | 🟡 (Minor Exp) | ✅ | ❌ | ❌ |
+| **Production & Firing** | Log Firing (Jalai) & Loading | `production:log_firing` | ✅ | ✅ | ❌ | ❌ | ✅ |
+| | Log Unloading (Nikasi) & Brick Sorting | `production:log_nikasi` | ✅ | ✅ | ❌ | ❌ | ✅ |
+| | Stock Adjustments & Waste Loss | `inventory:adjust` | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Sales & Dispatch** | Create Sales Order & Challan | `sales:create` | ✅ | 👁️ | 👁️ | ✅ | ❌ |
+| | Generate Truck Gate Pass | `sales:gate_pass` | ✅ | 👁️ | ❌ | ✅ | ❌ |
+| | View Customer Account Ledger | `sales:view_ledger` | ✅ | ❌ | ✅ | 👁️ | ❌ |
+| **System Administration** | Manage User Accounts & Roles | `users:manage` | ✅ | ❌ | ❌ | ❌ | ❌ |
+| | View Audit Trail Logs | `audit:view` | ✅ | ❌ | 👁️ | ❌ | ❌ |
+
+---
+
+## 3. Technical Architecture & Technical Design
+
+### A. Data Model Enhancements (`auth.prisma`)
+- Extend `users` table or create `roles` & `role_permissions` schema to support future custom role overrides.
+- Key User Attributes: `role` (enum/string), `is_active` (boolean), `assigned_category` (optional, for field supervisors).
+
+### B. Central Permission Engine (`lib/permissions/`)
+Create a zero-dependency, ultra-fast permissions engine:
+1. `permission-keys.ts`: Strongly-typed enum/union of all permission keys.
+2. `matrix.ts`: Static mapping of `Role -> Set<PermissionKey>`.
+3. `evaluator.ts`: Function `hasPermission(user, permission, context)` that evaluates permissions cleanly.
+
+### C. Server-Side Enforcement (API & Service Layer)
+1. **API Guard Middleware**: `withPermission(permissionKey, handler)` wrapper for Next.js Route Handlers.
+2. **Service Layer Assertion**: Call `assertPermission(sessionUser, 'rates:override_daily')` inside services like `daily-work.service.ts` or `workers.service.ts`.
+
+### D. Frontend UI Enforcement
+1. **`usePermission()` Hook**: Expose `hasPermission('rates:override_daily')` and `userRole` to any component.
+2. **`<PermissionGuard permission="...">` Component**: Declarative wrapper to show/hide buttons, rate inputs, or entire pages.
+3. **Integration with `rate-permissions.ts`**: Connect `isRateEditableForCategory(category, options)` directly to `hasPermission(user, 'rates:override_daily')`.
+
+---
+
+## 4. Verification Plan
+
+### Automated Verification
+- **Permission Matrix Unit Tests**: Run Jest/Vitest tests to ensure each role evaluates permissions strictly according to matrix specification.
+- **API Guard Tests**: Verify that unauthorized role requests return HTTP 403 Forbidden.
+
+### Manual Verification
+- **Role Switch Testing**: Test UI components (Record Work Modal, Worker Profile Edit, Bulk Sheet) logged in under different mock user roles to confirm input fields and actions enable/disable correctly.
+
+---
+
+## Open Questions for User
+1. **Daily Advance Limit for Munshi**: Should Managers/Munshis have a max cap (e.g. ₹5,000 per worker without Owner approval) when recording advances?
+2. **Field Supervisor Mobile Access**: Should Field Supervisors be limited strictly to logging entries for their assigned worker categories?

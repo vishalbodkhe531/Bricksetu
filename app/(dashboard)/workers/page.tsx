@@ -1,13 +1,16 @@
 "use client";
 
+import { ActionMenu, type ActionMenuItem } from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Column, DataTable } from "@/components/ui/data-table/data-table";
 import { Input } from "@/components/ui/input";
+import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
+import { BulkRecordWorkSheet } from "@/features/workers/components/BulkRecordWorkSheet";
 import { RateChangeDialog } from "@/features/workers/components/RateChangeDialog";
 import { WorkerDeactivateDialog } from "@/features/workers/components/WorkerDeactivateDialog";
-import { BulkRecordWorkSheet } from "@/features/workers/components/BulkRecordWorkSheet";
+import { formatWorkerCategory } from "@/features/workers/constants/worker-options";
 import {
   useChangeWorkerRate,
   useDeactivateWorker,
@@ -16,24 +19,18 @@ import {
 } from "@/features/workers/hooks/useWorkers";
 import type { Worker } from "@/features/workers/types/worker.types";
 import {
+  Coins,
   Edit,
   Eye,
   Filter,
+  Layers,
   Plus,
   Trash2,
   Users,
   X,
-  Coins,
-  Layers,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { ActionMenu, type ActionMenuItem } from "@/components/ui/action-menu";
-import { TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  CATEGORY_OPTIONS,
-  formatWorkerCategory,
-} from "@/features/workers/constants/worker-options";
 import React, { useMemo, useReducer, useState } from "react";
 import { toast } from "sonner";
 
@@ -113,7 +110,6 @@ export default function WorkersPage() {
     },
     dispatchAdvance,
   ] = useReducer(advanceReducer, initialAdvanceState);
-
 
   const roleUpper = (profile?.role || "").toUpperCase();
   const canWrite =
@@ -210,9 +206,7 @@ export default function WorkersPage() {
       accessorKey: "phone",
       header: "Phone",
       cell: ({ row }) => (
-        <span className="font-mono text-xs">
-          {row.original.phone || "—"}
-        </span>
+        <span className="font-mono text-xs">{row.original.phone || "—"}</span>
       ),
     },
     {
@@ -230,7 +224,9 @@ export default function WorkersPage() {
 
         return (
           <span className="font-mono font-semibold text-foreground text-xs">
-            {rate !== undefined && rate !== null ? `₹${rate.toFixed(2)} ${unit}` : "—"}
+            {rate !== undefined && rate !== null
+              ? `₹${rate.toFixed(2)} ${unit}`
+              : "—"}
           </span>
         );
       },
@@ -345,10 +341,12 @@ export default function WorkersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card p-4 rounded-xl border border-border shadow-xs">
         <div>
           <h1 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" /> Workers Roster / कामगार सूची
+            <Users className="h-5 w-5 text-primary" /> Workers Roster / कामगार
+            सूची
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Manage worker profiles, daily work logging, piece rates, and advance balances.
+            Manage worker profiles, daily work logging, piece rates, and advance
+            balances.
           </p>
         </div>
 
@@ -370,7 +368,8 @@ export default function WorkersPage() {
                 size="sm"
                 onClick={() => setShowBulkRecordSheet(true)}
               >
-                <Layers className="h-3.5 w-3.5 text-primary" /> Bulk Entry / काम नोंदवा
+                <Layers className="h-3.5 w-3.5 text-primary" /> Bulk Entry / काम
+                नोंदवा
               </Button>
 
               <Link href="/workers/new">
@@ -383,10 +382,9 @@ export default function WorkersPage() {
         </div>
       </div>
 
-
       {/* Tabbed Filter Bar */}
       <div className="border-b border-border bg-card rounded-t-xl px-2 pt-2 flex gap-1 overflow-x-auto">
-        <TabsList className="bg-transparent p-0 gap-1 h-auto flex flex-nowrap">
+        <TabsList className="bg-transparent  p-0 gap-1 h-auto flex flex-nowrap">
           {WORKER_TABS.map((t) => {
             const count = counts[t.id] ?? 0;
             const isActive = activeTab === t.id;
@@ -403,7 +401,7 @@ export default function WorkersPage() {
               >
                 {t.label}
                 <span
-                  className={`ml-1.5 px-1.5 py-0.2 text-[10px] font-mono rounded-full ${
+                  className={`ml-1.5 px-1 py-0.4 text-[10px] font-mono rounded-full ${
                     isActive
                       ? "bg-primary text-primary-foreground font-bold"
                       : "bg-muted text-muted-foreground"

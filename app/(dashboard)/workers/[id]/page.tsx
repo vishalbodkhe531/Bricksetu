@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useMemo, useRef, Fragment } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -9,6 +9,7 @@ import {
   Banknote,
   Briefcase,
   Calendar,
+  ChevronDown,
   Clock,
   Coins,
   Edit,
@@ -22,6 +23,7 @@ import {
   ShieldCheck,
   User,
   UserX,
+  Users,
   Trash2,
   PlusCircle,
 } from "lucide-react";
@@ -41,6 +43,42 @@ import {
 } from "@/features/workers/hooks/useWorkers";
 import { formatWorkerCategory } from "@/features/workers/constants/worker-options";
 
+const MARATHI_DAYS = [
+  "रविवार",
+  "सोमवार",
+  "मंगळवार",
+  "बुधवार",
+  "गुरुवार",
+  "शुक्रवार",
+  "शनिवार",
+];
+
+function getMarathiDay(dateStr: string): string {
+  if (!dateStr) return "—";
+  const parts = dateStr.split("T")[0].split("-");
+  if (parts.length === 3) {
+    const [yyyy, mm, dd] = parts.map(Number);
+    const date = new Date(yyyy, mm - 1, dd);
+    return MARATHI_DAYS[date.getDay()] || "—";
+  }
+  const date = new Date(dateStr);
+  return MARATHI_DAYS[date.getDay()] || "—";
+}
+
+function formatDateDdMmYyyy(dateStr: string): string {
+  if (!dateStr) return "—";
+  const parts = dateStr.split("T")[0].split("-");
+  if (parts.length === 3) {
+    const [yyyy, mm, dd] = parts;
+    return `${dd}-${mm}-${yyyy}`;
+  }
+  const date = new Date(dateStr);
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yyyy = date.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}
+
 interface WorkerDetailPageProps {
   params: Promise<{ id: string }>;
 }
@@ -57,16 +95,62 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
   const { data: dailyWorkData } = useDailyWorkLogs({ workerId });
   const deleteDailyWorkLog = useDeleteDailyWorkLog(orgId);
 
+  // Group logs by work_date, entry_mode, and rate to display multi-Aalyawala entries in a single combined row
+  const groupedDailyLogs = useMemo(() => {
+    if (!dailyWorkData?.logs || dailyWorkData.logs.length === 0) return [];
+
+    const groupMap = new Map<string, any>();
+
+    for (const log of dailyWorkData.logs) {
+      const datePart = log.work_date ? log.work_date.split("T")[0] : "";
+      const key = `${datePart}_${log.entry_mode}_${log.rate}`;
+      const existing = groupMap.get(key);
+
+      const item = {
+        id: log.id,
+        aalyawala_id: log.aalyawala_id,
+        aalyawala_name:
+          log.aalyawala_name || log.batch_number || log.reference_no || null,
+        input_quantity: Number(log.input_quantity || 0),
+        physical_quantity: Number(log.physical_quantity || 0),
+        billable_quantity: Number(log.billable_quantity || 0),
+        earned_amount: Number(log.earned_amount || 0),
+      };
+
+      if (existing) {
+        existing.physical_quantity += Number(log.physical_quantity || 0);
+        existing.billable_quantity += Number(log.billable_quantity || 0);
+        existing.earned_amount += Number(log.earned_amount || 0);
+        existing.items.push(item);
+      } else {
+        groupMap.set(key, {
+          id: log.id,
+          work_date: log.work_date,
+          entry_mode: log.entry_mode,
+          physical_quantity: Number(log.physical_quantity || 0),
+          billable_quantity: Number(log.billable_quantity || 0),
+          rate: Number(log.rate || 0),
+          earned_amount: Number(log.earned_amount || 0),
+          items: [item],
+        });
+      }
+    }
+
+    return Array.from(groupMap.values());
+  }, [dailyWorkData?.logs]);
+
   const deactivateWorker = useDeactivateWorker(orgId);
   const changeWorkerRate = useChangeWorkerRate(orgId, workerId);
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<"profile" | "record_work" | "ledger">(
+  const [activeTab, setActiveTab] = useState<
+    "profile" | "record_work" | "ledger"
+  >(
     initialTab === "record_work"
       ? "record_work"
       : initialTab === "ledger"
-      ? "ledger"
-      : "profile"
+        ? "ledger"
+        : "profile",
   );
 
   useEffect(() => {
@@ -79,6 +163,18 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
   // Modal Dialog states
   const [showRateDialog, setShowRateDialog] = useState(false);
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
+
+  // Accordion Expand State for Multi-Aalyawala Ledger Rows
+  const [expandedRowKeys, setExpandedRowKeys] = useState<
+    Record<string, boolean>
+  >({});
+
+  const toggleRowExpand = (key: string) => {
+    setExpandedRowKeys((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
 
   const roleUpper = (profile?.role || "").toUpperCase();
   const canWrite =
@@ -175,8 +271,7 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                   </a>
                 )}
                 <span className="flex items-center gap-1 font-mono">
-                  <Calendar className="h-3 w-3" /> Joined:{" "}
-                  {worker.joining_date}
+                  <Calendar className="h-3 w-3" /> Joined: {worker.joining_date}
                 </span>
               </div>
             </div>
@@ -255,7 +350,10 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
             <Coins className="h-3 w-3 text-emerald-500" /> Total Decided Amount
           </span>
           <span className="text-lg font-bold font-mono text-foreground block tabular-nums">
-            ₹{Number(worker.total_decided_advance_amount || 0).toLocaleString("en-IN")}
+            ₹
+            {Number(worker.total_decided_advance_amount || 0).toLocaleString(
+              "en-IN",
+            )}
           </span>
           <span className="text-[10px] text-muted-foreground">
             Agreed Peshgi at onboarding
@@ -267,7 +365,7 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
       <div className="flex border-b border-border bg-card rounded-t-lg px-2 pt-2 gap-1 overflow-x-auto">
         <button
           onClick={() => setActiveTab("profile")}
-          className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
+          className={`px-4 cursor-pointer py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
             activeTab === "profile"
               ? "border-primary text-primary bg-primary/5 rounded-t-md"
               : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30 rounded-t-md"
@@ -279,25 +377,27 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
         {canWrite && (
           <button
             onClick={() => setActiveTab("record_work")}
-            className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
+            className={`px-4 cursor-pointer py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
               activeTab === "record_work"
                 ? "border-amber-500 text-amber-500 bg-amber-500/5 rounded-t-md"
                 : "border-transparent text-muted-foreground hover:text-amber-500 hover:bg-amber-500/5 rounded-t-md"
             }`}
           >
-            <PlusCircle className="h-4 w-4 text-amber-500" /> Record Daily Work / काम नोंदवा
+            <PlusCircle className="h-4 w-4 text-amber-500" /> Record Daily Work
+            / काम नोंदवा
           </button>
         )}
 
         <button
           onClick={() => setActiveTab("ledger")}
-          className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
+          className={`px-4 py-2.5 cursor-pointer text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
             activeTab === "ledger"
               ? "border-emerald-500 text-emerald-500 bg-emerald-500/5 rounded-t-md"
               : "border-transparent text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/5 rounded-t-md"
           }`}
         >
-          <Receipt className="h-4 w-4 text-emerald-500" /> Work Ledger Logs / कामाची नोंदवही
+          <Receipt className="h-4 w-4 text-emerald-500" /> Work Ledger Logs /
+          कामाची नोंदवही
           {dailyWorkData?.logs && dailyWorkData.logs.length > 0 && (
             <span className="ml-1 px-1.5 py-0.2 text-[10px] font-mono font-semibold rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
               {dailyWorkData.logs.length}
@@ -317,7 +417,8 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
             {/* 1. Personal & Contact Information */}
             <div className="space-y-2">
               <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <User className="h-3 w-3 text-primary" /> Personal & Contact Information
+                <User className="h-3 w-3 text-primary" /> Personal & Contact
+                Information
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5">
                 <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
@@ -357,7 +458,9 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                     Gender
                   </span>
                   <p className="font-medium text-foreground text-xs capitalize">
-                    {worker.gender ? worker.gender.toLowerCase() : "Not specified"}
+                    {worker.gender
+                      ? worker.gender.toLowerCase()
+                      : "Not specified"}
                   </p>
                 </div>
                 <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border md:col-span-3">
@@ -374,7 +477,8 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
             {/* 2. Identity Verification */}
             <div className="space-y-2 pt-3 border-t border-border">
               <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <FileText className="h-3 w-3 text-primary" /> Identity & Verification
+                <FileText className="h-3 w-3 text-primary" /> Identity &
+                Verification
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                 <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
@@ -395,10 +499,13 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                 </div>
                 <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
                   <span className="text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1">
-                    <ShieldCheck className="h-3 w-3 text-emerald-500" /> Verification Status
+                    <ShieldCheck className="h-3 w-3 text-emerald-500" />{" "}
+                    Verification Status
                   </span>
                   <p className="font-medium text-emerald-600 dark:text-emerald-400 text-xs">
-                    {worker.id_proof_number ? "Verified Document" : "Pending Document"}
+                    {worker.id_proof_number
+                      ? "Verified Document"
+                      : "Pending Document"}
                   </p>
                 </div>
               </div>
@@ -407,7 +514,8 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
             {/* 3. Emergency & Nominee Contact */}
             <div className="space-y-2 pt-3 border-t border-border">
               <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <HeartHandshake className="h-3 w-3 text-primary" /> Emergency & Nominee Contact
+                <HeartHandshake className="h-3 w-3 text-primary" /> Emergency &
+                Nominee Contact
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                 <div className="space-y-0.5 p-2 bg-muted/20 rounded-md border border-border">
@@ -451,7 +559,8 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
           <div className="rounded-lg border border-border bg-card p-4 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <History className="h-3.5 w-3.5 text-primary" /> Pay Rate History
+                <History className="h-3.5 w-3.5 text-primary" /> Pay Rate
+                History
               </h3>
               {canWrite && (
                 <Button
@@ -480,7 +589,9 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                     {worker.worker_wage_rates.map((rate, index) => (
                       <tr
                         key={rate.id}
-                        className={index === 0 ? "bg-primary/5 font-semibold" : ""}
+                        className={
+                          index === 0 ? "bg-primary/5 font-semibold" : ""
+                        }
                       >
                         <td className="py-2 px-3 font-mono text-foreground font-bold">
                           ₹{rate.rate_amount.toFixed(2)}
@@ -493,7 +604,9 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                             </Badge>
                           )}
                         </td>
-                        <td className="py-2 px-3 font-mono">{rate.effective_from}</td>
+                        <td className="py-2 px-3 font-mono">
+                          {rate.effective_from}
+                        </td>
                         <td className="py-2 px-3 capitalize">
                           {rate.rate_type.replace(/_/g, " ")}
                         </td>
@@ -520,10 +633,12 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
           <div className="flex items-center justify-between border-b border-border pb-3">
             <div>
               <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <Coins className="h-4 w-4 text-amber-500" /> Record Daily Work / दैनंदिन काम नोंदवा
+                <Coins className="h-4 w-4 text-amber-500" /> Record Daily Work /
+                दैनंदिन काम नोंदवा
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Log daily production for {worker.full_name} using Pinjrya count or direct quantity.
+                Log daily production for {worker.full_name} using Pinjrya count
+                or direct quantity.
               </p>
             </div>
           </div>
@@ -541,7 +656,8 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
         <div className="rounded-b-lg border border-border bg-card p-4 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Coins className="h-3.5 w-3.5 text-amber-500" /> Daily Work Logs & Earnings Ledger
+              <Coins className="h-3.5 w-3.5 text-amber-500" /> Daily Work Logs &
+              Earnings Ledger
             </h3>
             {canWrite && (
               <Button
@@ -555,72 +671,225 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
             )}
           </div>
 
-          {dailyWorkData?.logs && dailyWorkData.logs.length > 0 ? (
-            <div className="border border-border rounded-md overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-muted/40 text-muted-foreground border-b border-border font-semibold uppercase text-[10px] tracking-wider">
+          {groupedDailyLogs && groupedDailyLogs.length > 0 ? (
+            <div className="border border-border rounded-lg overflow-hidden shadow-xs">
+              <table className="w-full text-xs text-left border-collapse">
+                <thead className="bg-muted/60 text-muted-foreground border-b border-border font-semibold uppercase text-[10px] tracking-wider">
                   <tr>
-                    <th className="py-2.5 px-3">Date</th>
-                    <th className="py-2.5 px-3">Entry Mode</th>
-                    <th className="py-2.5 px-3 text-right">Physical Qty</th>
-                    <th className="py-2.5 px-3 text-right">Billable Qty</th>
-                    <th className="py-2.5 px-3 text-right">Rate</th>
-                    <th className="py-2.5 px-3 text-right">Earned Amount</th>
-                    <th className="py-2.5 px-3">Batch / Ref</th>
-                    <th className="py-2.5 px-3 text-center">Status</th>
-                    {canWrite && <th className="py-2.5 px-3 text-center">Action</th>}
+                    <th className="py-3 px-3.5">Day / वार</th>
+                    <th className="py-3 px-3.5">Date</th>
+                    <th className="py-3 px-3.5">Entry Mode</th>
+                    <th className="py-3 px-3.5 text-right">Physical Qty</th>
+                    <th className="py-3 px-3.5 text-right">Billable Qty</th>
+                    <th className="py-3 px-3.5 text-right">Rate</th>
+                    <th className="py-3 px-3.5 text-right">Earned Amount</th>
+                    <th className="py-3 px-3.5">Aalyawala</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border font-mono">
-                  {dailyWorkData.logs.map((log: any) => (
-                    <tr key={log.id} className="hover:bg-muted/30">
-                      <td className="py-2 px-3 font-semibold text-foreground">{log.work_date}</td>
-                      <td className="py-2 px-3">
-                        <Badge variant="outline" className="text-[10px] font-sans">
-                          {log.entry_mode === 'PINJRI_COUNT'
-                            ? 'Pinjri (22/20)'
-                            : log.entry_mode === 'SHIFT_COUNT'
-                            ? 'Shift'
-                            : 'Direct'}
-                        </Badge>
-                      </td>
-                      <td className="py-2 px-3 text-right text-muted-foreground">
-                        {log.physical_quantity?.toLocaleString()}
-                      </td>
-                      <td className="py-2 px-3 text-right font-bold text-foreground">
-                        {log.billable_quantity?.toLocaleString()}
-                      </td>
-                      <td className="py-2 px-3 text-right text-muted-foreground">
-                        ₹{Number(log.rate || 0).toFixed(2)}
-                      </td>
-                      <td className="py-2 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
-                        ₹{Number(log.earned_amount || 0).toFixed(2)}
-                      </td>
-                      <td className="py-2 px-3 font-sans text-muted-foreground text-[11px]">
-                        {log.batch_number || log.reference_no || '—'}
-                      </td>
-                      <td className="py-2 px-3 text-center">
-                        {log.settlement_id ? (
-                          <Badge variant="success" className="text-[9px] font-sans">Settled</Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-[9px] font-sans">Unsettled</Badge>
-                        )}
-                      </td>
-                      {canWrite && (
-                        <td className="py-2 px-3 text-center">
-                          {!log.settlement_id && (
-                            <button
-                              onClick={() => deleteDailyWorkLog.mutate(log.id)}
-                              className="text-destructive hover:text-red-400 p-1 rounded"
-                              title="Delete Log"
+                <tbody className="divide-y divide-border/60 font-mono">
+                  {groupedDailyLogs.map((logGroup: any) => {
+                    const isMulti = logGroup.items.length > 1;
+                    const isExpanded = !!expandedRowKeys[logGroup.id];
+                    const aalyawalaNames = logGroup.items
+                      .map((i: any) => i.aalyawala_name)
+                      .filter(Boolean)
+                      .join(", ");
+
+                    return (
+                      <Fragment key={logGroup.id}>
+                        <tr
+                          onClick={() => isMulti && toggleRowExpand(logGroup.id)}
+                          className={`transition-colors ${
+                            isMulti
+                              ? "cursor-pointer hover:bg-amber-500/10 dark:hover:bg-amber-500/15"
+                              : "hover:bg-muted/30"
+                          } ${
+                            isExpanded
+                              ? "bg-amber-500/10 dark:bg-amber-950/30"
+                              : ""
+                          }`}
+                        >
+                          <td className="py-3 px-3.5 font-sans font-semibold text-amber-600 dark:text-amber-400 text-xs">
+                            {getMarathiDay(logGroup.work_date)}
+                          </td>
+                          <td className="py-3 px-3.5 font-semibold text-foreground">
+                            {formatDateDdMmYyyy(logGroup.work_date)}
+                          </td>
+                          <td className="py-3 px-3.5">
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] font-sans"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </td>
-                      )}
-                    </tr>
-                  ))}
+                              {logGroup.entry_mode === "PINJRI_COUNT"
+                                ? "Pinjri (22/20)"
+                                : logGroup.entry_mode === "SHIFT_COUNT"
+                                  ? "Shift"
+                                  : "Direct"}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-3.5 text-right text-muted-foreground font-semibold">
+                            {logGroup.physical_quantity?.toLocaleString()}
+                          </td>
+                          <td className="py-3 px-3.5 text-right font-bold text-foreground">
+                            {logGroup.billable_quantity?.toLocaleString()}
+                          </td>
+                          <td className="py-3 px-3.5 text-right text-muted-foreground">
+                            ₹{Number(logGroup.rate || 0).toFixed(2)}
+                          </td>
+                          <td className="py-3 px-3.5 text-right font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+                            ₹{Number(logGroup.earned_amount || 0).toFixed(2)}
+                          </td>
+                          <td className="py-3 px-3.5 font-sans text-foreground text-[11px] font-medium">
+                            {isMulti ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                                  <Users className="h-3 w-3 text-amber-500" />
+                                  {logGroup.items.length} Aalyawalas
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleRowExpand(logGroup.id);
+                                  }}
+                                  className="p-1 rounded-md hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-colors"
+                                  title={
+                                    isExpanded
+                                      ? "Hide breakdown"
+                                      : "View breakdown"
+                                  }
+                                >
+                                  <ChevronDown
+                                    className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                                      isExpanded ? "rotate-180" : ""
+                                    }`}
+                                  />
+                                </button>
+                              </div>
+                            ) : (
+                              <span>{aalyawalaNames || "—"}</span>
+                            )}
+                          </td>
+                        </tr>
+
+                        {/* Inline Expandable Breakdown Sub-row with Table Format */}
+                        {isMulti && isExpanded && (
+                          <tr className="bg-amber-500/5 dark:bg-amber-950/20 border-b border-amber-500/20 animate-in fade-in-50 duration-200">
+                            <td colSpan={8} className="p-3 sm:p-4">
+                              <div className="bg-card dark:bg-slate-900/90 border border-amber-500/30 rounded-lg p-3 sm:p-4 space-y-3 shadow-md">
+                                {/* Sub-table Header */}
+                                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="p-1 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                      <Users className="h-4 w-4" />
+                                    </span>
+                                    <div>
+                                      <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                                        Aalyawala Contribution Breakdown / आल्यावाले तपशील
+                                      </h4>
+                                      <p className="text-[10px] text-muted-foreground font-sans">
+                                        Individual work & earnings records for {formatDateDdMmYyyy(logGroup.work_date)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] font-mono border-amber-500/30 text-amber-700 dark:text-amber-300"
+                                  >
+                                    {logGroup.items.length} Aalyawala Entries
+                                  </Badge>
+                                </div>
+
+                                {/* Responsive Sub-table */}
+                                <div className="overflow-x-auto rounded-md border border-border/80 bg-background/50">
+                                  <table className="w-full text-xs text-left border-collapse font-mono">
+                                    <thead className="bg-muted/70 text-muted-foreground border-b border-border text-[10px] uppercase font-sans tracking-wider font-semibold">
+                                      <tr>
+                                        <th className="py-2 px-3">#</th>
+                                        <th className="py-2 px-3">Aalyawala Name</th>
+                                        <th className="py-2 px-3 text-right">
+                                          {logGroup.entry_mode === "PINJRI_COUNT"
+                                            ? "Input (Pinjri)"
+                                            : "Input Qty"}
+                                        </th>
+                                        <th className="py-2 px-3 text-right">Physical Bricks</th>
+                                        <th className="py-2 px-3 text-right">Billable Bricks</th>
+                                        <th className="py-2 px-3 text-right">Rate</th>
+                                        <th className="py-2 px-3 text-right">Earned Amount</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border/50 text-[11px]">
+                                      {logGroup.items.map((item: any, idx: number) => (
+                                        <tr
+                                          key={item.id || idx}
+                                          className="hover:bg-muted/40 transition-colors"
+                                        >
+                                          <td className="py-2 px-3 font-sans text-muted-foreground text-[10px]">
+                                            {idx + 1}
+                                          </td>
+                                          <td className="py-2 px-3 font-sans font-bold text-foreground">
+                                            {item.aalyawala_name || `Aalyawala #${idx + 1}`}
+                                          </td>
+                                          <td className="py-2 px-3 text-right text-muted-foreground">
+                                            {item.input_quantity?.toLocaleString()}{" "}
+                                            {logGroup.entry_mode === "PINJRI_COUNT" ? "Pinjri" : ""}
+                                          </td>
+                                          <td className="py-2 px-3 text-right text-muted-foreground">
+                                            {item.physical_quantity?.toLocaleString()} pcs
+                                          </td>
+                                          <td className="py-2 px-3 text-right font-semibold text-foreground">
+                                            {item.billable_quantity?.toLocaleString()} pcs
+                                          </td>
+                                          <td className="py-2 px-3 text-right text-muted-foreground">
+                                            ₹{Number(logGroup.rate || 0).toFixed(2)}
+                                          </td>
+                                          <td className="py-2 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                                            ₹{Number(item.earned_amount || 0).toFixed(2)}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                    <tfoot className="bg-muted/40 font-bold border-t border-border text-foreground text-[11px]">
+                                      <tr>
+                                        <td
+                                          colSpan={2}
+                                          className="py-2 px-3 font-sans text-[10px] uppercase tracking-wider text-muted-foreground"
+                                        >
+                                          Combined Total
+                                        </td>
+                                        <td className="py-2 px-3 text-right font-mono">
+                                          {logGroup.items
+                                            .reduce(
+                                              (sum: number, i: any) =>
+                                                sum + Number(i.input_quantity || 0),
+                                              0
+                                            )
+                                            .toLocaleString()}{" "}
+                                          {logGroup.entry_mode === "PINJRI_COUNT"
+                                            ? "Pinjri"
+                                            : ""}
+                                        </td>
+                                        <td className="py-2 px-3 text-right font-mono text-muted-foreground">
+                                          {logGroup.physical_quantity?.toLocaleString()} pcs
+                                        </td>
+                                        <td className="py-2 px-3 text-right font-mono font-extrabold text-foreground">
+                                          {logGroup.billable_quantity?.toLocaleString()} pcs
+                                        </td>
+                                        <td className="py-2 px-3 text-right text-muted-foreground">—</td>
+                                        <td className="py-2 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-extrabold">
+                                          ₹{Number(logGroup.earned_amount || 0).toFixed(2)}
+                                        </td>
+                                      </tr>
+                                    </tfoot>
+                                  </table>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
