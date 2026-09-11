@@ -20,7 +20,7 @@ export async function DELETE(
     assertRole(user.role, ["owner", "manager", "admin"]);
 
     const { id } = await params;
-    const result = await deleteDailyWorkLog(id, user.organization_id);
+    const result = await deleteDailyWorkLog(id, user.organization_id, user.id);
     return successResponse(result, "Daily work log deleted successfully");
   } catch (error: any) {
     console.error("[DELETE /api/workers/daily-work/[id]]", error);

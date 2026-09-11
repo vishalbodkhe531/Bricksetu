@@ -25,11 +25,66 @@ export const dailyWorkInputSchema = z
       )
       .optional()
       .nullable(),
+    bhatkar_id: z.string().uuid().optional().nullable(),
+    bhatkar_ids: z.array(z.string().uuid()).optional().nullable(),
+    bhatkar_entries: z
+      .array(
+        z.object({
+          bhatkar_id: z.string().uuid('Invalid Bhatkar ID'),
+          input_quantity: z.number().positive('Quantity must be greater than 0'),
+        })
+      )
+      .optional()
+      .nullable(),
     batch_id: z.string().uuid().optional().nullable(),
     reference_no: z.string().optional().nullable(),
     notes: z.string().optional().nullable(),
   })
   .superRefine((data, ctx) => {
+    if (data.category === 'KACHA_MAAL') {
+      const hasAalyawala = !!data.aalyawala_id || (!!data.aalyawala_ids && data.aalyawala_ids.length > 0) || (!!data.aalyawala_entries && data.aalyawala_entries.length > 0);
+      if (!hasAalyawala) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['aalyawala_id'],
+          message: 'Aalyawala is required for Kachha Maal entries',
+        });
+      }
+
+      const hasBhatkar = !!data.bhatkar_id || (!!data.bhatkar_ids && data.bhatkar_ids.length > 0) || (!!data.bhatkar_entries && data.bhatkar_entries.length > 0);
+      if (!hasBhatkar) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['bhatkar_id'],
+          message: 'Bhatkar is required for Kachha Maal entries',
+        });
+      }
+
+      if (data.aalyawala_id && data.worker_id === data.aalyawala_id) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['aalyawala_id'],
+          message: 'A worker cannot be their own Aalyawala',
+        });
+      }
+
+      if (data.bhatkar_id && data.worker_id === data.bhatkar_id) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['bhatkar_id'],
+          message: 'A worker cannot be their own Bhatkar',
+        });
+      }
+
+      if (data.aalyawala_id && data.bhatkar_id && data.aalyawala_id === data.bhatkar_id) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['bhatkar_id'],
+          message: 'Aalyawala and Bhatkar must be different workers',
+        });
+      }
+    }
+
     if (data.entry_mode === 'DIRECT_COUNT') {
       if (data.input_quantity < 1) {
         ctx.addIssue({
@@ -63,6 +118,7 @@ export type DailyWorkInput = z.infer<typeof dailyWorkInputSchema>;
 export const bulkDailyWorkInputSchema = z.object({
   work_date: z.string().min(1, 'Work date is required'),
   category: workerCategoryEnum,
+  bhatkar_id: z.string().uuid().optional().nullable(),
   entries: z.array(
     z.object({
       worker_id: z.string().uuid(),
@@ -71,6 +127,7 @@ export const bulkDailyWorkInputSchema = z.object({
       rate_per_unit: z.number().optional(),
       aalyawala_id: z.string().uuid().optional().nullable(),
       aalyawala_ids: z.array(z.string().uuid()).optional().nullable(),
+      bhatkar_id: z.string().uuid().optional().nullable(),
       batch_id: z.string().uuid().optional().nullable(),
       reference_no: z.string().optional().nullable(),
       notes: z.string().optional().nullable(),

@@ -1,0 +1,111 @@
+# Implementation Plan: Worker Daily Work Automation & Data Isolation (Kachha Maal -> Aalyawale & Bhatkar)
+
+## Overview
+This plan implements end-to-end multi-role daily work auto-logging and rate isolation when recording work for **Kachha Maal Majur** (कच्चा माल मजूर). 
+
+### Key Business & Operation Rules
+1. **4 Worker Roles**:
+   - `KACHA_MAAL` (कच्चा माल मजूर)
+   - `AALYAWALE` (आल्यावाले)
+   - `BHATKAR` (भटकर)
+   - `PAKKA_MAAL` (पक्का माल मजूर)
+
+2. **Automated Cross-Logging via Kachha Maal Work Entry**:
+   - When recording daily work for a **Kachha Maal Majur** (e.g. Narke Tai, 100 Pinjrya):
+     - User selects the **Kachha Maal Majur**
+     - User selects the **Aalyawala** (e.g. Babasaheb)
+     - User selects the **Bhatkar** (e.g. Gaju)
+   - Upon saving, the system automatically writes **3 separate, isolated daily work log entries**:
+     1. **Kachha Maal Log**: Worker = Narke Tai, Rate = Dynamic/Specified (e.g. ₹150 / 1K), Earned = ₹300
+     2. **Aalyawala Log**: Worker = Babasaheb, Rate = Babasaheb's Fixed Rate (e.g. ₹400 / 1K), Earned = ₹800
+     3. **Bhatkar Log**: Worker = Gaju, Rate = Gaju's Fixed Rate (e.g. ₹500 / 1K), Earned = ₹1,000
+
+3. **Rate Isolation & Fixed vs Dynamic Rules**:
+   - **Bhatkar Rate**: Fixed rate defined in Bhatkar's profile/rate history.
+   - **Aalyawale Rate**: Fixed rate defined in Aalyawala's profile/rate history.
+   - **Kachha Maal Rate**: Dynamic / changeable per daily work entry.
+
+4. **100% Data Isolation**:
+   - Each worker's Daily Work Logs & Earnings Ledger displays ONLY their own role's log with their own rate and earnings.
+   - Cross-references (Aalyawala & Bhatkar) are displayed clearly in ledger tables.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Auto-Generation Behavior Confirmation**:
+> When a Kachha Maal Majur work entry is recorded with a selected Aalyawala and Bhatkar, 3 distinct logs are safely created in `daily_work_logs`. If the Kachha Maal log is deleted, its linked auto-generated Aalyawala and Bhatkar logs will automatically be cleaned up together using a linked `group_id` / `reference_no` to maintain financial audit integrity.
+
+---
+
+## Proposed Changes
+
+### Database Schema Updates
+
+#### [MODIFY] [workers.prisma](file:///d:/Development/Personal-Projects/brick-setu/prisma/schema/workers.prisma)
+- Add `bhatkar_id` field to `daily_work_logs` model (`String? @db.Uuid`).
+- Add relation `@relation("daily_work_bhatkar", fields: [bhatkar_id], references: [id], onDelete: SetNull, onUpdate: NoAction)`.
+- Add `bhatkar_work_logs daily_work_logs[] @relation("daily_work_bhatkar")` to `profiles` model.
+
+---
+
+### Backend Schema & Services
+
+#### [MODIFY] [daily-work.schema.ts](file:///d:/Development/Personal-Projects/brick-setu/features/workers/schemas/daily-work.schema.ts)
+- Extend `dailyWorkInputSchema` and `bulkDailyWorkInputSchema` to accept `bhatkar_id` (UUID) and `bhatkar_entries`.
+- Enforce that when category is `KACHA_MAAL`, both `aalyawala_id` (or entries) and `bhatkar_id` (or entries) are required.
+
+#### [MODIFY] [daily-work.service.ts](file:///d:/Development/Personal-Projects/brick-setu/features/workers/services/daily-work.service.ts)
+- Update `recordDailyWork`:
+  - When `category === 'KACHA_MAAL'` (or when Aalyawala and Bhatkar are selected):
+    1. Write **Kachha Maal Log** with input rate & quantities.
+    2. Fetch latest active fixed rate for `aalyawala_id` from `rate_history` (or `profiles`). Write **Aalyawala Log** with category `AALYAWALE`, Aalyawala's fixed rate, and calculated earnings.
+    3. Fetch latest active fixed rate for `bhatkar_id` from `rate_history` (or `profiles`). Write **Bhatkar Log** with category `BHATKAR`, Bhatkar's fixed rate, and calculated earnings.
+    4. Link all 3 generated records using a shared `batch_id` or `group_id` / `reference_no`.
+- Update `deleteDailyWorkLog`:
+  - Delete linked auto-generated logs if deleting a primary linked entry.
+
+---
+
+### Frontend UI Components
+
+#### [MODIFY] [RecordWorkModal.tsx](file:///d:/Development/Personal-Projects/brick-setu/features/workers/components/RecordWorkModal.tsx)
+- Add **Bhatkar Selector** dropdown (filtering active workers with category `BHATKAR`).
+- Show Bhatkar selector when category is `KACHA_MAAL`.
+- Add live cost breakdown showing Kachha Maal earnings, Aalyawala earnings (fixed rate), and Bhatkar earnings (fixed rate).
+
+#### [MODIFY] [EmbeddedRecordWorkForm.tsx](file:///d:/Development/Personal-Projects/brick-setu/features/workers/components/EmbeddedRecordWorkForm.tsx)
+- Add **Bhatkar Selector** dropdown for `KACHA_MAAL` daily work logging.
+- Pass `bhatkar_id` in API payload when submitting.
+
+#### [MODIFY] [BulkRecordWorkSheet.tsx](file:///d:/Development/Personal-Projects/brick-setu/features/workers/components/BulkRecordWorkSheet.tsx)
+- Add Bhatkar Selector option when bulk entering Kachha Maal work.
+
+#### [MODIFY] [app/(dashboard)/workers/[id]/page.tsx](file:///d:/Development/Personal-Projects/brick-setu/app/%28dashboard%29/workers/%5Bid%5D/page.tsx)
+- Update the **Work Ledger Logs** table columns to display:
+  - Day / वार
+  - Date
+  - Entry Mode
+  - Physical Qty
+  - Billable Qty
+  - Rate (Worker's own role rate)
+  - Earned Amount (Worker's own earnings)
+  - Aalyawala Name
+  - Bhatkar Name
+
+---
+
+## Verification Plan
+
+### Automated / Service Tests
+- Run `npx prisma db push` or `npx prisma generate` to verify schema changes.
+- Verify TypeScript types build cleanly with `npm run build` or `npx tsc --noEmit`.
+
+### Manual Verification
+- Log in as Admin/Owner.
+- Create a test entry under **Record Daily Work for Kachha Maal worker** (e.g. 100 Pinjrya, Kachha Maal Rate = ₹150, Aalyawala = Babasaheb, Bhatkar = Gaju).
+- Check **Kachha Maal worker's ledger**: Verify 100 Pinjrya @ ₹150/1K = ₹300.
+- Check **Aalyawala worker's ledger**: Verify 100 Pinjrya @ Aalyawala's fixed rate (e.g. ₹400/1K) = ₹800.
+- Check **Bhatkar worker's ledger**: Verify 100 Pinjrya @ Bhatkar's fixed rate (e.g. ₹500/1K) = ₹1,000.
+- Confirm total data isolation and correct column values.

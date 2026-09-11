@@ -95,7 +95,7 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
   const { data: dailyWorkData } = useDailyWorkLogs({ workerId });
   const deleteDailyWorkLog = useDeleteDailyWorkLog(orgId);
 
-  // Group logs by work_date, entry_mode, and rate to display multi-Aalyawala entries in a single combined row
+  // Group logs by batch_id or log id to display multi-Aalyawala / multi-role entries cleanly
   const groupedDailyLogs = useMemo(() => {
     if (!dailyWorkData?.logs || dailyWorkData.logs.length === 0) return [];
 
@@ -103,7 +103,11 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
 
     for (const log of dailyWorkData.logs) {
       const datePart = log.work_date ? log.work_date.split("T")[0] : "";
-      const key = `${datePart}_${log.entry_mode}_${log.rate}`;
+      const key = log.log_group_id
+        ? `group_${log.log_group_id}`
+        : log.batch_id
+          ? `batch_${log.batch_id}`
+          : `${datePart}_${log.entry_mode}_${log.rate}_${log.id}`;
       const existing = groupMap.get(key);
 
       const item = {
@@ -111,26 +115,43 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
         aalyawala_id: log.aalyawala_id,
         aalyawala_name:
           log.aalyawala_name || log.batch_number || log.reference_no || null,
+        bhatkar_id: log.bhatkar_id,
+        bhatkar_name: log.bhatkar_name || null,
+        kachha_maal_id: log.kachha_maal_id || null,
+        kachha_maal_name: log.kachha_maal_name || null,
         input_quantity: Number(log.input_quantity || 0),
         physical_quantity: Number(log.physical_quantity || 0),
         billable_quantity: Number(log.billable_quantity || 0),
         earned_amount: Number(log.earned_amount || 0),
+        is_auto_generated: log.is_auto_generated ?? false,
+        is_primary: log.is_primary ?? true,
       };
 
       if (existing) {
         existing.physical_quantity += Number(log.physical_quantity || 0);
         existing.billable_quantity += Number(log.billable_quantity || 0);
         existing.earned_amount += Number(log.earned_amount || 0);
+        if (!existing.bhatkar_name && log.bhatkar_name) {
+          existing.bhatkar_name = log.bhatkar_name;
+        }
+        if (!existing.kachha_maal_name && log.kachha_maal_name) {
+          existing.kachha_maal_name = log.kachha_maal_name;
+        }
         existing.items.push(item);
       } else {
         groupMap.set(key, {
           id: log.id,
+          batch_id: log.batch_id,
           work_date: log.work_date,
           entry_mode: log.entry_mode,
           physical_quantity: Number(log.physical_quantity || 0),
           billable_quantity: Number(log.billable_quantity || 0),
           rate: Number(log.rate || 0),
           earned_amount: Number(log.earned_amount || 0),
+          bhatkar_name: log.bhatkar_name || null,
+          kachha_maal_name: log.kachha_maal_name || null,
+          is_auto_generated: log.is_auto_generated ?? false,
+          is_primary: log.is_primary ?? true,
           items: [item],
         });
       }
@@ -683,7 +704,17 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                     <th className="py-3 px-3.5 text-right">Billable Qty</th>
                     <th className="py-3 px-3.5 text-right">Rate</th>
                     <th className="py-3 px-3.5 text-right">Earned Amount</th>
-                    <th className="py-3 px-3.5">Aalyawala</th>
+                    {worker.category === "AALYAWALE" ? (
+                      <th className="py-3 px-3.5">Kachha Maal Majur</th>
+                    ) : (
+                      <th className="py-3 px-3.5">Aalyawala</th>
+                    )}
+                    {worker.category === "BHATKAR" ? (
+                      <th className="py-3 px-3.5">Kachha Maal Majur</th>
+                    ) : (
+                      <th className="py-3 px-3.5">Bhatkar</th>
+                    )}
+                    <th className="py-3 px-3.5 text-center">Type</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60 font-mono">
@@ -698,7 +729,9 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                     return (
                       <Fragment key={logGroup.id}>
                         <tr
-                          onClick={() => isMulti && toggleRowExpand(logGroup.id)}
+                          onClick={() =>
+                            isMulti && toggleRowExpand(logGroup.id)
+                          }
                           className={`transition-colors ${
                             isMulti
                               ? "cursor-pointer hover:bg-amber-500/10 dark:hover:bg-amber-500/15"
@@ -740,7 +773,9 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                             ₹{Number(logGroup.earned_amount || 0).toFixed(2)}
                           </td>
                           <td className="py-3 px-3.5 font-sans text-foreground text-[11px] font-medium whitespace-nowrap">
-                            {isMulti ? (
+                            {worker.category === "AALYAWALE" ? (
+                              <span>{logGroup.kachha_maal_name || "—"}</span>
+                            ) : isMulti ? (
                               <div className="flex items-center gap-1.5">
                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
                                   <Users className="h-3 w-3 text-amber-500" />
@@ -770,12 +805,34 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                               <span>{aalyawalaNames || "—"}</span>
                             )}
                           </td>
+                          <td className="py-3 px-3.5 font-sans text-foreground text-[11px] font-medium whitespace-nowrap">
+                            {worker.category === "BHATKAR"
+                              ? logGroup.kachha_maal_name || "—"
+                              : logGroup.bhatkar_name || "—"}
+                          </td>
+                          <td className="py-3 px-3.5 font-sans text-center whitespace-nowrap">
+                            {logGroup.is_auto_generated ? (
+                              <Badge
+                                variant="secondary"
+                                className="text-[9px] bg-slate-800 text-slate-300 border border-slate-700 font-mono"
+                              >
+                                Auto-Generated
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] text-emerald-600 border-emerald-500/30 font-mono"
+                              >
+                                Primary Log
+                              </Badge>
+                            )}
+                          </td>
                         </tr>
 
                         {/* Inline Expandable Breakdown Sub-row with Table Format */}
                         {isMulti && isExpanded && (
                           <tr className="bg-amber-500/5 dark:bg-amber-950/20 border-b border-amber-500/20 animate-in fade-in-50 duration-200">
-                            <td colSpan={8} className="p-3 sm:p-4">
+                            <td colSpan={10} className="p-3 sm:p-4">
                               <div className="bg-card dark:bg-slate-900/90 border border-amber-500/30 rounded-lg p-3 sm:p-4 space-y-3 shadow-md">
                                 {/* Sub-table Header */}
                                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2.5">
@@ -785,10 +842,12 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                                     </span>
                                     <div>
                                       <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                                        Aalyawala Contribution Breakdown / आल्यावाले तपशील
+                                        Aalyawala Contribution Breakdown /
+                                        आल्यावाले तपशील
                                       </h4>
                                       <p className="text-[10px] text-muted-foreground font-sans">
-                                        Individual work & earnings records for {formatDateDdMmYyyy(logGroup.work_date)}
+                                        Individual work & earnings records for{" "}
+                                        {formatDateDdMmYyyy(logGroup.work_date)}
                                       </p>
                                     </div>
                                   </div>
@@ -806,48 +865,73 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                                     <thead className="bg-muted/70 text-muted-foreground border-b border-border text-[10px] uppercase font-sans tracking-wider font-semibold whitespace-nowrap">
                                       <tr>
                                         <th className="py-2 px-3">#</th>
-                                        <th className="py-2 px-3">Aalyawala Name</th>
+                                        <th className="py-2 px-3">
+                                          Aalyawala Name
+                                        </th>
                                         <th className="py-2 px-3 text-right">
-                                          {logGroup.entry_mode === "PINJRI_COUNT"
+                                          {logGroup.entry_mode ===
+                                          "PINJRI_COUNT"
                                             ? "Input (Pinjri)"
                                             : "Input Qty"}
                                         </th>
-                                        <th className="py-2 px-3 text-right">Physical Bricks</th>
-                                        <th className="py-2 px-3 text-right">Billable Bricks</th>
-                                        <th className="py-2 px-3 text-right">Rate</th>
-                                        <th className="py-2 px-3 text-right">Earned Amount</th>
+                                        <th className="py-2 px-3 text-right">
+                                          Physical Bricks
+                                        </th>
+                                        <th className="py-2 px-3 text-right">
+                                          Billable Bricks
+                                        </th>
+                                        <th className="py-2 px-3 text-right">
+                                          Rate
+                                        </th>
+                                        <th className="py-2 px-3 text-right">
+                                          Earned Amount
+                                        </th>
                                       </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border/50 text-[11px]">
-                                      {logGroup.items.map((item: any, idx: number) => (
-                                        <tr
-                                          key={item.id || idx}
-                                          className="hover:bg-muted/40 transition-colors"
-                                        >
-                                          <td className="py-2 px-3 font-sans text-muted-foreground text-[10px] whitespace-nowrap">
-                                            {idx + 1}
-                                          </td>
-                                          <td className="py-2 px-3 font-sans font-bold text-foreground whitespace-nowrap">
-                                            {item.aalyawala_name || `Aalyawala #${idx + 1}`}
-                                          </td>
-                                          <td className="py-2 px-3 text-right text-muted-foreground whitespace-nowrap">
-                                            {item.input_quantity?.toLocaleString()}{" "}
-                                            {logGroup.entry_mode === "PINJRI_COUNT" ? "Pinjri" : ""}
-                                          </td>
-                                          <td className="py-2 px-3 text-right text-muted-foreground whitespace-nowrap">
-                                            {item.physical_quantity?.toLocaleString()} pcs
-                                          </td>
-                                          <td className="py-2 px-3 text-right font-semibold text-foreground whitespace-nowrap">
-                                            {item.billable_quantity?.toLocaleString()} pcs
-                                          </td>
-                                          <td className="py-2 px-3 text-right text-muted-foreground whitespace-nowrap">
-                                            ₹{Number(logGroup.rate || 0).toFixed(2)}
-                                          </td>
-                                          <td className="py-2 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-                                            ₹{Number(item.earned_amount || 0).toFixed(2)}
-                                          </td>
-                                        </tr>
-                                      ))}
+                                      {logGroup.items.map(
+                                        (item: any, idx: number) => (
+                                          <tr
+                                            key={item.id || idx}
+                                            className="hover:bg-muted/40 transition-colors"
+                                          >
+                                            <td className="py-2 px-3 font-sans text-muted-foreground text-[10px] whitespace-nowrap">
+                                              {idx + 1}
+                                            </td>
+                                            <td className="py-2 px-3 font-sans font-bold text-foreground whitespace-nowrap">
+                                              {item.aalyawala_name ||
+                                                `Aalyawala #${idx + 1}`}
+                                            </td>
+                                            <td className="py-2 px-3 text-right text-muted-foreground whitespace-nowrap">
+                                              {item.input_quantity?.toLocaleString()}{" "}
+                                              {logGroup.entry_mode ===
+                                              "PINJRI_COUNT"
+                                                ? "Pinjri"
+                                                : ""}
+                                            </td>
+                                            <td className="py-2 px-3 text-right text-muted-foreground whitespace-nowrap">
+                                              {item.physical_quantity?.toLocaleString()}{" "}
+                                              pcs
+                                            </td>
+                                            <td className="py-2 px-3 text-right font-semibold text-foreground whitespace-nowrap">
+                                              {item.billable_quantity?.toLocaleString()}{" "}
+                                              pcs
+                                            </td>
+                                            <td className="py-2 px-3 text-right text-muted-foreground whitespace-nowrap">
+                                              ₹
+                                              {Number(
+                                                logGroup.rate || 0,
+                                              ).toFixed(2)}
+                                            </td>
+                                            <td className="py-2 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                                              ₹
+                                              {Number(
+                                                item.earned_amount || 0,
+                                              ).toFixed(2)}
+                                            </td>
+                                          </tr>
+                                        ),
+                                      )}
                                     </tbody>
                                     <tfoot className="bg-muted/40 font-bold border-t border-border text-foreground text-[11px] whitespace-nowrap">
                                       <tr>
@@ -861,23 +945,32 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                                           {logGroup.items
                                             .reduce(
                                               (sum: number, i: any) =>
-                                                sum + Number(i.input_quantity || 0),
-                                              0
+                                                sum +
+                                                Number(i.input_quantity || 0),
+                                              0,
                                             )
                                             .toLocaleString()}{" "}
-                                          {logGroup.entry_mode === "PINJRI_COUNT"
+                                          {logGroup.entry_mode ===
+                                          "PINJRI_COUNT"
                                             ? "Pinjri"
                                             : ""}
                                         </td>
                                         <td className="py-2 px-3 text-right font-mono text-muted-foreground">
-                                          {logGroup.physical_quantity?.toLocaleString()} pcs
+                                          {logGroup.physical_quantity?.toLocaleString()}{" "}
+                                          pcs
                                         </td>
                                         <td className="py-2 px-3 text-right font-mono font-extrabold text-foreground">
-                                          {logGroup.billable_quantity?.toLocaleString()} pcs
+                                          {logGroup.billable_quantity?.toLocaleString()}{" "}
+                                          pcs
                                         </td>
-                                        <td className="py-2 px-3 text-right text-muted-foreground">—</td>
+                                        <td className="py-2 px-3 text-right text-muted-foreground">
+                                          —
+                                        </td>
                                         <td className="py-2 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-extrabold">
-                                          ₹{Number(logGroup.earned_amount || 0).toFixed(2)}
+                                          ₹
+                                          {Number(
+                                            logGroup.earned_amount || 0,
+                                          ).toFixed(2)}
                                         </td>
                                       </tr>
                                     </tfoot>
