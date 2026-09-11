@@ -1,0 +1,6 @@
+﻿Datasource "db": PostgreSQL database "postgres", schemas "app_auth, audit, core, finance, inventory, materials, parties, production, sales, transport, workers" at "aws-0-ap-northeast-2.pooler.supabase.com:5432"
+
+The PostgreSQL database "postgres" schemas "app_auth, audit, core, finance, inventory, materials, parties, production, sales, transport, workers" at "aws-0-ap-northeast-2.pooler.supabase.com:5432" were successfully reset.
+
+Your database is now in sync with your Prisma schema. Done in 38.13s
+

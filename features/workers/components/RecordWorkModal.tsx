@@ -46,6 +46,7 @@ export function RecordWorkModal({
   const [referenceNo, setReferenceNo] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [aalyawalaQtyMap, setAalyawalaQtyMap] = useState<Record<string, string>>({});
+  const [selectedBhatkarId, setSelectedBhatkarId] = useState<string>('');
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
 
@@ -54,6 +55,10 @@ export function RecordWorkModal({
     if (worker) return worker;
     return workers.find((w) => w.id === selectedWorkerId) || null;
   }, [worker, workers, selectedWorkerId]);
+
+  const availableBhatkars = useMemo(() => {
+    return workers.filter((w) => w.category === 'BHATKAR' && w.status === 'active');
+  }, [workers]);
 
   // Sync state when worker or defaultCategory changes
   useEffect(() => {
@@ -188,6 +193,11 @@ export function RecordWorkModal({
       return;
     }
 
+    if (category === 'KACHA_MAAL' && !selectedBhatkarId) {
+      setErrorMsg('Please select a Bhatkar for Kachha Maal daily work / कृपया भटकर निवडा');
+      return;
+    }
+
     if (isAalyawalaRequired) {
       if (aalyawalaEntries.length === 0) {
         setErrorMsg('Please select at least one Aalyawala and enter a valid quantity / किमान एका आल्यावाल्याची संख्या टाका');
@@ -209,6 +219,7 @@ export function RecordWorkModal({
         input_quantity: totalInputQty,
         rate_per_unit: numRate,
         aalyawala_entries: isAalyawalaRequired ? aalyawalaEntries : undefined,
+        bhatkar_id: selectedBhatkarId || undefined,
         batch_id: batchId || null,
         reference_no: referenceNo || null,
         notes: notes || null,
@@ -219,6 +230,7 @@ export function RecordWorkModal({
       setReferenceNo('');
       setNotes('');
       setAalyawalaQtyMap({});
+      setSelectedBhatkarId('');
       setErrorMsg('');
       onOpenChange(false);
     } catch (err: any) {
@@ -417,6 +429,28 @@ export function RecordWorkModal({
                   })
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Mandatory Bhatkar Selection for Kachha Maal workers */}
+          {category === 'KACHA_MAAL' && (
+            <div className="space-y-1.5 p-3 bg-amber-950/30 border border-amber-500/30 rounded-xl">
+              <label className="text-xs font-semibold text-amber-300 flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-amber-400" />
+                Select Bhatkar / भटकर निवडा *
+              </label>
+              <select
+                value={selectedBhatkarId}
+                onChange={(e) => setSelectedBhatkarId(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-medium text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+              >
+                <option value="">-- Choose Bhatkar / भटकर निवडा --</option>
+                {availableBhatkars.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.full_name} ({b.code}) {b.current_rate_amount ? `— Fixed Rate: ₹${b.current_rate_amount}/1K` : ''}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 

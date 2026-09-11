@@ -26,6 +26,7 @@ model profiles {
   daily_moulding_logs     daily_moulding_logs[]
   daily_work_logs         daily_work_logs[]     @relation("daily_work_worker")
   aalyawala_work_logs     daily_work_logs[]     @relation("daily_work_aalyawala")
+  bhatkar_work_logs       daily_work_logs[]     @relation("daily_work_bhatkar")
   business_units          business_units        @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   rate_history            rate_history[]
 
@@ -66,15 +67,24 @@ model daily_work_logs {
   rate_paise                    BigInt
   earned_amount_paise           BigInt
   aalyawala_id                  String?        @db.Uuid
+  bhatkar_id                    String?        @db.Uuid
   batch_id                      String?        @db.Uuid
+  log_group_id                  String?        @db.Uuid
+  is_primary                    Boolean        @default(true)
+  is_auto_generated             Boolean        @default(false)
   reference_no                  String?        @db.VarChar(100)
   notes                         String?
   settlement_id                 String?        @db.Uuid
   created_at                    DateTime       @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
   created_by                    String?        @db.Uuid
+  updated_at                    DateTime       @default(dbgenerated("clock_timestamp()")) @updatedAt @db.Timestamptz(6)
+  updated_by                    String?        @db.Uuid
+  deleted_at                    DateTime?      @db.Timestamptz(6)
+  deleted_by                    String?        @db.Uuid
 
   profiles                      profiles       @relation("daily_work_worker", fields: [worker_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   aalyawala                     profiles?      @relation("daily_work_aalyawala", fields: [aalyawala_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  bhatkar                       profiles?      @relation("daily_work_bhatkar", fields: [bhatkar_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   business_units                business_units @relation(fields: [business_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   settlements                   settlements?   @relation(fields: [settlement_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   batches                       batches?       @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -82,6 +92,11 @@ model daily_work_logs {
 
   @@index([worker_id, work_date], map: "idx_work_logs_worker_date")
   @@index([business_unit_id, category, work_date], map: "idx_work_logs_bu_cat_date")
+  @@index([batch_id], map: "idx_work_logs_batch_id")
+  @@index([log_group_id], map: "idx_work_logs_log_group_id")
+  @@index([worker_id, category, deleted_at], map: "idx_work_logs_worker_cat_deleted")
+  @@index([bhatkar_id], map: "idx_work_logs_bhatkar_id")
+  @@index([aalyawala_id], map: "idx_work_logs_aalyawala_id")
   @@schema("workers")
 }
 

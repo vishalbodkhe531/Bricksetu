@@ -63,6 +63,7 @@ export function EmbeddedRecordWorkForm({
   const [aalyawalaQtyMap, setAalyawalaQtyMap] = useState<
     Record<string, string>
   >({});
+  const [selectedBhatkarId, setSelectedBhatkarId] = useState<string>("");
 
   // Determine category from worker profile or default to AALYAWALE
   const category = VALID_CATEGORIES.includes(worker.category as any)
@@ -75,6 +76,12 @@ export function EmbeddedRecordWorkForm({
   const availableAalyawalas = useMemo(() => {
     return allWorkers.filter(
       (w) => w.category === "AALYAWALE" && w.status === "active",
+    );
+  }, [allWorkers]);
+
+  const availableBhatkars = useMemo(() => {
+    return allWorkers.filter(
+      (w) => w.category === "BHATKAR" && w.status === "active",
     );
   }, [allWorkers]);
 
@@ -149,6 +156,11 @@ export function EmbeddedRecordWorkForm({
       return;
     }
 
+    if (category === "KACHA_MAAL" && !selectedBhatkarId) {
+      toast.error("Please select a Bhatkar worker / कृपया भटकर निवडा");
+      return;
+    }
+
     if (isAalyawalaRequired) {
       if (aalyawalaEntries.length === 0) {
         toast.error(
@@ -174,6 +186,7 @@ export function EmbeddedRecordWorkForm({
         input_quantity: totalInputQty,
         rate_per_unit: effectiveRate,
         aalyawala_entries: isAalyawalaRequired ? aalyawalaEntries : undefined,
+        bhatkar_id: selectedBhatkarId || undefined,
         reference_no: batchNumber || null,
         notes: notes || null,
       });
@@ -393,6 +406,28 @@ export function EmbeddedRecordWorkForm({
                   })
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Mandatory Bhatkar Selection for Kaccha Maal workers */}
+          {category === "KACHA_MAAL" && (
+            <div className="space-y-1.5 p-3 bg-amber-500/5 border border-amber-500/30 rounded-lg">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 text-amber-500" />
+                Select Bhatkar / भटकर निवडा *
+              </label>
+              <select
+                value={selectedBhatkarId}
+                onChange={(e) => setSelectedBhatkarId(e.target.value)}
+                className="w-full bg-background border border-input rounded-md px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+              >
+                <option value="">-- Choose Bhatkar / भटकर निवडा --</option>
+                {availableBhatkars.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.full_name} ({b.code}) {b.current_rate_amount ? `— Fixed Rate: ₹${b.current_rate_amount}/1K` : ""}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 

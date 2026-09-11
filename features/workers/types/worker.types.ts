@@ -105,8 +105,12 @@ export interface DailyWorkLog {
   worker_id: string;
   worker_name?: string;
   worker_code?: string;
+  kachha_maal_id?: string | null;
+  kachha_maal_name?: string | null;
   aalyawala_id?: string | null;
   aalyawala_name?: string | null;
+  bhatkar_id?: string | null;
+  bhatkar_name?: string | null;
   work_date: string;
   category: "AALYAWALE" | "KACHA_MAAL" | "PAKKA_MAAL" | "BHATKAR" | string;
   entry_mode: "DIRECT_COUNT" | "PINJRI_COUNT" | "SHIFT_COUNT" | string;
@@ -119,7 +123,10 @@ export interface DailyWorkLog {
   rate: number;
   earned_amount: number;
   batch_id?: string | null;
+  log_group_id?: string | null;
   batch_number?: string | null;
+  is_primary?: boolean;
+  is_auto_generated?: boolean;
   reference_no?: string | null;
   notes?: string | null;
   settlement_id?: string | null;

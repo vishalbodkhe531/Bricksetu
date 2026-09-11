@@ -36,139 +36,381 @@ export async function getActiveConversion(
   };
 }
 
+export async function getActiveFixedRate(
+  tx: any,
+  workerId: string,
+  workDate?: Date
+): Promise<number | null> {
+  const targetDate = workDate || new Date();
+  const rateHistory = await tx.rate_history.findFirst({
+    where: {
+      worker_id: workerId,
+      effective_date: { lte: targetDate },
+    },
+    orderBy: { effective_date: "desc" },
+  });
+
+  if (rateHistory) {
+    return Number(rateHistory.rate_per_1000_paise) / 100;
+  }
+
+  const worker = await tx.profiles.findUnique({
+    where: { id: workerId },
+    include: {
+      rate_history: { orderBy: { effective_date: "desc" }, take: 1 },
+    },
+  });
+
+  const latestRate = worker?.rate_history[0];
+  if (latestRate) {
+    return Number(latestRate.rate_per_1000_paise) / 100;
+  }
+
+  return null;
+}
+
 export async function recordDailyWork(
   businessUnitId: string,
   input: DailyWorkInput,
-  userId?: string
+  userId?: string,
+  externalTx?: any
 ) {
   const workDate = new Date(input.work_date);
 
-  // 1. Determine rate if not explicitly supplied
-  let rate = input.rate_per_unit;
-  if (rate === undefined || rate === null) {
-    const rateHistory = await prisma.rate_history.findFirst({
-      where: {
-        worker_id: input.worker_id,
-        effective_date: { lte: workDate },
-      },
-      orderBy: { effective_date: "desc" },
-    });
+  const executeFn = async (tx: any) => {
+    // Determine conversion if PINJRI_COUNT
+    let convPhysicalPerUnit: number | null = null;
+    let convBillablePerUnit: number | null = null;
+    if (input.entry_mode === "PINJRI_COUNT") {
+      const conv = await getActiveConversion(
+        businessUnitId,
+        input.category,
+        "PINJRI",
+        workDate
+      );
+      convPhysicalPerUnit = conv.physical_count_per_unit;
+      convBillablePerUnit = conv.billable_count_per_unit;
+    }
 
-    if (rateHistory) {
-      rate = Number(rateHistory.rate_per_1000_paise) / 100;
-    } else {
-      const worker = await prisma.profiles.findUnique({
-        where: { id: input.worker_id },
+    const createdLogs: any[] = [];
+
+    // If KACHA_MAAL cross-logging flow is active
+    if (input.category === "KACHA_MAAL") {
+      const logGroupId = crypto.randomUUID();
+      const productionBatchId = input.batch_id || null;
+
+      // Resolve Aalyawala ID & Bhatkar ID
+      const aalyawalaId =
+        input.aalyawala_id ||
+        (input.aalyawala_ids?.[0] ?? null) ||
+        (input.aalyawala_entries?.[0]?.aalyawala_id ?? null);
+      const bhatkarId =
+        input.bhatkar_id ||
+        (input.bhatkar_ids?.[0] ?? null) ||
+        (input.bhatkar_entries?.[0]?.bhatkar_id ?? null);
+
+      if (!aalyawalaId) {
+        throw new Error("Aalyawala selection is required for Kachha Maal daily work");
+      }
+      if (!bhatkarId) {
+        throw new Error("Bhatkar selection is required for Kachha Maal daily work");
+      }
+
+      // Batch pre-fetch worker, aalyawala, and bhatkar profiles + rate histories in ONE query
+      const targetWorkerIds = Array.from(
+        new Set([input.worker_id, aalyawalaId, bhatkarId].filter(Boolean) as string[])
+      );
+
+      const profiles = await tx.profiles.findMany({
+        where: { id: { in: targetWorkerIds } },
         include: {
-          rate_history: { orderBy: { effective_date: "desc" }, take: 1 },
+          rate_history: {
+            orderBy: { effective_date: "desc" },
+          },
         },
       });
-      const latestRate = worker?.rate_history[0];
-      rate = latestRate ? Number(latestRate.rate_per_1000_paise) / 100 : 0;
-    }
-  }
 
-  // Build list of items to create: supports explicit aalyawala_entries or single/split fallback
-  const itemsToCreate: { aalyawalaId: string | null; quantity: number }[] = [];
+      const profileMap = new Map<string, { profile: any; rate: number | null }>();
+      for (const p of profiles) {
+        let matchedRate = p.rate_history?.find(
+          (r: any) => new Date(r.effective_date) <= workDate
+        );
+        if (!matchedRate && p.rate_history && p.rate_history.length > 0) {
+          matchedRate = p.rate_history[0];
+        }
+        const rate = matchedRate
+          ? Number(matchedRate.rate_per_1000_paise) / 100
+          : null;
+        profileMap.set(p.id, { profile: p, rate });
+      }
 
-  if (input.aalyawala_entries && input.aalyawala_entries.length > 0) {
-    for (const item of input.aalyawala_entries) {
-      itemsToCreate.push({
-        aalyawalaId: item.aalyawala_id,
-        quantity: item.input_quantity,
+      const kmWorkerData = profileMap.get(input.worker_id);
+      const aalyawalaData = profileMap.get(aalyawalaId);
+      const bhatkarData = profileMap.get(bhatkarId);
+
+      if (!aalyawalaData?.profile) throw new Error("Selected Aalyawala worker not found");
+      if (!bhatkarData?.profile) throw new Error("Selected Bhatkar worker not found");
+
+      let rate = input.rate_per_unit;
+      if (rate === undefined || rate === null) {
+        rate = kmWorkerData?.rate ?? 0;
+      }
+
+      const aalyawalaRate = aalyawalaData.rate;
+      const bhatkarRate = bhatkarData.rate;
+
+      if (aalyawalaRate === null || aalyawalaRate <= 0) {
+        throw new Error(
+          `No active rate configured for Aalyawala "${aalyawalaData.profile.full_name}"`
+        );
+      }
+      if (bhatkarRate === null || bhatkarRate <= 0) {
+        throw new Error(
+          `No active rate configured for Bhatkar "${bhatkarData.profile.full_name}"`
+        );
+      }
+
+      const itemQty = input.input_quantity;
+      let physicalQty = itemQty;
+      let billableQty = itemQty;
+      let unit = "BRICKS";
+
+      if (input.entry_mode === "PINJRI_COUNT") {
+        physicalQty = itemQty * (convPhysicalPerUnit || 22);
+        billableQty = itemQty * (convBillablePerUnit || 20);
+        unit = "BRICKS";
+      } else if (input.entry_mode === "DIRECT_COUNT") {
+        physicalQty = itemQty;
+        billableQty = itemQty;
+        unit = "BRICKS";
+      } else if (input.entry_mode === "SHIFT_COUNT") {
+        physicalQty = itemQty;
+        billableQty = itemQty;
+        unit = "SHIFTS";
+      }
+
+      // Calculations
+      const kmEarnedAmount =
+        input.entry_mode === "SHIFT_COUNT"
+          ? itemQty * rate
+          : (billableQty * rate) / 1000;
+      const aalyawalaEarnedAmount =
+        input.entry_mode === "SHIFT_COUNT"
+          ? itemQty * aalyawalaRate
+          : (billableQty * aalyawalaRate) / 1000;
+      const bhatkarEarnedAmount =
+        input.entry_mode === "SHIFT_COUNT"
+          ? itemQty * bhatkarRate
+          : (billableQty * bhatkarRate) / 1000;
+
+      // 1. Create Primary Kachha Maal Log
+      const primaryLog = await tx.daily_work_logs.create({
+        data: {
+          business_unit_id: businessUnitId,
+          worker_id: input.worker_id,
+          aalyawala_id: aalyawalaId,
+          bhatkar_id: bhatkarId,
+          batch_id: productionBatchId,
+          log_group_id: logGroupId,
+          is_primary: true,
+          is_auto_generated: false,
+          work_date: workDate,
+          category: "KACHA_MAAL",
+          entry_mode: input.entry_mode,
+          input_quantity: itemQty,
+          physical_quantity: physicalQty,
+          billable_quantity: billableQty,
+          unit,
+          conversion_physical_per_unit: convPhysicalPerUnit,
+          conversion_billable_per_unit: convBillablePerUnit,
+          rate_paise: BigInt(Math.round(rate * 100)),
+          earned_amount_paise: BigInt(Math.round(kmEarnedAmount * 100)),
+          reference_no: input.reference_no || null,
+          notes: input.notes || null,
+          created_by: userId || null,
+        },
+        include: { profiles: true, aalyawala: true, bhatkar: true, batches: true },
       });
-    }
-  } else {
-    const aalyawalaIds: (string | null)[] =
-      input.aalyawala_ids && input.aalyawala_ids.length > 0
-        ? input.aalyawala_ids
-        : input.aalyawala_id
-        ? [input.aalyawala_id]
-        : [null];
-    const count = aalyawalaIds.length;
-    const splitInputQty = input.input_quantity / count;
-    for (const aalId of aalyawalaIds) {
-      itemsToCreate.push({
-        aalyawalaId: aalId,
-        quantity: splitInputQty,
+      const kmInfo = {
+        id: input.worker_id,
+        name: kmWorkerData?.profile?.full_name || "Unknown Worker",
+      };
+      createdLogs.push(formatDailyWorkLog(primaryLog, kmInfo));
+
+      // 2. Create Auto-Generated Aalyawala Log
+      const aalyawalaLog = await tx.daily_work_logs.create({
+        data: {
+          business_unit_id: businessUnitId,
+          worker_id: aalyawalaId,
+          aalyawala_id: aalyawalaId,
+          bhatkar_id: bhatkarId,
+          batch_id: productionBatchId,
+          log_group_id: logGroupId,
+          is_primary: false,
+          is_auto_generated: true,
+          work_date: workDate,
+          category: "AALYAWALE",
+          entry_mode: input.entry_mode,
+          input_quantity: itemQty,
+          physical_quantity: physicalQty,
+          billable_quantity: billableQty,
+          unit,
+          conversion_physical_per_unit: convPhysicalPerUnit,
+          conversion_billable_per_unit: convBillablePerUnit,
+          rate_paise: BigInt(Math.round(aalyawalaRate * 100)),
+          earned_amount_paise: BigInt(Math.round(aalyawalaEarnedAmount * 100)),
+          reference_no: input.reference_no || null,
+          notes: `Auto-generated from Kachha Maal work entry (${primaryLog.id})`,
+          created_by: userId || null,
+        },
+        include: { profiles: true, aalyawala: true, bhatkar: true, batches: true },
       });
-    }
-  }
+      createdLogs.push(formatDailyWorkLog(aalyawalaLog, kmInfo));
 
-  let convPhysicalPerUnit: number | null = null;
-  let convBillablePerUnit: number | null = null;
-  if (input.entry_mode === "PINJRI_COUNT") {
-    const conv = await getActiveConversion(
-      businessUnitId,
-      input.category,
-      "PINJRI",
-      workDate
-    );
-    convPhysicalPerUnit = conv.physical_count_per_unit;
-    convBillablePerUnit = conv.billable_count_per_unit;
-  }
+      // 3. Create Auto-Generated Bhatkar Log
+      const bhatkarLog = await tx.daily_work_logs.create({
+        data: {
+          business_unit_id: businessUnitId,
+          worker_id: bhatkarId,
+          aalyawala_id: aalyawalaId,
+          bhatkar_id: bhatkarId,
+          batch_id: productionBatchId,
+          log_group_id: logGroupId,
+          is_primary: false,
+          is_auto_generated: true,
+          work_date: workDate,
+          category: "BHATKAR",
+          entry_mode: input.entry_mode,
+          input_quantity: itemQty,
+          physical_quantity: physicalQty,
+          billable_quantity: billableQty,
+          unit,
+          conversion_physical_per_unit: convPhysicalPerUnit,
+          conversion_billable_per_unit: convBillablePerUnit,
+          rate_paise: BigInt(Math.round(bhatkarRate * 100)),
+          earned_amount_paise: BigInt(Math.round(bhatkarEarnedAmount * 100)),
+          reference_no: input.reference_no || null,
+          notes: `Auto-generated from Kachha Maal work entry (${primaryLog.id})`,
+          created_by: userId || null,
+        },
+        include: { profiles: true, aalyawala: true, bhatkar: true, batches: true },
+      });
+      createdLogs.push(formatDailyWorkLog(bhatkarLog, kmInfo));
 
-  const createdLogs: any[] = [];
-
-  for (const item of itemsToCreate) {
-    const itemQty = item.quantity;
-    let physicalQty = itemQty;
-    let billableQty = itemQty;
-    let unit = "BRICKS";
-    let earnedAmount = 0;
-
-    if (input.entry_mode === "PINJRI_COUNT") {
-      physicalQty = itemQty * (convPhysicalPerUnit || 22);
-      billableQty = itemQty * (convBillablePerUnit || 20);
-      unit = "BRICKS";
-      earnedAmount = (billableQty * rate) / 1000;
-    } else if (input.entry_mode === "DIRECT_COUNT") {
-      physicalQty = itemQty;
-      billableQty = itemQty;
-      unit = "BRICKS";
-      earnedAmount = (billableQty * rate) / 1000;
-    } else if (input.entry_mode === "SHIFT_COUNT") {
-      physicalQty = itemQty;
-      billableQty = itemQty;
-      unit = "SHIFTS";
-      earnedAmount = itemQty * rate;
+      return createdLogs[0]; // return primary log
     }
 
-    const ratePaise = BigInt(Math.round(rate * 100));
-    const earnedAmountPaise = BigInt(Math.round(earnedAmount * 100));
+    // Standard single entry (for other categories like PAKKA_MAAL, AALYAWALE direct, BHATKAR direct)
+    let rate = input.rate_per_unit;
+    if (rate === undefined || rate === null) {
+      const fetchedRate = await getActiveFixedRate(tx, input.worker_id, workDate);
+      rate = fetchedRate ?? 0;
+    }
 
-    const log = await prisma.daily_work_logs.create({
-      data: {
-        business_unit_id: businessUnitId,
-        worker_id: input.worker_id,
-        aalyawala_id: item.aalyawalaId,
-        work_date: workDate,
-        category: input.category,
-        entry_mode: input.entry_mode,
-        input_quantity: itemQty,
-        physical_quantity: physicalQty,
-        billable_quantity: billableQty,
-        unit,
-        conversion_physical_per_unit: convPhysicalPerUnit,
-        conversion_billable_per_unit: convBillablePerUnit,
-        rate_paise: ratePaise,
-        earned_amount_paise: earnedAmountPaise,
-        batch_id: input.batch_id || null,
-        reference_no: input.reference_no || null,
-        notes: input.notes || null,
-        created_by: userId || null,
-      },
-      include: {
-        profiles: true,
-        aalyawala: true,
-        batches: true,
-      },
-    });
+    const itemsToCreate: {
+      aalyawalaId: string | null;
+      bhatkarId: string | null;
+      quantity: number;
+    }[] = [];
 
-    createdLogs.push(formatDailyWorkLog(log));
+    if (input.aalyawala_entries && input.aalyawala_entries.length > 0) {
+      for (const item of input.aalyawala_entries) {
+        itemsToCreate.push({
+          aalyawalaId: item.aalyawala_id,
+          bhatkarId: input.bhatkar_id || null,
+          quantity: item.input_quantity,
+        });
+      }
+    } else {
+      const aalyawalaIds: (string | null)[] =
+        input.aalyawala_ids && input.aalyawala_ids.length > 0
+          ? input.aalyawala_ids
+          : input.aalyawala_id
+          ? [input.aalyawala_id]
+          : [null];
+      const count = aalyawalaIds.length;
+      const splitInputQty = input.input_quantity / count;
+      for (const aalId of aalyawalaIds) {
+        itemsToCreate.push({
+          aalyawalaId: aalId,
+          bhatkarId: input.bhatkar_id || null,
+          quantity: splitInputQty,
+        });
+      }
+    }
+
+    for (const item of itemsToCreate) {
+      const itemQty = item.quantity;
+      let physicalQty = itemQty;
+      let billableQty = itemQty;
+      let unit = "BRICKS";
+      let earnedAmount = 0;
+
+      if (input.entry_mode === "PINJRI_COUNT") {
+        physicalQty = itemQty * (convPhysicalPerUnit || 22);
+        billableQty = itemQty * (convBillablePerUnit || 20);
+        unit = "BRICKS";
+        earnedAmount = (billableQty * rate) / 1000;
+      } else if (input.entry_mode === "DIRECT_COUNT") {
+        physicalQty = itemQty;
+        billableQty = itemQty;
+        unit = "BRICKS";
+        earnedAmount = (billableQty * rate) / 1000;
+      } else if (input.entry_mode === "SHIFT_COUNT") {
+        physicalQty = itemQty;
+        billableQty = itemQty;
+        unit = "SHIFTS";
+        earnedAmount = itemQty * rate;
+      }
+
+      const ratePaise = BigInt(Math.round(rate * 100));
+      const earnedAmountPaise = BigInt(Math.round(earnedAmount * 100));
+
+      const log = await tx.daily_work_logs.create({
+        data: {
+          business_unit_id: businessUnitId,
+          worker_id: input.worker_id,
+          aalyawala_id: item.aalyawalaId,
+          bhatkar_id: item.bhatkarId,
+          work_date: workDate,
+          category: input.category,
+          entry_mode: input.entry_mode,
+          input_quantity: itemQty,
+          physical_quantity: physicalQty,
+          billable_quantity: billableQty,
+          unit,
+          conversion_physical_per_unit: convPhysicalPerUnit,
+          conversion_billable_per_unit: convBillablePerUnit,
+          rate_paise: ratePaise,
+          earned_amount_paise: earnedAmountPaise,
+          batch_id: input.batch_id || null,
+          log_group_id: null,
+          reference_no: input.reference_no || null,
+          notes: input.notes || null,
+          created_by: userId || null,
+        },
+        include: {
+          profiles: true,
+          aalyawala: true,
+          bhatkar: true,
+          batches: true,
+        },
+      });
+
+      createdLogs.push(formatDailyWorkLog(log));
+    }
+
+    return createdLogs.length === 1 ? createdLogs[0] : createdLogs;
+  };
+
+  if (externalTx) {
+    return await executeFn(externalTx);
   }
 
-  return createdLogs.length === 1 ? createdLogs[0] : createdLogs;
+  return await prisma.$transaction(executeFn, {
+    timeout: 20000,
+    maxWait: 10000,
+  });
 }
 
 export async function recordBulkDailyWork(
@@ -178,115 +420,40 @@ export async function recordBulkDailyWork(
 ) {
   const workDate = new Date(bulkInput.work_date);
 
-  // Fetch active Pinjri conversion once for the date if needed
-  const conv = await getActiveConversion(
-    businessUnitId,
-    bulkInput.category,
-    "PINJRI",
-    workDate
-  );
+  return await prisma.$transaction(
+    async (tx) => {
+      const results: any[] = [];
+      for (const entry of bulkInput.entries) {
+        const singleInput: DailyWorkInput = {
+          worker_id: entry.worker_id,
+          work_date: bulkInput.work_date,
+          category: bulkInput.category,
+          entry_mode: entry.entry_mode,
+          input_quantity: entry.input_quantity,
+          rate_per_unit: entry.rate_per_unit,
+          aalyawala_id: entry.aalyawala_id,
+          aalyawala_ids: entry.aalyawala_ids,
+          bhatkar_id: entry.bhatkar_id || bulkInput.bhatkar_id || null,
+          batch_id: entry.batch_id,
+          reference_no: entry.reference_no,
+          notes: entry.notes,
+        };
 
-  return await prisma.$transaction(async (tx) => {
-    const results: any[] = [];
-    for (const entry of bulkInput.entries) {
-      let rate = entry.rate_per_unit;
-      if (rate === undefined || rate === null) {
-        const rateHistory = await tx.rate_history.findFirst({
-          where: {
-            worker_id: entry.worker_id,
-            effective_date: { lte: workDate },
-          },
-          orderBy: { effective_date: "desc" },
-        });
-
-        if (rateHistory) {
-          rate = Number(rateHistory.rate_per_1000_paise) / 100;
+        const res = await recordDailyWork(businessUnitId, singleInput, userId, tx);
+        if (Array.isArray(res)) {
+          results.push(...res);
         } else {
-          const worker = await tx.profiles.findUnique({
-            where: { id: entry.worker_id },
-            include: {
-              rate_history: { orderBy: { effective_date: "desc" }, take: 1 },
-            },
-          });
-          const latestRate = worker?.rate_history[0];
-          rate = latestRate ? Number(latestRate.rate_per_1000_paise) / 100 : 0;
+          results.push(res);
         }
       }
 
-      const aalyawalaIds: (string | null)[] =
-        entry.aalyawala_ids && entry.aalyawala_ids.length > 0
-          ? entry.aalyawala_ids
-          : entry.aalyawala_id
-          ? [entry.aalyawala_id]
-          : [null];
-
-      const count = aalyawalaIds.length;
-      const splitInputQty = entry.input_quantity / count;
-
-      for (const aalyawalaId of aalyawalaIds) {
-        let physicalQty = splitInputQty;
-        let billableQty = splitInputQty;
-        let unit = "BRICKS";
-        let convPhysicalPerUnit: number | null = null;
-        let convBillablePerUnit: number | null = null;
-        let earnedAmount = 0;
-
-        if (entry.entry_mode === "PINJRI_COUNT") {
-          convPhysicalPerUnit = conv.physical_count_per_unit;
-          convBillablePerUnit = conv.billable_count_per_unit;
-          physicalQty = splitInputQty * convPhysicalPerUnit;
-          billableQty = splitInputQty * convBillablePerUnit;
-          unit = "BRICKS";
-          earnedAmount = (billableQty * rate) / 1000;
-        } else if (entry.entry_mode === "DIRECT_COUNT") {
-          physicalQty = splitInputQty;
-          billableQty = splitInputQty;
-          unit = "BRICKS";
-          earnedAmount = (billableQty * rate) / 1000;
-        } else if (entry.entry_mode === "SHIFT_COUNT") {
-          physicalQty = splitInputQty;
-          billableQty = splitInputQty;
-          unit = "SHIFTS";
-          earnedAmount = splitInputQty * rate;
-        }
-
-        const ratePaise = BigInt(Math.round(rate * 100));
-        const earnedAmountPaise = BigInt(Math.round(earnedAmount * 100));
-
-        const log = await tx.daily_work_logs.create({
-          data: {
-            business_unit_id: businessUnitId,
-            worker_id: entry.worker_id,
-            aalyawala_id: aalyawalaId,
-            work_date: workDate,
-            category: bulkInput.category,
-            entry_mode: entry.entry_mode,
-            input_quantity: splitInputQty,
-            physical_quantity: physicalQty,
-            billable_quantity: billableQty,
-            unit,
-            conversion_physical_per_unit: convPhysicalPerUnit,
-            conversion_billable_per_unit: convBillablePerUnit,
-            rate_paise: ratePaise,
-            earned_amount_paise: earnedAmountPaise,
-            batch_id: entry.batch_id || null,
-            reference_no: entry.reference_no || null,
-            notes: entry.notes || null,
-            created_by: userId || null,
-          },
-          include: {
-            profiles: true,
-            aalyawala: true,
-            batches: true,
-          },
-        });
-
-        results.push(formatDailyWorkLog(log));
-      }
+      return results;
+    },
+    {
+      timeout: 30000,
+      maxWait: 15000,
     }
-
-    return results;
-  });
+  );
 }
 
 export async function getDailyWorkLogs(
@@ -300,6 +467,7 @@ export async function getDailyWorkLogs(
 ) {
   const whereClause: any = {
     business_unit_id: businessUnitId,
+    deleted_at: null,
   };
 
   if (filters.workerId) {
@@ -325,12 +493,40 @@ export async function getDailyWorkLogs(
     include: {
       profiles: true,
       aalyawala: true,
+      bhatkar: true,
       batches: true,
     },
     orderBy: { work_date: "desc" },
   });
 
-  const formattedLogs = logs.map(formatDailyWorkLog);
+  const logGroupIds = Array.from(
+    new Set(logs.map((l) => l.log_group_id).filter(Boolean) as string[])
+  );
+
+  const kmWorkerMap = new Map<string, { id: string; name: string }>();
+
+  if (logGroupIds.length > 0) {
+    const primaryLogs = await prisma.daily_work_logs.findMany({
+      where: {
+        log_group_id: { in: logGroupIds },
+        is_primary: true,
+      },
+      include: {
+        profiles: true,
+      },
+    });
+
+    for (const pLog of primaryLogs) {
+      if (pLog.log_group_id && pLog.profiles) {
+        kmWorkerMap.set(pLog.log_group_id, {
+          id: pLog.worker_id,
+          name: pLog.profiles.full_name,
+        });
+      }
+    }
+  }
+
+  const formattedLogs = logs.map((log) => formatDailyWorkLog(log, kmWorkerMap));
 
   const summary = formattedLogs.reduce(
     (acc, log) => {
@@ -365,6 +561,7 @@ export async function getDailyWorkSummaryForToday(
     where: {
       business_unit_id: businessUnitId,
       work_date: startOfDay,
+      deleted_at: null,
     },
   });
 
@@ -392,12 +589,14 @@ export async function getDailyWorkSummaryForToday(
 
 export async function deleteDailyWorkLog(
   id: string,
-  businessUnitId: string
+  businessUnitId: string,
+  userId?: string
 ) {
   const log = await prisma.daily_work_logs.findFirst({
     where: {
       id,
       business_unit_id: businessUnitId,
+      deleted_at: null,
     },
   });
 
@@ -405,13 +604,37 @@ export async function deleteDailyWorkLog(
     throw new Error("Work log record not found");
   }
 
+  if (log.is_auto_generated) {
+    throw new Error("This log was auto-generated. Delete the linked Kachha Maal entry to remove this group.");
+  }
+
   if (log.settlement_id) {
     throw new Error("Cannot delete a work log that has already been settled.");
   }
 
-  await prisma.daily_work_logs.delete({
-    where: { id },
-  });
+  const deleteDate = new Date();
+
+  // If log_group_id exists, soft delete all linked logs in the group
+  if (log.log_group_id) {
+    await prisma.daily_work_logs.updateMany({
+      where: {
+        log_group_id: log.log_group_id,
+        business_unit_id: businessUnitId,
+      },
+      data: {
+        deleted_at: deleteDate,
+        deleted_by: userId || null,
+      },
+    });
+  } else {
+    await prisma.daily_work_logs.update({
+      where: { id },
+      data: {
+        deleted_at: deleteDate,
+        deleted_by: userId || null,
+      },
+    });
+  }
 
   return { id, success: true };
 }
@@ -436,15 +659,38 @@ export async function upsertWorkUnitConversion(
   });
 }
 
-function formatDailyWorkLog(log: any) {
+function formatDailyWorkLog(
+  log: any,
+  kmWorkerMapOrInfo?: Map<string, { id: string; name: string }> | { id: string; name: string }
+) {
+  let kmWorker: { id: string; name: string } | null = null;
+
+  if (kmWorkerMapOrInfo) {
+    if ("get" in kmWorkerMapOrInfo && typeof (kmWorkerMapOrInfo as any).get === "function") {
+      kmWorker = log.log_group_id
+        ? (kmWorkerMapOrInfo as Map<string, { id: string; name: string }>).get(log.log_group_id) || null
+        : null;
+    } else if ("name" in kmWorkerMapOrInfo) {
+      kmWorker = kmWorkerMapOrInfo as { id: string; name: string };
+    }
+  }
+
+  const isKachaMaal = log.category === "KACHA_MAAL";
+
   return {
     id: log.id,
     business_unit_id: log.business_unit_id,
     worker_id: log.worker_id,
     worker_name: log.profiles?.full_name || "Unknown Worker",
     worker_code: log.profiles?.code || "",
+    kachha_maal_id: isKachaMaal ? log.worker_id : (kmWorker?.id || null),
+    kachha_maal_name: isKachaMaal
+      ? (log.profiles?.full_name || null)
+      : (kmWorker?.name || null),
     aalyawala_id: log.aalyawala_id || null,
     aalyawala_name: log.aalyawala?.full_name || null,
+    bhatkar_id: log.bhatkar_id || null,
+    bhatkar_name: log.bhatkar?.full_name || null,
     work_date: log.work_date.toISOString().split("T")[0],
     category: log.category,
     entry_mode: log.entry_mode,
@@ -457,7 +703,10 @@ function formatDailyWorkLog(log: any) {
     rate: Number(log.rate_paise) / 100,
     earned_amount: Number(log.earned_amount_paise) / 100,
     batch_id: log.batch_id,
+    log_group_id: log.log_group_id || null,
     batch_number: log.batches?.batch_number || null,
+    is_primary: log.is_primary ?? true,
+    is_auto_generated: log.is_auto_generated ?? false,
     reference_no: log.reference_no,
     notes: log.notes,
     settlement_id: log.settlement_id,
