@@ -373,8 +373,8 @@ export function EmbeddedRecordWorkForm({
                           <div className="flex items-center gap-1.5 w-36 shrink-0">
                             <input
                               type="number"
-                              min="0.5"
-                              step={entryMode === "PINJRI_COUNT" ? "0.5" : "1"}
+                              min="0"
+                              step="any"
                               value={currentQty}
                               onChange={(e) => {
                                 const val = e.target.value;
@@ -443,8 +443,8 @@ export function EmbeddedRecordWorkForm({
               <div className="relative">
                 <input
                   type="number"
-                  min="1"
-                  step="1"
+                  min="0"
+                  step="any"
                   value={pinjriCount}
                   onChange={(e) => setPinjriCount(e.target.value)}
                   placeholder="e.g. 50"
@@ -469,8 +469,8 @@ export function EmbeddedRecordWorkForm({
               </label>
               <input
                 type="number"
-                min="1"
-                step="1"
+                min="0"
+                step="any"
                 value={directQty}
                 onChange={(e) => setDirectQty(e.target.value)}
                 placeholder="e.g. 1000"
@@ -522,7 +522,7 @@ export function EmbeddedRecordWorkForm({
               </span>
               <input
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 value={customRate}
                 onChange={(e) => setCustomRate(e.target.value)}

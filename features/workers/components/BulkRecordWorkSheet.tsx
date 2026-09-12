@@ -536,7 +536,8 @@ export function BulkRecordWorkSheet({
                           <td className="py-3 px-3">
                             <input
                               type="number"
-                              step={r.entryMode === 'PINJRI_COUNT' || r.entryMode === 'SHIFT_COUNT' ? '0.5' : '1'}
+                              min="0"
+                              step="any"
                               value={r.quantity}
                               onChange={(e) =>
                                 handleQuantityChange(
