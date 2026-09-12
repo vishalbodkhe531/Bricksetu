@@ -11,6 +11,8 @@ export interface WeekBucket {
   totalPhysicalQty: number;
   totalBillableQty: number;
   totalEntries: number;
+  isPaid: boolean;
+  settlementId?: string | null;
 }
 
 export function useWeeklyGroupedLogs(groupedDailyLogs: LogGroup[] | undefined): WeekBucket[] {
@@ -26,6 +28,10 @@ export function useWeeklyGroupedLogs(groupedDailyLogs: LogGroup[] | undefined): 
 
       const existing = map.get(key);
       const entriesCount = logGroup.items?.length || 1;
+      const logSettlementId =
+        logGroup.settlement_id ||
+        logGroup.items?.find((i) => i.settlement_id)?.settlement_id ||
+        null;
 
       if (existing) {
         existing.logs.push(logGroup);
@@ -33,6 +39,10 @@ export function useWeeklyGroupedLogs(groupedDailyLogs: LogGroup[] | undefined): 
         existing.totalPhysicalQty += Number(logGroup.physical_quantity || 0);
         existing.totalBillableQty += Number(logGroup.billable_quantity || 0);
         existing.totalEntries += entriesCount;
+        if (logSettlementId) {
+          existing.isPaid = true;
+          existing.settlementId = logSettlementId;
+        }
       } else {
         map.set(key, {
           id: key,
@@ -43,6 +53,8 @@ export function useWeeklyGroupedLogs(groupedDailyLogs: LogGroup[] | undefined): 
           totalPhysicalQty: Number(logGroup.physical_quantity || 0),
           totalBillableQty: Number(logGroup.billable_quantity || 0),
           totalEntries: entriesCount,
+          isPaid: !!logSettlementId,
+          settlementId: logSettlementId,
         });
       }
     }

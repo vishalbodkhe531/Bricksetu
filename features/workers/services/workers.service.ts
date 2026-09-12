@@ -515,33 +515,56 @@ export async function createSettlement(
 ) {
   const grossPaise = BigInt(Math.round((input.gross_wage || 0) * 100));
   const settlementNum = `SETTL-${Date.now()}`;
+  const startDate = new Date(input.period_start);
+  const endDate = new Date(input.period_end);
 
-  const created = await prisma.settlements.create({
-    data: {
-      business_unit_id: input.organization_id || "",
-      settlement_number: settlementNum,
-      worker_id: input.worker_id,
-      period_start_date: new Date(input.period_start),
-      period_end_date: new Date(input.period_end),
-      total_bricks: input.total_bricks || 0,
-      gross_amount_paise: grossPaise,
-      status: "APPROVED",
-      notes: null,
-    },
+  return await prisma.$transaction(async (tx: any) => {
+    const created = await tx.settlements.create({
+      data: {
+        business_unit_id: input.organization_id || "",
+        settlement_number: settlementNum,
+        worker_id: input.worker_id,
+        period_start_date: startDate,
+        period_end_date: endDate,
+        total_bricks: input.total_bricks || 0,
+        gross_amount_paise: grossPaise,
+        status: "APPROVED",
+        notes: null,
+      },
+    });
+
+    // Stamp matching daily_work_logs within the week period with settlement_id
+    await tx.daily_work_logs.updateMany({
+      where: {
+        OR: [
+          { worker_id: input.worker_id },
+          { aalyawala_id: input.worker_id },
+          { bhatkar_id: input.worker_id },
+        ],
+        work_date: {
+          gte: startDate,
+          lte: endDate,
+        },
+        deleted_at: null,
+      },
+      data: {
+        settlement_id: created.id,
+      },
+    });
+
+    return {
+      id: created.id,
+      worker_id: created.worker_id,
+      period_start: created.period_start_date.toISOString().split("T")[0],
+      period_end: created.period_end_date.toISOString().split("T")[0],
+      gross_wage: Number(created.gross_amount_paise) / 100,
+      advances_deducted: input.advances_deducted || 0,
+      net_payable: input.net_payable,
+      status: "paid" as const,
+      paid_on: created.created_at.toISOString().split("T")[0],
+      created_at: created.created_at.toISOString(),
+    };
   });
-
-  return {
-    id: created.id,
-    worker_id: created.worker_id,
-    period_start: created.period_start_date.toISOString().split("T")[0],
-    period_end: created.period_end_date.toISOString().split("T")[0],
-    gross_wage: Number(created.gross_amount_paise) / 100,
-    advances_deducted: input.advances_deducted || 0,
-    net_payable: input.net_payable,
-    status: "paid" as const,
-    paid_on: created.created_at.toISOString().split("T")[0],
-    created_at: created.created_at.toISOString(),
-  };
 }
 
 export async function getSettlements(organizationId: string) {

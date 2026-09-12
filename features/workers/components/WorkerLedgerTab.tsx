@@ -1,15 +1,26 @@
 "use client";
 
 import React, { useState, Fragment } from "react";
-import { Calendar, ChevronDown, Clock, Coins, PlusCircle, Trash2, Users } from "lucide-react";
+import {
+  Calendar,
+  CheckCircle2,
+  ChevronDown,
+  Clock,
+  Coins,
+  Lock,
+  PlusCircle,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useGroupedDailyLogs } from "@/features/workers/hooks/useGroupedDailyLogs";
-import { useWeeklyGroupedLogs } from "@/features/workers/hooks/useWeeklyGroupedLogs";
-import { useDeleteDailyWorkLog } from "@/features/workers/hooks/useWorkers";
+import { useWeeklyGroupedLogs, WeekBucket } from "@/features/workers/hooks/useWeeklyGroupedLogs";
+import { useDeleteDailyWorkLog, useCreateSettlement } from "@/features/workers/hooks/useWorkers";
 import { getMarathiDay, formatDateDdMmYyyy } from "@/features/workers/utils/date-utils";
 import { formatWeekLabel } from "@/features/workers/utils/getWeekBoundary";
+import { WeeklyCheckoutDialog } from "./WeeklyCheckoutDialog";
 import type { Worker } from "@/features/workers/types/worker.types";
 
 interface WorkerLedgerTabProps {
@@ -30,8 +41,11 @@ export function WorkerLedgerTab({
   const groupedDailyLogs = useGroupedDailyLogs(dailyWorkData?.logs, worker.category);
   const weeklyBuckets = useWeeklyGroupedLogs(groupedDailyLogs);
   const deleteDailyWorkLog = useDeleteDailyWorkLog(orgId);
+  const createSettlement = useCreateSettlement(orgId);
+
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [expandedRowKeys, setExpandedRowKeys] = useState<Record<string, boolean>>({});
+  const [selectedWeekForCheckout, setSelectedWeekForCheckout] = useState<WeekBucket | null>(null);
 
   const toggleRowExpand = (key: string) => {
     setExpandedRowKeys((prev) => ({
@@ -119,6 +133,10 @@ export function WorkerLedgerTab({
                   {week.logs.map((logGroup: any) => {
                     const isMulti = logGroup.items.length > 1;
                     const isExpanded = !!expandedRowKeys[logGroup.id];
+
+                    const isSettled =
+                      !!logGroup.settlement_id ||
+                      logGroup.items.some((i: any) => !!i.settlement_id);
 
                     const uniqueAalyawalas = Array.from(
                       new Set(
@@ -279,23 +297,32 @@ export function WorkerLedgerTab({
                             )}
                           </td>
                           <td className="py-3 px-3.5 text-center whitespace-nowrap">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={isDeletingThis}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteLog(logToDeleteId);
-                              }}
-                              className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors"
-                              title="Delete daily work log entry / काम नोंद हटवा"
-                            >
-                              {isDeletingThis ? (
-                                <Clock className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-3.5 w-3.5" />
-                              )}
-                            </Button>
+                            {isSettled ? (
+                              <div
+                                className="inline-flex items-center justify-center h-7 w-7 text-emerald-600 dark:text-emerald-400"
+                                title="Settled entry / भरणा झालेली नोंद (Cannot delete)"
+                              >
+                                <Lock className="h-3.5 w-3.5" />
+                              </div>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled={isDeletingThis}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteLog(logToDeleteId);
+                                }}
+                                className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors"
+                                title="Delete daily work log entry / काम नोंद हटवा"
+                              >
+                                {isDeletingThis ? (
+                                  <Clock className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                )}
+                              </Button>
+                            )}
                           </td>
                         </tr>
 
@@ -458,14 +485,32 @@ export function WorkerLedgerTab({
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-4 text-xs font-mono">
+                        <div className="flex items-center gap-3 text-xs font-mono">
                           <div className="text-muted-foreground text-[11px]">
                             Billable Total: <span className="font-bold text-foreground">{week.totalBillableQty.toLocaleString()}</span> pcs
                           </div>
                           <div className="flex items-center gap-1.5 bg-emerald-500/15 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-md font-bold text-xs">
-                            <span>साप्ताहिक कमाई / Weekly Earned:</span>
+                            <span>Weekly Earned:</span>
                             <span className="text-sm font-extrabold">₹{week.totalEarnedAmount.toFixed(2)}</span>
                           </div>
+
+                          {/* Payment / Checkout Status */}
+                          {week.isPaid ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-extrabold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 shadow-xs font-sans">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                              Payment Done / जमा झाले
+                            </span>
+                          ) : (
+                            canWrite && (
+                              <Button
+                                size="sm"
+                                className="h-7 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1 shadow-xs font-sans"
+                                onClick={() => setSelectedWeekForCheckout(week)}
+                              >
+                                <Coins className="h-3 w-3" /> Checkout / Mark Paid
+                              </Button>
+                            )
+                          )}
                         </div>
                       </div>
                     </td>
@@ -501,6 +546,19 @@ export function WorkerLedgerTab({
         <p className="text-xs text-muted-foreground italic py-2">
           No daily work logs recorded yet for this worker.
         </p>
+      )}
+
+      {/* Weekly Settlement Checkout Modal */}
+      {selectedWeekForCheckout && (
+        <WeeklyCheckoutDialog
+          open={!!selectedWeekForCheckout}
+          onClose={() => setSelectedWeekForCheckout(null)}
+          worker={worker}
+          week={selectedWeekForCheckout}
+          onConfirmCheckout={async (input) => {
+            await createSettlement.mutateAsync(input);
+          }}
+        />
       )}
     </div>
   );
