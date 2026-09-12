@@ -16,6 +16,7 @@ export interface LogGroupItem {
   is_primary: boolean;
   entry_mode?: string;
   rate?: number;
+  settlement_id?: string | null;
 }
 
 export interface LogGroup {
@@ -33,6 +34,7 @@ export interface LogGroup {
   aalyawala_name?: string | null;
   is_auto_generated: boolean;
   is_primary: boolean;
+  settlement_id?: string | null;
   items: LogGroupItem[];
 }
 
@@ -79,6 +81,7 @@ export function useGroupedDailyLogs(
         is_primary: log.is_primary ?? true,
         entry_mode: log.entry_mode,
         rate: Number(log.rate || 0),
+        settlement_id: log.settlement_id || null,
       };
 
       if (existing) {
@@ -98,6 +101,9 @@ export function useGroupedDailyLogs(
         if (!existing.aalyawala_name && log.aalyawala_name) {
           existing.aalyawala_name = log.aalyawala_name;
         }
+        if (!existing.settlement_id && log.settlement_id) {
+          existing.settlement_id = log.settlement_id;
+        }
         existing.items.push(item);
       } else {
         groupMap.set(key, {
@@ -115,6 +121,7 @@ export function useGroupedDailyLogs(
           aalyawala_name: log.aalyawala_name || null,
           is_auto_generated: log.is_auto_generated ?? false,
           is_primary: log.is_primary ?? true,
+          settlement_id: log.settlement_id || null,
           items: [item],
         });
       }
