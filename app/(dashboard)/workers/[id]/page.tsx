@@ -31,6 +31,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 import { RateChangeDialog } from "@/features/workers/components/RateChangeDialog";
 import { WorkerDeactivateDialog } from "@/features/workers/components/WorkerDeactivateDialog";
 import { EmbeddedRecordWorkForm } from "@/features/workers/components/EmbeddedRecordWorkForm";
@@ -94,6 +95,27 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
   const { data: worker, isLoading: loading } = useWorkerDetail(workerId);
   const { data: dailyWorkData } = useDailyWorkLogs({ workerId });
   const deleteDailyWorkLog = useDeleteDailyWorkLog(orgId);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteLog = async (logId: string) => {
+    if (
+      !confirm(
+        "Are you sure you want to delete this daily work log entry? / हे काम नोंद खरोखर हटवायचे आहे का?",
+      )
+    ) {
+      return;
+    }
+
+    setDeletingId(logId);
+    try {
+      await deleteDailyWorkLog.mutateAsync(logId);
+      toast.success("Daily work log deleted successfully / काम नोंद हटवली");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete daily work log");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // Group logs by batch_id or log id to display multi-Aalyawala / multi-role entries cleanly
   const groupedDailyLogs = useMemo(() => {
@@ -714,7 +736,7 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                     ) : (
                       <th className="py-3 px-3.5">Bhatkar</th>
                     )}
-                    <th className="py-3 px-3.5 text-center">Type</th>
+                    <th className="py-3 px-3.5 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60 font-mono">
@@ -725,6 +747,11 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                       .map((i: any) => i.aalyawala_name)
                       .filter(Boolean)
                       .join(", ");
+                    const logToDeleteId =
+                      logGroup.items?.[0]?.id || logGroup.id;
+                    const isDeletingThis =
+                      deletingId === logToDeleteId ||
+                      deletingId === logGroup.id;
 
                     return (
                       <Fragment key={logGroup.id}>
@@ -810,22 +837,24 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                               ? logGroup.kachha_maal_name || "—"
                               : logGroup.bhatkar_name || "—"}
                           </td>
-                          <td className="py-3 px-3.5 font-sans text-center whitespace-nowrap">
-                            {logGroup.is_auto_generated ? (
-                              <Badge
-                                variant="secondary"
-                                className="text-[9px] bg-slate-800 text-slate-300 border border-slate-700 font-mono"
-                              >
-                                Auto-Generated
-                              </Badge>
-                            ) : (
-                              <Badge
-                                variant="outline"
-                                className="text-[9px] text-emerald-600 border-emerald-500/30 font-mono"
-                              >
-                                Primary Log
-                              </Badge>
-                            )}
+                          <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={isDeletingThis}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteLog(logToDeleteId);
+                              }}
+                              className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors"
+                              title="Delete daily work log entry / काम नोंद हटवा"
+                            >
+                              {isDeletingThis ? (
+                                <Clock className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
                           </td>
                         </tr>
 
@@ -834,31 +863,6 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                           <tr className="bg-amber-500/5 dark:bg-amber-950/20 border-b border-amber-500/20 animate-in fade-in-50 duration-200">
                             <td colSpan={10} className="p-3 sm:p-4">
                               <div className="bg-card dark:bg-slate-900/90 border border-amber-500/30 rounded-lg p-3 sm:p-4 space-y-3 shadow-md">
-                                {/* Sub-table Header */}
-                                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2.5">
-                                  <div className="flex items-center gap-2">
-                                    <span className="p-1 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                                      <Users className="h-4 w-4" />
-                                    </span>
-                                    <div>
-                                      <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                                        Aalyawala Contribution Breakdown /
-                                        आल्यावाले तपशील
-                                      </h4>
-                                      <p className="text-[10px] text-muted-foreground font-sans">
-                                        Individual work & earnings records for{" "}
-                                        {formatDateDdMmYyyy(logGroup.work_date)}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <Badge
-                                    variant="outline"
-                                    className="text-[10px] font-mono border-amber-500/30 text-amber-700 dark:text-amber-300"
-                                  >
-                                    {logGroup.items.length} Aalyawala Entries
-                                  </Badge>
-                                </div>
-
                                 {/* Responsive Sub-table */}
                                 <div className="overflow-x-auto rounded-md border border-border/80 bg-background/50">
                                   <table className="w-full min-w-[580px] text-xs text-left border-collapse font-mono">

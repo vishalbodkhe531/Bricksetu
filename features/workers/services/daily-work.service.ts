@@ -99,26 +99,53 @@ export async function recordDailyWork(
       const logGroupId = crypto.randomUUID();
       const productionBatchId = input.batch_id || null;
 
-      // Resolve Aalyawala ID & Bhatkar ID
-      const aalyawalaId =
-        input.aalyawala_id ||
-        (input.aalyawala_ids?.[0] ?? null) ||
-        (input.aalyawala_entries?.[0]?.aalyawala_id ?? null);
+      // Resolve Bhatkar ID
       const bhatkarId =
         input.bhatkar_id ||
         (input.bhatkar_ids?.[0] ?? null) ||
         (input.bhatkar_entries?.[0]?.bhatkar_id ?? null);
 
-      if (!aalyawalaId) {
-        throw new Error("Aalyawala selection is required for Kachha Maal daily work");
-      }
       if (!bhatkarId) {
         throw new Error("Bhatkar selection is required for Kachha Maal daily work");
       }
 
-      // Batch pre-fetch worker, aalyawala, and bhatkar profiles + rate histories in ONE query
+      // Build list of Aalyawala items
+      const aalyawalaItems: { aalyawalaId: string; quantity: number }[] = [];
+
+      if (input.aalyawala_entries && input.aalyawala_entries.length > 0) {
+        for (const item of input.aalyawala_entries) {
+          if (item.aalyawala_id && item.input_quantity > 0) {
+            aalyawalaItems.push({
+              aalyawalaId: item.aalyawala_id,
+              quantity: item.input_quantity,
+            });
+          }
+        }
+      } else if (input.aalyawala_ids && input.aalyawala_ids.length > 0) {
+        const count = input.aalyawala_ids.length;
+        const splitInputQty = input.input_quantity / count;
+        for (const aalId of input.aalyawala_ids) {
+          if (aalId) {
+            aalyawalaItems.push({
+              aalyawalaId: aalId,
+              quantity: splitInputQty,
+            });
+          }
+        }
+      } else if (input.aalyawala_id) {
+        aalyawalaItems.push({
+          aalyawalaId: input.aalyawala_id,
+          quantity: input.input_quantity,
+        });
+      }
+
+      if (aalyawalaItems.length === 0) {
+        throw new Error("Aalyawala selection is required for Kachha Maal daily work");
+      }
+
+      // Batch pre-fetch worker, aalyawalas, and bhatkar profiles + rate histories in ONE query
       const targetWorkerIds = Array.from(
-        new Set([input.worker_id, aalyawalaId, bhatkarId].filter(Boolean) as string[])
+        new Set([input.worker_id, ...aalyawalaItems.map((i) => i.aalyawalaId), bhatkarId].filter(Boolean) as string[])
       );
 
       const profiles = await tx.profiles.findMany({
@@ -145,157 +172,166 @@ export async function recordDailyWork(
       }
 
       const kmWorkerData = profileMap.get(input.worker_id);
-      const aalyawalaData = profileMap.get(aalyawalaId);
       const bhatkarData = profileMap.get(bhatkarId);
 
-      if (!aalyawalaData?.profile) throw new Error("Selected Aalyawala worker not found");
       if (!bhatkarData?.profile) throw new Error("Selected Bhatkar worker not found");
 
-      let rate = input.rate_per_unit;
-      if (rate === undefined || rate === null) {
-        rate = kmWorkerData?.rate ?? 0;
+      let kmRate = input.rate_per_unit;
+      if (kmRate === undefined || kmRate === null) {
+        kmRate = kmWorkerData?.rate ?? 0;
       }
 
-      const aalyawalaRate = aalyawalaData.rate;
       const bhatkarRate = bhatkarData.rate;
 
-      if (aalyawalaRate === null || aalyawalaRate <= 0) {
-        throw new Error(
-          `No active rate configured for Aalyawala "${aalyawalaData.profile.full_name}"`
-        );
-      }
       if (bhatkarRate === null || bhatkarRate <= 0) {
         throw new Error(
           `No active rate configured for Bhatkar "${bhatkarData.profile.full_name}"`
         );
       }
 
-      const itemQty = input.input_quantity;
-      let physicalQty = itemQty;
-      let billableQty = itemQty;
-      let unit = "BRICKS";
-
-      if (input.entry_mode === "PINJRI_COUNT") {
-        physicalQty = itemQty * (convPhysicalPerUnit || 22);
-        billableQty = itemQty * (convBillablePerUnit || 20);
-        unit = "BRICKS";
-      } else if (input.entry_mode === "DIRECT_COUNT") {
-        physicalQty = itemQty;
-        billableQty = itemQty;
-        unit = "BRICKS";
-      } else if (input.entry_mode === "SHIFT_COUNT") {
-        physicalQty = itemQty;
-        billableQty = itemQty;
-        unit = "SHIFTS";
+      // Verify each Aalyawala profile & rate
+      for (const item of aalyawalaItems) {
+        const aalyawalaData = profileMap.get(item.aalyawalaId);
+        if (!aalyawalaData?.profile) throw new Error("Selected Aalyawala worker not found");
+        if (aalyawalaData.rate === null || aalyawalaData.rate <= 0) {
+          throw new Error(
+            `No active rate configured for Aalyawala "${aalyawalaData.profile.full_name}"`
+          );
+        }
       }
 
-      // Calculations
-      const kmEarnedAmount =
-        input.entry_mode === "SHIFT_COUNT"
-          ? itemQty * rate
-          : (billableQty * rate) / 1000;
-      const aalyawalaEarnedAmount =
-        input.entry_mode === "SHIFT_COUNT"
-          ? itemQty * aalyawalaRate
-          : (billableQty * aalyawalaRate) / 1000;
-      const bhatkarEarnedAmount =
-        input.entry_mode === "SHIFT_COUNT"
-          ? itemQty * bhatkarRate
-          : (billableQty * bhatkarRate) / 1000;
-
-      // 1. Create Primary Kachha Maal Log
-      const primaryLog = await tx.daily_work_logs.create({
-        data: {
-          business_unit_id: businessUnitId,
-          worker_id: input.worker_id,
-          aalyawala_id: aalyawalaId,
-          bhatkar_id: bhatkarId,
-          batch_id: productionBatchId,
-          log_group_id: logGroupId,
-          is_primary: true,
-          is_auto_generated: false,
-          work_date: workDate,
-          category: "KACHA_MAAL",
-          entry_mode: input.entry_mode,
-          input_quantity: itemQty,
-          physical_quantity: physicalQty,
-          billable_quantity: billableQty,
-          unit,
-          conversion_physical_per_unit: convPhysicalPerUnit,
-          conversion_billable_per_unit: convBillablePerUnit,
-          rate_paise: BigInt(Math.round(rate * 100)),
-          earned_amount_paise: BigInt(Math.round(kmEarnedAmount * 100)),
-          reference_no: input.reference_no || null,
-          notes: input.notes || null,
-          created_by: userId || null,
-        },
-        include: { profiles: true, aalyawala: true, bhatkar: true, batches: true },
-      });
       const kmInfo = {
         id: input.worker_id,
         name: kmWorkerData?.profile?.full_name || "Unknown Worker",
       };
-      createdLogs.push(formatDailyWorkLog(primaryLog, kmInfo));
 
-      // 2. Create Auto-Generated Aalyawala Log
-      const aalyawalaLog = await tx.daily_work_logs.create({
-        data: {
-          business_unit_id: businessUnitId,
-          worker_id: aalyawalaId,
-          aalyawala_id: aalyawalaId,
-          bhatkar_id: bhatkarId,
-          batch_id: productionBatchId,
-          log_group_id: logGroupId,
-          is_primary: false,
-          is_auto_generated: true,
-          work_date: workDate,
-          category: "AALYAWALE",
-          entry_mode: input.entry_mode,
-          input_quantity: itemQty,
-          physical_quantity: physicalQty,
-          billable_quantity: billableQty,
-          unit,
-          conversion_physical_per_unit: convPhysicalPerUnit,
-          conversion_billable_per_unit: convBillablePerUnit,
-          rate_paise: BigInt(Math.round(aalyawalaRate * 100)),
-          earned_amount_paise: BigInt(Math.round(aalyawalaEarnedAmount * 100)),
-          reference_no: input.reference_no || null,
-          notes: `Auto-generated from Kachha Maal work entry (${primaryLog.id})`,
-          created_by: userId || null,
-        },
-        include: { profiles: true, aalyawala: true, bhatkar: true, batches: true },
-      });
-      createdLogs.push(formatDailyWorkLog(aalyawalaLog, kmInfo));
+      for (const item of aalyawalaItems) {
+        const aalyawalaData = profileMap.get(item.aalyawalaId)!;
+        const aalyawalaRate = aalyawalaData.rate!;
 
-      // 3. Create Auto-Generated Bhatkar Log
-      const bhatkarLog = await tx.daily_work_logs.create({
-        data: {
-          business_unit_id: businessUnitId,
-          worker_id: bhatkarId,
-          aalyawala_id: aalyawalaId,
-          bhatkar_id: bhatkarId,
-          batch_id: productionBatchId,
-          log_group_id: logGroupId,
-          is_primary: false,
-          is_auto_generated: true,
-          work_date: workDate,
-          category: "BHATKAR",
-          entry_mode: input.entry_mode,
-          input_quantity: itemQty,
-          physical_quantity: physicalQty,
-          billable_quantity: billableQty,
-          unit,
-          conversion_physical_per_unit: convPhysicalPerUnit,
-          conversion_billable_per_unit: convBillablePerUnit,
-          rate_paise: BigInt(Math.round(bhatkarRate * 100)),
-          earned_amount_paise: BigInt(Math.round(bhatkarEarnedAmount * 100)),
-          reference_no: input.reference_no || null,
-          notes: `Auto-generated from Kachha Maal work entry (${primaryLog.id})`,
-          created_by: userId || null,
-        },
-        include: { profiles: true, aalyawala: true, bhatkar: true, batches: true },
-      });
-      createdLogs.push(formatDailyWorkLog(bhatkarLog, kmInfo));
+        const itemQty = item.quantity;
+        let physicalQty = itemQty;
+        let billableQty = itemQty;
+        let unit = "BRICKS";
+
+        if (input.entry_mode === "PINJRI_COUNT") {
+          physicalQty = itemQty * (convPhysicalPerUnit || 22);
+          billableQty = itemQty * (convBillablePerUnit || 20);
+          unit = "BRICKS";
+        } else if (input.entry_mode === "DIRECT_COUNT") {
+          physicalQty = itemQty;
+          billableQty = itemQty;
+          unit = "BRICKS";
+        } else if (input.entry_mode === "SHIFT_COUNT") {
+          physicalQty = itemQty;
+          billableQty = itemQty;
+          unit = "SHIFTS";
+        }
+
+        // Calculations
+        const kmEarnedAmount =
+          input.entry_mode === "SHIFT_COUNT"
+            ? itemQty * kmRate
+            : (billableQty * kmRate) / 1000;
+        const aalyawalaEarnedAmount =
+          input.entry_mode === "SHIFT_COUNT"
+            ? itemQty * aalyawalaRate
+            : (billableQty * aalyawalaRate) / 1000;
+        const bhatkarEarnedAmount =
+          input.entry_mode === "SHIFT_COUNT"
+            ? itemQty * bhatkarRate
+            : (billableQty * bhatkarRate) / 1000;
+
+        // 1. Create Primary Kachha Maal Log
+        const primaryLog = await tx.daily_work_logs.create({
+          data: {
+            business_unit_id: businessUnitId,
+            worker_id: input.worker_id,
+            aalyawala_id: item.aalyawalaId,
+            bhatkar_id: bhatkarId,
+            batch_id: productionBatchId,
+            log_group_id: logGroupId,
+            is_primary: true,
+            is_auto_generated: false,
+            work_date: workDate,
+            category: "KACHA_MAAL",
+            entry_mode: input.entry_mode,
+            input_quantity: itemQty,
+            physical_quantity: physicalQty,
+            billable_quantity: billableQty,
+            unit,
+            conversion_physical_per_unit: convPhysicalPerUnit,
+            conversion_billable_per_unit: convBillablePerUnit,
+            rate_paise: BigInt(Math.round(kmRate * 100)),
+            earned_amount_paise: BigInt(Math.round(kmEarnedAmount * 100)),
+            reference_no: input.reference_no || null,
+            notes: input.notes || null,
+            created_by: userId || null,
+          },
+          include: { profiles: true, aalyawala: true, bhatkar: true, batches: true },
+        });
+        createdLogs.push(formatDailyWorkLog(primaryLog, kmInfo));
+
+        // 2. Create Auto-Generated Aalyawala Log
+        const aalyawalaLog = await tx.daily_work_logs.create({
+          data: {
+            business_unit_id: businessUnitId,
+            worker_id: item.aalyawalaId,
+            aalyawala_id: item.aalyawalaId,
+            bhatkar_id: bhatkarId,
+            batch_id: productionBatchId,
+            log_group_id: logGroupId,
+            is_primary: false,
+            is_auto_generated: true,
+            work_date: workDate,
+            category: "AALYAWALE",
+            entry_mode: input.entry_mode,
+            input_quantity: itemQty,
+            physical_quantity: physicalQty,
+            billable_quantity: billableQty,
+            unit,
+            conversion_physical_per_unit: convPhysicalPerUnit,
+            conversion_billable_per_unit: convBillablePerUnit,
+            rate_paise: BigInt(Math.round(aalyawalaRate * 100)),
+            earned_amount_paise: BigInt(Math.round(aalyawalaEarnedAmount * 100)),
+            reference_no: input.reference_no || null,
+            notes: `Auto-generated from Kachha Maal work entry (${primaryLog.id})`,
+            created_by: userId || null,
+          },
+          include: { profiles: true, aalyawala: true, bhatkar: true, batches: true },
+        });
+        createdLogs.push(formatDailyWorkLog(aalyawalaLog, kmInfo));
+
+        // 3. Create Auto-Generated Bhatkar Log
+        const bhatkarLog = await tx.daily_work_logs.create({
+          data: {
+            business_unit_id: businessUnitId,
+            worker_id: bhatkarId,
+            aalyawala_id: item.aalyawalaId,
+            bhatkar_id: bhatkarId,
+            batch_id: productionBatchId,
+            log_group_id: logGroupId,
+            is_primary: false,
+            is_auto_generated: true,
+            work_date: workDate,
+            category: "BHATKAR",
+            entry_mode: input.entry_mode,
+            input_quantity: itemQty,
+            physical_quantity: physicalQty,
+            billable_quantity: billableQty,
+            unit,
+            conversion_physical_per_unit: convPhysicalPerUnit,
+            conversion_billable_per_unit: convBillablePerUnit,
+            rate_paise: BigInt(Math.round(bhatkarRate * 100)),
+            earned_amount_paise: BigInt(Math.round(bhatkarEarnedAmount * 100)),
+            reference_no: input.reference_no || null,
+            notes: `Auto-generated from Kachha Maal work entry (${primaryLog.id})`,
+            created_by: userId || null,
+          },
+          include: { profiles: true, aalyawala: true, bhatkar: true, batches: true },
+        });
+        createdLogs.push(formatDailyWorkLog(bhatkarLog, kmInfo));
+      }
 
       return createdLogs[0]; // return primary log
     }
@@ -602,10 +638,6 @@ export async function deleteDailyWorkLog(
 
   if (!log) {
     throw new Error("Work log record not found");
-  }
-
-  if (log.is_auto_generated) {
-    throw new Error("This log was auto-generated. Delete the linked Kachha Maal entry to remove this group.");
   }
 
   if (log.settlement_id) {
