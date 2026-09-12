@@ -116,36 +116,17 @@ Ensure you have the following installed on your environment:
    npm install
    ```
 
-3. **Configure Environment Variables**
-   Create a `.env` file in the root directory:
-   ```env
-   NODE_ENV=development
-   DATABASE_URL="postgresql://user:password@host:6543/postgres?pgbouncer=true"
-   DIRECT_URL="postgresql://user:password@host:5432/postgres"
-   SESSION_SECRET="your-super-secret-key-at-least-32-characters"
-   CLIENT_URL=http://localhost:3000
-   TIMEZONE=Asia/Kolkata
-
-   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-
-   ADMIN_EMAIL=admin@example.com
-   ADMIN_PASSWORD=YourSecurePassword
-   ```
-
-4. **Generate Prisma Client & Push Database Schema**
+3. **Generate Prisma Client & Push Database Schema**
    ```bash
    npx prisma generate
    ```
 
-5. **Run Development Server**
+4. **Run Development Server**
    ```bash
    npm run dev
    ```
 
-6. Open [http://localhost:3000](http://localhost:3000) in your browser.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
