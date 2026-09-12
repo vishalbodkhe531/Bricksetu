@@ -42,7 +42,7 @@ export function Sidebar({ className = '' }: { className?: string }) {
         </div>
         <div>
           <h1 className="text-base font-bold tracking-tight text-foreground leading-none">BrickSetu</h1>
-          <p className="text-[11px] font-medium text-muted-foreground mt-0.5">Kiln Operations ERP</p>
+          <p className="text-[11px] font-medium text-muted-foreground mt-0.5">Brick Kiln Management</p>
         </div>
       </div>
 

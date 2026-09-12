@@ -27,14 +27,14 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
       {/* Slide-over Menu */}
       <div className="fixed inset-y-0 left-0 z-50 w-72 max-w-[80vw] border-r border-border bg-card shadow-lg flex flex-col">
         <div className="flex h-16 items-center justify-between border-b border-border px-5 relative">
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-primary" />
+          <div className="absolute top-0 left-0 right-0 h-0.75 bg-primary" />
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold shadow-xs">
               <Flame className="h-4 w-4" />
             </div>
             <div>
               <span className="text-base font-bold text-foreground leading-none block">BrickSetu</span>
-              <span className="text-[10px] text-muted-foreground">Kiln Operations ERP</span>
+              <span className="text-[10px] text-muted-foreground">Brick Kiln Management</span>
             </div>
           </div>
           <button
