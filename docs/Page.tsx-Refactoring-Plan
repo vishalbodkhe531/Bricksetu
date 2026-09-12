@@ -1,0 +1,720 @@
+# BrickSetu `page.tsx` Refactoring Plan
+
+> **Goal**: Improve code quality, separation of concerns, and performance across all `page.tsx` files without changing any UI, functionality, business logic, API behavior, routes, or user workflows.
+
+---
+
+## Table of Contents
+1. [Executive Summary](#executive-summary)
+2. [Phase 1 — Audit Results](#phase-1--audit-results)
+3. [Phase 2 — Classification Matrix](#phase-2--classification-matrix)
+4. [Phase 3 — Target Architecture](#phase-3--target-architecture)
+5. [Execution Priority](#execution-priority)
+6. [Verification Plan](#verification-plan)
+
+---
+
+## Executive Summary
+
+### Current State
+The application has **15 `page.tsx` files**. Two are already well-architected (root redirect, dashboard page). The remaining 13 are Client Components where the `page.tsx` acts as a monolith — containing data fetching hooks, form state, event handlers, column definitions, modal UI, business logic, and data transformations all in a single file.
+
+### Key Problems Identified
+
+| Problem | Occurrences | Impact |
+|---------|------------|--------|
+| Inline modal dialogs with form state inside page | **8 pages** | Bloated pages, unnecessary re-renders |
+| Column definition arrays inside page | **8 pages** | Unrelated render config mixed with page logic |
+| Multiple `useState` for form fields (not grouped) | **7 pages** | Excessive state, hard to reset/manage |
+| Helper functions defined inside page file | **3 pages** | Not reusable, rebuilds on every render |
+| Redundant wrapper functions | **2 pages** | Dead indirection |
+| `useReducer` inline with type defs inside page | **1 page** | Business-level state logic in presentation |
+| `useMemo` data transformations (~65 lines) | **1 page** | Complex business logic in page |
+| `canWrite` permission logic duplicated | **10 pages** | DRY violation |
+
+### What's Already Good
+- **Feature-based folder structure** is already in place (`features/<domain>/`)
+- **Data-fetching hooks** are already extracted into `features/<domain>/hooks/`
+- **Types** are properly separated into `features/<domain>/types/`
+- **API layers** are correctly split: `api/` → `services/` → `hooks/`
+- **Dashboard page** follows the ideal Server Component + HydrationBoundary pattern
+- **Worker form** is correctly extracted into `WorkerForm` component
+
+---
+
+## Phase 1 — Audit Results
+
+### Page Severity Rating
+
+| Priority | Page | LOC | Size | Issues |
+|----------|------|-----|------|--------|
+| ✅ Clean | `app/page.tsx` | 14 | 293B | None — Server Component redirect |
+| ✅ Clean | `(dashboard)/dashboard/page.tsx` | 56 | 2.2KB | None — Ideal RSC + hydration pattern |
+| ✅ OK | `(dashboard)/workers/new/page.tsx` | 39 | 1.2KB | Minor — handler only, well-structured |
+| ✅ OK | `(dashboard)/workers/[id]/edit/page.tsx` | 76 | 2.5KB | Minor — small handler only |
+| 🟡 LOW | `(auth)/login/page.tsx` | 132 | 4.9KB | 4 `useState`, login handler w/ fetch — fine for a login page |
+| 🟠 MEDIUM | `(dashboard)/settings/page.tsx` | 100 | 3.4KB | Column defs inline, duplicated `canWrite` |
+| 🟠 MEDIUM | `(dashboard)/transport/page.tsx` | 162 | 5.8KB | 3 form `useState`, inline modal, column defs |
+| 🟠 MEDIUM | `(dashboard)/payments/page.tsx` | 246 | 9KB | 5 form `useState`, inline modal, column defs |
+| 🟠 MEDIUM | `(dashboard)/reports/page.tsx` | 280 | 9.6KB | Large `getColumns()` switch (165 lines), 3 `useState` |
+| 🔴 HIGH | `(dashboard)/inventory/page.tsx` | 310 | 11.3KB | 5 form `useState`, 2 tab views, inline modal, 2 column defs |
+| 🔴 HIGH | `(dashboard)/production/page.tsx` | 303 | 11.4KB | 5 form `useState`, 2 inline modals, column defs |
+| 🔴 HIGH | `(dashboard)/materials/page.tsx` | 390 | 14KB | 9 form `useState`, 2 inline modals, 2 column defs |
+| 🔴 HIGH | `(dashboard)/sales/page.tsx` | 442 | 16KB | 10+ form `useState`, 2 inline modals, 2 column defs |
+| 🔴 CRITICAL | `(dashboard)/workers/page.tsx` | 559 | 18KB | `useReducer` + types inline, 6 `useState`, 2 `useMemo`, advance modal, column defs |
+| 🔴 CRITICAL | `(dashboard)/workers/[id]/page.tsx` | 1036 | 48KB | **Worst offender** — 2 helper fns, constants, `useMemo` (65-line data transform), 6 `useState`, `useEffect`, delete handler, ledger table (~300 lines of JSX), profile tab (~200 lines), inline modals |
+
+---
+
+### Detailed Audit Per Page
+
+---
+
+#### 1. `app/page.tsx` (14 LOC) — ✅ CLEAN
+
+**Status**: Server Component. Redirects to `/dashboard` or `/login`. No changes needed.
+
+---
+
+#### 2. `(auth)/login/page.tsx` (132 LOC) — 🟡 LOW
+
+| Category | Found | Details |
+|----------|-------|---------|
+| `"use client"` | Yes | Required — form interactivity |
+| `useState` | 4 | `email`, `password`, `loading`, `error` |
+| Event handlers | 1 | `handleSubmit` — login with fetch + Supabase sync |
+| API calls | 1 | `fetch('/api/auth/login')` + `supabase.auth.signInWithPassword` |
+
+**Assessment**: This is acceptable for a login page. The state is tightly coupled to the form. There's only one handler. The component is already self-contained.
+
+**Minimal improvement**: Extract `handleSubmit` into a `useLogin()` hook for cleanliness.
+
+---
+
+#### 3. `(dashboard)/dashboard/page.tsx` (56 LOC) — ✅ CLEAN
+
+**Status**: Server Component with `HydrationBoundary`. Prefetches data server-side. All client logic delegated to `LiveDashboardClient`. **This is the gold standard** for how pages should be structured.
+
+---
+
+#### 4. `(dashboard)/workers/[id]/page.tsx` (1036 LOC) — 🔴 CRITICAL
+
+This is the **most bloated page** in the entire application.
+
+| Category | Found | Details |
+|----------|-------|---------|
+| `"use client"` | Yes | Required — tabs, modals, delete handler |
+| Constants | 1 | `MARATHI_DAYS` array (8 items) |
+| Helper functions | 2 | `getMarathiDay()`, `formatDateDdMmYyyy()` |
+| `useState` | 6 | `activeTab`, `showRateDialog`, `showDeactivateDialog`, `expandedRowKeys`, `deletingId`, (implicit from hooks) |
+| `useEffect` | 1 | Syncs `activeTab` with URL search params |
+| `useMemo` | 1 | `groupedDailyLogs` — **65 lines** of data transformation that groups daily work logs by batch/group ID |
+| Event handlers | 2 | `handleDeleteLog`, `toggleRowExpand` |
+| Data fetching | 4 hooks | `useWorkerDetail`, `useDailyWorkLogs`, `useDeleteDailyWorkLog`, `useDeactivateWorker`, `useChangeWorkerRate` |
+| Inline JSX sections | 3 | Profile Tab (~200 LOC), Record Work Tab (~20 LOC), Ledger Tab (~300 LOC) |
+| Permission logic | 1 | `canWrite` — duplicated from workers list |
+| UI calculations | 1 | `userInitials` computation |
+| Dialogs | 2 | `RateChangeDialog`, `WorkerDeactivateDialog` |
+
+**What to extract**:
+1. `MARATHI_DAYS`, `getMarathiDay()`, `formatDateDdMmYyyy()` → `features/workers/utils/date-utils.ts`
+2. `groupedDailyLogs` useMemo → `features/workers/hooks/useGroupedDailyLogs.ts`
+3. Profile tab → `features/workers/components/WorkerProfileTab.tsx`
+4. Ledger tab → `features/workers/components/WorkerLedgerTab.tsx`
+5. Identity header card → `features/workers/components/WorkerIdentityHeader.tsx`
+6. KPI summary cards → `features/workers/components/WorkerKPISummary.tsx`
+7. Tab navigation → `features/workers/components/WorkerDetailTabs.tsx`
+8. `canWrite` → shared `features/auth/hooks/usePermissions.ts`
+
+---
+
+#### 5. `(dashboard)/workers/page.tsx` (559 LOC) — 🔴 CRITICAL
+
+| Category | Found | Details |
+|----------|-------|---------|
+| `"use client"` | Yes | Required — interactivity |
+| `useState` | 6 | `includeInactive`, `rateChangeWorker`, `deactivateWorkerItem`, `showBulkRecordSheet`, `activeTab`, (advance via reducer) |
+| `useReducer` | 1 | Full `AdvanceState` + `AdvanceAction` types + `advanceReducer` function — **all inline in page** |
+| `useMemo` | 2 | `counts` (category counts), `filteredWorkers` (tab filter) |
+| Event handlers | 1 | `handleAdvanceSubmit` |
+| Helper functions | 2 | `formatCategory` (redundant wrapper), `getInitials` |
+| Column definitions | 1 | `workerColumns` — 80 LOC with complex cell renderers |
+| Constants | 1 | `WORKER_TABS` array |
+| Inline modals | 1 | Advance modal with full form (~90 lines JSX) |
+| Permission logic | 1 | `canWrite` — duplicate |
+| Type definitions | 2 | `AdvanceState`, `AdvanceAction` — inline in component |
+
+**What to extract**:
+1. `AdvanceState/Action/Reducer` → `features/workers/hooks/useAdvanceForm.ts`
+2. `workerColumns` → `features/workers/components/columns/worker-columns.tsx`
+3. Advance modal → `features/workers/components/AdvanceModal.tsx`
+4. `WORKER_TABS`, `getInitials` → `features/workers/constants/worker-options.ts` (extend existing)
+5. `formatCategory` wrapper → **DELETE** (just use `formatWorkerCategory` directly)
+6. `counts` + `filteredWorkers` → `features/workers/hooks/useFilteredWorkers.ts`
+
+---
+
+#### 6. `(dashboard)/sales/page.tsx` (442 LOC) — 🔴 HIGH
+
+| Category | Found | Details |
+|----------|-------|---------|
+| `useState` | 10+ | 2 modal toggles, 4 customer form fields, 5 order form fields |
+| Event handlers | 2 | `handleCreateCustomer`, `handleCreateOrder` |
+| Column definitions | 2 | `saleColumns`, `customerColumns` |
+| Inline modals | 2 | Add Customer (*~65 LOC*), New Sales Order (*~115 LOC*) |
+| Permission logic | 1 | `canWrite` |
+
+**What to extract**:
+1. `AddCustomerModal` → `features/sales/components/AddCustomerModal.tsx`
+2. `AddSalesOrderModal` → `features/sales/components/AddSalesOrderModal.tsx`
+3. `saleColumns`, `customerColumns` → `features/sales/components/columns/sales-columns.tsx`
+
+---
+
+#### 7. `(dashboard)/materials/page.tsx` (390 LOC) — 🔴 HIGH
+
+| Category | Found | Details |
+|----------|-------|---------|
+| `useState` | 9 | 2 modal toggles, 4 material fields, 5 supplier fields |
+| Event handlers | 2 | `handleCreateMaterial`, `handleCreateSupplier` |
+| Column definitions | 2 | `materialColumns`, `supplierColumns` |
+| Inline modals | 2 | Add Material (~75 LOC), Add Supplier (~80 LOC) |
+
+**What to extract**:
+1. `AddMaterialModal` → `features/materials/components/AddMaterialModal.tsx`
+2. `AddSupplierModal` → `features/materials/components/AddSupplierModal.tsx`
+3. Column defs → `features/materials/components/columns/material-columns.tsx`
+
+---
+
+#### 8. `(dashboard)/production/page.tsx` (303 LOC) — 🔴 HIGH
+
+| Category | Found | Details |
+|----------|-------|---------|
+| `useState` | 7 | 2 modal toggles, 4 form fields, `selectedBatch` |
+| Event handlers | 1 | `handleCreateBatch` |
+| Column definitions | 1 | `columns` (58 LOC) |
+| Inline modals | 2 | Log Production Batch (~100 LOC), Batch Detail (~40 LOC) |
+
+**What to extract**:
+1. `LogBatchModal` → `features/production/components/LogBatchModal.tsx`
+2. `BatchDetailModal` → `features/production/components/BatchDetailModal.tsx`
+3. Column defs → `features/production/components/columns/production-columns.tsx`
+
+---
+
+#### 9. `(dashboard)/inventory/page.tsx` (310 LOC) — 🔴 HIGH
+
+| Category | Found | Details |
+|----------|-------|---------|
+| `useState` | 6 | 1 modal toggle, 1 tab, 4 form fields |
+| Event handlers | 1 | `handleCreateTransaction` |
+| Column definitions | 2 | `summaryColumns`, `transactionColumns` |
+| Inline modals | 1 | Add Transaction (~110 LOC) |
+
+**What to extract**:
+1. `AddTransactionModal` → `features/inventory/components/AddTransactionModal.tsx`
+2. Column defs → `features/inventory/components/columns/inventory-columns.tsx`
+
+---
+
+#### 10. `(dashboard)/payments/page.tsx` (246 LOC) — 🟠 MEDIUM
+
+| Category | Found | Details |
+|----------|-------|---------|
+| `useState` | 6 | 1 modal toggle, 5 form fields |
+| Event handlers | 1 | `handleCreatePayment` |
+| Column definitions | 1 | `columns` (~50 LOC) |
+| Inline modals | 1 | Record Payment (~100 LOC) |
+
+**What to extract**:
+1. `RecordPaymentModal` → `features/payments/components/RecordPaymentModal.tsx`
+2. Column defs → `features/payments/components/columns/payment-columns.tsx`
+
+---
+
+#### 11. `(dashboard)/reports/page.tsx` (280 LOC) — 🟠 MEDIUM
+
+| Category | Found | Details |
+|----------|-------|---------|
+| `useState` | 3 | `selectedReportType`, `startDate`, `endDate` |
+| Functions | 1 | `getColumns()` — **165-line switch** generating 5 different column configs |
+
+**What to extract**:
+1. `getColumns()` switch → `features/reports/components/columns/report-columns.tsx`
+
+---
+
+#### 12. `(dashboard)/transport/page.tsx` (162 LOC) — 🟠 MEDIUM
+
+| Category | Found | Details |
+|----------|-------|---------|
+| `useState` | 4 | 1 modal toggle, 3 form fields |
+| Event handlers | 1 | `handleCreateVehicle` |
+| Column definitions | 1 | `vehicleColumns` |
+| Inline modals | 1 | Register Vehicle (~55 LOC) |
+
+**What to extract**:
+1. `RegisterVehicleModal` → `features/transport/components/RegisterVehicleModal.tsx`
+2. Column defs → `features/transport/components/columns/transport-columns.tsx`
+
+---
+
+#### 13. `(dashboard)/settings/page.tsx` (100 LOC) — 🟠 MEDIUM
+
+| Category | Found | Details |
+|----------|-------|---------|
+| Column definitions | 1 | `columns` (~35 LOC) |
+| No form state | ✅ | Read-only page |
+
+**What to extract**:
+1. Column defs → `features/settings/components/columns/settings-columns.tsx`
+
+---
+
+#### 14. `(dashboard)/workers/new/page.tsx` (39 LOC) — ✅ OK
+
+Well-structured. Has one `handleSubmit` handler that calls `createWorker.mutateAsync`. The form itself is delegated to `WorkerForm`.
+
+**Minor improvement**: Could have the handler use `toast` error/success inside the mutation `onSuccess`/`onError` instead of try/catch.
+
+---
+
+#### 15. `(dashboard)/workers/[id]/edit/page.tsx` (76 LOC) — ✅ OK
+
+Same clean pattern as new worker page. Loading/error states, form delegation to `WorkerForm`.
+
+---
+
+## Phase 2 — Classification Matrix
+
+Every piece of logic in every page, classified by target location:
+
+### Worker Detail Page (`workers/[id]/page.tsx`)
+
+| Logic | Current | Category | Target Location |
+|-------|---------|----------|-----------------|
+| `MARATHI_DAYS` const | Page file | Constants | `features/workers/utils/date-utils.ts` |
+| `getMarathiDay()` | Page file | Utility | `features/workers/utils/date-utils.ts` |
+| `formatDateDdMmYyyy()` | Page file | Utility | `features/workers/utils/date-utils.ts` |
+| `groupedDailyLogs` useMemo | Page component | Custom hook | `features/workers/hooks/useGroupedDailyLogs.ts` |
+| `handleDeleteLog` | Page component | Event handler | `WorkerLedgerTab` component |
+| `toggleRowExpand` | Page component | UI interaction | `WorkerLedgerTab` component |
+| `activeTab` + `useEffect` | Page component | URL state | Keep in page (page-level routing concern) |
+| `canWrite` | Page component | Permission | `features/auth/hooks/usePermissions.ts` |
+| `userInitials` | Page component | UI calculation | `WorkerIdentityHeader` component |
+| Profile tab JSX (~200 LOC) | Page component | UI component | `features/workers/components/WorkerProfileTab.tsx` |
+| Ledger tab JSX (~300 LOC) | Page component | UI component | `features/workers/components/WorkerLedgerTab.tsx` |
+| Identity header card | Page component | UI component | `features/workers/components/WorkerIdentityHeader.tsx` |
+| KPI summary cards | Page component | UI component | `features/workers/components/WorkerKPISummary.tsx` |
+
+### Workers List Page (`workers/page.tsx`)
+
+| Logic | Current | Category | Target Location |
+|-------|---------|----------|-----------------|
+| `AdvanceState/Action` types | Page file | Type definition | `features/workers/types/worker.types.ts` |
+| `advanceReducer` + state | Page file | State management | `features/workers/hooks/useAdvanceForm.ts` |
+| `handleAdvanceSubmit` | Page component | Event handler | `features/workers/components/AdvanceModal.tsx` |
+| `formatCategory` wrapper | Page component | **DELETE** | Direct call to `formatWorkerCategory` |
+| `getInitials` | Page component | Utility | `features/workers/utils/worker-display.ts` |
+| `workerColumns` | Page component | Column defs | `features/workers/components/columns/worker-columns.tsx` |
+| `WORKER_TABS` | Page component | Constants | `features/workers/constants/worker-options.ts` |
+| `counts` useMemo | Page component | Derived state | `features/workers/hooks/useFilteredWorkers.ts` |
+| `filteredWorkers` useMemo | Page component | Derived state | `features/workers/hooks/useFilteredWorkers.ts` |
+| Advance modal JSX | Page component | UI component | `features/workers/components/AdvanceModal.tsx` |
+| `canWrite` | Page component | Permission | `features/auth/hooks/usePermissions.ts` |
+
+### Repeating Pattern (Sales, Materials, Production, Inventory, Payments, Transport)
+
+All 6 pages follow the **same problematic pattern**:
+
+```
+"use client"
+→ import hooks, UI components
+→ useState × N for form fields
+→ useState × M for modal toggles
+→ handleCreate() event handler
+→ column definitions array
+→ return (
+    <Header />
+    <Tabs/> (optional)
+    <DataTable />
+    {showModal && <InlineModal> ... </InlineModal>}
+  )
+```
+
+| Logic | Category | Target Pattern |
+|-------|----------|---------------|
+| Form `useState` × N | State management | Move into extracted modal component |
+| `handleCreate*` | Event handler | Move into extracted modal component |
+| Column definitions | Column defs | `features/<domain>/components/columns/<domain>-columns.tsx` |
+| Inline modal JSX | UI component | `features/<domain>/components/<ModalName>.tsx` |
+| `canWrite` | Permission | `features/auth/hooks/usePermissions.ts` |
+
+---
+
+## Phase 3 — Target Architecture
+
+### A. Cross-Cutting Improvements
+
+#### A1. Shared Permission Hook — `features/auth/hooks/usePermissions.ts`
+
+Currently, `canWrite` is computed differently across pages:
+- Workers: `!profile?.role || ['OWNER', 'MANAGER', 'ADMIN'].includes(roleUpper)`
+- Sales: `profile?.role && ['owner', 'manager', 'sales_rep'].includes(profile.role)`
+- Materials: `profile?.role && ['owner', 'manager'].includes(profile.role)`
+- etc.
+
+**Create one hook** that exposes granular permissions:
+
+```ts
+// features/auth/hooks/usePermissions.ts
+export function usePermissions() {
+  const { profile } = useAuth();
+  const role = (profile?.role || '').toUpperCase();
+  return {
+    canManageWorkers: !role || ['OWNER', 'MANAGER', 'ADMIN'].includes(role),
+    canManageSales: ['OWNER', 'MANAGER', 'SALES_REP'].includes(role),
+    canManageInventory: ['OWNER', 'MANAGER'].includes(role),
+    canManagePayments: ['OWNER', 'MANAGER', 'ACCOUNTANT'].includes(role),
+    // ... etc
+  };
+}
+```
+
+> [!IMPORTANT]
+> The existing per-page permission logic has **inconsistent casing** (`OWNER` vs `owner`). The hook must normalize to uppercase internally while preserving the exact same access rules per module.
+
+#### A2. Shared Date Utilities — `features/workers/utils/date-utils.ts`
+
+Extract from worker detail page:
+- `MARATHI_DAYS` constant
+- `getMarathiDay(dateStr)` function
+- `formatDateDdMmYyyy(dateStr)` function
+
+These are pure functions with zero dependencies — ideal extraction candidates.
+
+#### A3. Worker Display Utilities — `features/workers/utils/worker-display.ts`
+
+Extract from workers list page:
+- `getInitials(name: string): string`
+
+---
+
+### B. Per-Page Refactoring
+
+---
+
+#### B1. `workers/[id]/page.tsx` — 1036 → ~120 LOC
+
+##### [NEW] `features/workers/utils/date-utils.ts`
+- `MARATHI_DAYS`, `getMarathiDay()`, `formatDateDdMmYyyy()`
+
+##### [NEW] `features/workers/hooks/useGroupedDailyLogs.ts`
+- Extracts the 65-line `useMemo` that groups daily work log entries by `log_group_id`/`batch_id`
+- Accepts `dailyWorkData?.logs` as input
+- Returns `groupedDailyLogs` array
+
+##### [NEW] `features/workers/components/WorkerIdentityHeader.tsx`
+- Renders the top identity card (avatar, name, badges, action buttons)
+- Receives `worker`, `canWrite`, `activeTab`, callbacks
+
+##### [NEW] `features/workers/components/WorkerKPISummary.tsx`
+- Renders the 3 KPI cards (Current Rate, Advance Balance, Total Decided Amount)
+- Receives `worker` data
+
+##### [NEW] `features/workers/components/WorkerDetailTabs.tsx`
+- Renders the 3-tab header navigation
+- Receives `activeTab`, `setActiveTab`, `canWrite`, `logCount`
+
+##### [NEW] `features/workers/components/WorkerProfileTab.tsx`
+- Renders the full Profile & Verification section + Pay Rate History table
+- Receives `worker`, `canWrite`, `onShowRateDialog()`
+
+##### [NEW] `features/workers/components/WorkerLedgerTab.tsx`
+- Renders the Daily Work Logs table with expand/collapse rows
+- Manages its own local state: `expandedRowKeys`, `deletingId`
+- Uses `useGroupedDailyLogs` hook internally
+- Receives `worker`, `dailyWorkData`, `canWrite`, `onSwitchToRecordWork()`
+
+##### [MODIFY] `workers/[id]/page.tsx` — Target structure:
+```tsx
+"use client";
+// imports...
+export default function WorkerDetailPage({ params }) {
+  const workerId = use(params).id;
+  const { canManageWorkers: canWrite } = usePermissions();
+  const { data: worker, isLoading } = useWorkerDetail(workerId);
+  const { data: dailyWorkData } = useDailyWorkLogs({ workerId });
+  
+  // Tab state (stays here — page-level routing concern)
+  const [activeTab, setActiveTab] = useState<...>(...);
+  useEffect(() => { /* sync from URL */ }, [searchParams]);
+  
+  // Dialog toggles (stays — controls child dialog visibility)
+  const [showRateDialog, setShowRateDialog] = useState(false);
+  const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
+
+  if (isLoading) return <LoadingSpinner />;
+  if (!worker) return <WorkerNotFound />;
+
+  return (
+    <div>
+      <WorkerIdentityHeader worker={worker} canWrite={canWrite} ... />
+      <WorkerKPISummary worker={worker} />
+      <WorkerDetailTabs activeTab={activeTab} ... />
+      
+      {activeTab === "profile" && <WorkerProfileTab worker={worker} ... />}
+      {activeTab === "record_work" && <EmbeddedRecordWorkForm ... />}
+      {activeTab === "ledger" && <WorkerLedgerTab worker={worker} ... />}
+      
+      {showRateDialog && <RateChangeDialog ... />}
+      {showDeactivateDialog && <WorkerDeactivateDialog ... />}
+    </div>
+  );
+}
+```
+
+---
+
+#### B2. `workers/page.tsx` — 559 → ~100 LOC
+
+##### [NEW] `features/workers/hooks/useAdvanceForm.ts`
+- Contains `AdvanceState`, `AdvanceAction` types
+- Contains `advanceReducer` function
+- Exports `useAdvanceForm()` hook wrapping `useReducer`
+
+##### [NEW] `features/workers/hooks/useFilteredWorkers.ts`
+- Accepts `workers` array and `activeTab`
+- Returns `{ counts, filteredWorkers }`
+
+##### [NEW] `features/workers/components/columns/worker-columns.tsx`
+- Exports `getWorkerColumns(canWrite, callbacks)` function
+- Contains all cell renderers (avatar, name, badges, actions)
+
+##### [NEW] `features/workers/components/AdvanceModal.tsx`
+- Self-contained modal with its own form state
+- Uses `useAdvanceForm` hook internally
+- Receives `workerId`, `workerName`, `onClose`, `orgId`
+
+##### [DELETE logic] `formatCategory` wrapper — replace with direct `formatWorkerCategory` call
+
+##### [MODIFY] `features/workers/constants/worker-options.ts`
+- Add `WORKER_TABS` constant
+- Add `getInitials()` utility (or move to `worker-display.ts`)
+
+##### [MODIFY] `workers/page.tsx` — Target structure:
+```tsx
+"use client";
+export default function WorkersPage() {
+  const orgId = useAuth().profile?.organization_id ?? "";
+  const { canManageWorkers: canWrite } = usePermissions();
+  const [includeInactive, setIncludeInactive] = useState(false);
+  const { data: workers = [], isLoading } = useWorkers(orgId, includeInactive);
+  
+  const [activeTab, setActiveTab] = useState("ALL");
+  const { counts, filteredWorkers } = useFilteredWorkers(workers, activeTab);
+
+  // Dialog states
+  const [rateChangeWorker, setRateChangeWorker] = useState(null);
+  const [deactivateWorkerItem, setDeactivateWorkerItem] = useState(null);
+  const [advanceTarget, setAdvanceTarget] = useState(null);
+  const [showBulkRecordSheet, setShowBulkRecordSheet] = useState(false);
+
+  const columns = getWorkerColumns(canWrite, { onDeactivate: setDeactivateWorkerItem });
+
+  return (
+    <div>
+      <PageHeader ... />
+      <TabBar tabs={WORKER_TABS} counts={counts} ... />
+      <DataTable columns={columns} data={filteredWorkers} ... />
+      {rateChangeWorker && <RateChangeDialog ... />}
+      {deactivateWorkerItem && <WorkerDeactivateDialog ... />}
+      {advanceTarget && <AdvanceModal ... />}
+      <BulkRecordWorkSheet ... />
+    </div>
+  );
+}
+```
+
+---
+
+#### B3. Sales, Materials, Production, Inventory, Payments, Transport
+
+All follow the same extraction pattern:
+
+| Page | New Files to Create |
+|------|-------------------|
+| **Sales** | `features/sales/components/AddCustomerModal.tsx`, `AddSalesOrderModal.tsx`, `columns/sales-columns.tsx` |
+| **Materials** | `features/materials/components/AddMaterialModal.tsx`, `AddSupplierModal.tsx`, `columns/material-columns.tsx` |
+| **Production** | `features/production/components/LogBatchModal.tsx`, `BatchDetailModal.tsx`, `columns/production-columns.tsx` |
+| **Inventory** | `features/inventory/components/AddTransactionModal.tsx`, `columns/inventory-columns.tsx` |
+| **Payments** | `features/payments/components/RecordPaymentModal.tsx`, `columns/payment-columns.tsx` |
+| **Transport** | `features/transport/components/RegisterVehicleModal.tsx`, `columns/transport-columns.tsx` |
+
+**For each extracted modal**:
+- Modal takes its own form state (`useState`) internally
+- Modal receives: `open`, `onClose`, mutation hook or `orgId`, any dropdown data
+- Modal resets form on close
+- Handler + toast stays inside modal
+
+**For each column file**:
+- Export a `get<Domain>Columns()` function or a `columns` constant
+- Cell renderers stay co-located with column definitions
+
+**Target page structure for all 6**:
+```tsx
+"use client";
+export default function <Domain>Page() {
+  const orgId = ...;
+  const { canManage<Domain> } = usePermissions();
+  const { data, isLoading } = use<Domain>(orgId);
+  const [showModal, setShowModal] = useState(false);
+  const [activeTab, setActiveTab] = useState(...); // if applicable
+
+  return (
+    <div>
+      <PageHeader ... />
+      <DataTable columns={columns} data={data} ... />
+      {showModal && <AddModal open={showModal} onClose={() => setShowModal(false)} ... />}
+    </div>
+  );
+}
+```
+
+---
+
+#### B4. Reports Page — Minor extraction
+
+##### [NEW] `features/reports/components/columns/report-columns.tsx`
+- Extract the 165-line `getColumns()` switch function
+- Export as `getReportColumns(reportType: ReportType)`
+
+---
+
+#### B5. Settings Page — Minor extraction
+
+##### [NEW] `features/settings/components/columns/settings-columns.tsx`
+- Export `profileColumns` constant
+
+---
+
+#### B6. Login Page — Optional
+
+##### [NEW] `features/auth/hooks/useLogin.ts` *(optional)*
+- Extract `handleSubmit` logic (fetch + supabase sync)
+- Returns `{ login, loading, error }`
+
+---
+
+### C. New Files Summary
+
+| # | File Path | Extracted From | Type |
+|---|-----------|---------------|------|
+| 1 | `features/auth/hooks/usePermissions.ts` | 10 pages | Hook |
+| 2 | `features/workers/utils/date-utils.ts` | `workers/[id]/page.tsx` | Utility |
+| 3 | `features/workers/utils/worker-display.ts` | `workers/page.tsx` | Utility |
+| 4 | `features/workers/hooks/useGroupedDailyLogs.ts` | `workers/[id]/page.tsx` | Hook |
+| 5 | `features/workers/hooks/useAdvanceForm.ts` | `workers/page.tsx` | Hook |
+| 6 | `features/workers/hooks/useFilteredWorkers.ts` | `workers/page.tsx` | Hook |
+| 7 | `features/workers/components/WorkerIdentityHeader.tsx` | `workers/[id]/page.tsx` | Component |
+| 8 | `features/workers/components/WorkerKPISummary.tsx` | `workers/[id]/page.tsx` | Component |
+| 9 | `features/workers/components/WorkerDetailTabs.tsx` | `workers/[id]/page.tsx` | Component |
+| 10 | `features/workers/components/WorkerProfileTab.tsx` | `workers/[id]/page.tsx` | Component |
+| 11 | `features/workers/components/WorkerLedgerTab.tsx` | `workers/[id]/page.tsx` | Component |
+| 12 | `features/workers/components/AdvanceModal.tsx` | `workers/page.tsx` | Component |
+| 13 | `features/workers/components/columns/worker-columns.tsx` | `workers/page.tsx` | Columns |
+| 14 | `features/sales/components/AddCustomerModal.tsx` | `sales/page.tsx` | Component |
+| 15 | `features/sales/components/AddSalesOrderModal.tsx` | `sales/page.tsx` | Component |
+| 16 | `features/sales/components/columns/sales-columns.tsx` | `sales/page.tsx` | Columns |
+| 17 | `features/materials/components/AddMaterialModal.tsx` | `materials/page.tsx` | Component |
+| 18 | `features/materials/components/AddSupplierModal.tsx` | `materials/page.tsx` | Component |
+| 19 | `features/materials/components/columns/material-columns.tsx` | `materials/page.tsx` | Columns |
+| 20 | `features/production/components/LogBatchModal.tsx` | `production/page.tsx` | Component |
+| 21 | `features/production/components/BatchDetailModal.tsx` | `production/page.tsx` | Component |
+| 22 | `features/production/components/columns/production-columns.tsx` | `production/page.tsx` | Columns |
+| 23 | `features/inventory/components/AddTransactionModal.tsx` | `inventory/page.tsx` | Component |
+| 24 | `features/inventory/components/columns/inventory-columns.tsx` | `inventory/page.tsx` | Columns |
+| 25 | `features/payments/components/RecordPaymentModal.tsx` | `payments/page.tsx` | Component |
+| 26 | `features/payments/components/columns/payment-columns.tsx` | `payments/page.tsx` | Columns |
+| 27 | `features/transport/components/RegisterVehicleModal.tsx` | `transport/page.tsx` | Component |
+| 28 | `features/transport/components/columns/transport-columns.tsx` | `transport/page.tsx` | Columns |
+| 29 | `features/reports/components/columns/report-columns.tsx` | `reports/page.tsx` | Columns |
+| 30 | `features/settings/components/columns/settings-columns.tsx` | `settings/page.tsx` | Columns |
+
+**Modified files**: 13 page.tsx files + `features/workers/constants/worker-options.ts`
+
+---
+
+## Execution Priority
+
+### Wave 1 — Cross-Cutting + Critical Pages (highest impact)
+1. `features/auth/hooks/usePermissions.ts` — unblocks all pages
+2. `workers/[id]/page.tsx` — CRITICAL, 1036 LOC → ~120 LOC
+3. `workers/page.tsx` — CRITICAL, 559 LOC → ~100 LOC
+
+### Wave 2 — HIGH Severity Pages (same pattern, batch refactor)
+4. `sales/page.tsx`
+5. `materials/page.tsx`
+6. `production/page.tsx`
+7. `inventory/page.tsx`
+
+### Wave 3 — MEDIUM Severity Pages
+8. `payments/page.tsx`
+9. `reports/page.tsx`
+10. `transport/page.tsx`
+11. `settings/page.tsx`
+
+### Wave 4 — LOW / Optional
+12. `login/page.tsx` — optional `useLogin` extraction
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Q1**: The dashboard page already uses a Server Component + HydrationBoundary pattern. Should I also convert other read-only pages (like settings, reports) to Server Components with server-side data prefetching? This would reduce client-side JavaScript but requires refactoring the data-fetching layer for those features.
+
+> [!IMPORTANT]
+> **Q2**: The inline modals currently use raw `div`-based overlays without proper `Dialog` semantics (no focus trap, no `aria-modal`, no escape-key handling). Should I also upgrade them to use a proper shadcn/ui `Dialog` component during extraction, or keep the exact same modal markup?
+
+> [!WARNING]
+> **Q3**: The `canWrite` permission logic is **inconsistent** across pages — some check for lowercase roles (`'owner'`), others uppercase (`'OWNER'`), and the worker pages use an inverted check (`!profile?.role || includes(...)`). The new `usePermissions` hook will normalize this. Please confirm this is acceptable.
+
+---
+
+## Verification Plan
+
+### Automated Verification
+1. **TypeScript compilation**: `npx tsc --noEmit` — ensures all extracted files have correct types
+2. **Dev server**: `npm run dev` — ensures no runtime import errors
+3. **Lint**: `npx eslint app/ features/` — no new lint issues
+
+### Manual Verification (per wave)
+After each wave:
+1. Navigate to every affected page in the browser
+2. Verify **identical UI rendering** (no visual differences)
+3. Test all interactive flows:
+   - Open/close modals
+   - Submit forms
+   - Tab switching
+   - Data loading states
+   - Error states
+4. Verify no console errors or warnings
+
+### Regression Checklist
+- [ ] Login flow works
+- [ ] Dashboard loads with server-prefetched data
+- [ ] Workers: list → filter tabs → search → view detail → record work → view ledger
+- [ ] Workers: create new → edit existing → deactivate → change rate
+- [ ] Workers: ledger row expand/collapse, delete log
+- [ ] Workers: bulk record work sheet
+- [ ] Workers: advance modal
+- [ ] Sales: create customer → create order
+- [ ] Materials: add material → add supplier
+- [ ] Production: log batch → view batch detail
+- [ ] Inventory: record transaction → switch tabs
+- [ ] Payments: record payment
+- [ ] Transport: register vehicle
+- [ ] Reports: switch report types, filter by date
+- [ ] Settings: view org info, team members table
