@@ -1,16 +1,22 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { Download, Search, ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Inbox,
+  Search,
+} from "lucide-react";
+import React, { useState } from "react";
 
 export interface Column<T> {
   id?: string;
   header: string;
   accessorKey?: keyof T | string;
   cell?: (info: { row: { original: T } }) => React.ReactNode;
-  align?: 'left' | 'center' | 'right';
+  align?: "left" | "center" | "right";
   className?: string;
 }
 
@@ -29,11 +35,11 @@ export function DataTable<T extends Record<string, any>>({
   data,
   loading = false,
   searchKey,
-  searchPlaceholder = 'Search records...',
-  exportFileName = 'export.csv',
+  searchPlaceholder = "Search records...",
+  exportFileName = "export.csv",
   showExport = true,
 }: DataTableProps<T>) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 15;
 
@@ -42,8 +48,11 @@ export function DataTable<T extends Record<string, any>>({
     const query = searchQuery.toLowerCase();
     return data.filter((item) =>
       Object.values(item).some(
-        (val) => val !== null && val !== undefined && String(val).toLowerCase().includes(query)
-      )
+        (val) =>
+          val !== null &&
+          val !== undefined &&
+          String(val).toLowerCase().includes(query),
+      ),
     );
   }, [data, searchQuery]);
 
@@ -55,22 +64,24 @@ export function DataTable<T extends Record<string, any>>({
 
   const exportCSV = () => {
     if (!data || data.length === 0) return;
-    const headers = columns.map((col) => col.header).join(',');
+    const headers = columns.map((col) => col.header).join(",");
     const rows = filteredData.map((row) =>
       columns
         .map((col) => {
-          const val = col.accessorKey ? row[col.accessorKey as keyof T] : '';
-          return typeof val === 'object' ? `"${JSON.stringify(val)}"` : `"${val ?? ''}"`;
+          const val = col.accessorKey ? row[col.accessorKey as keyof T] : "";
+          return typeof val === "object"
+            ? `"${JSON.stringify(val)}"`
+            : `"${val ?? ""}"`;
         })
-        .join(',')
+        .join(","),
     );
 
-    const csvContent = [headers, ...rows].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const csvContent = [headers, ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', exportFileName);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", exportFileName);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -113,15 +124,15 @@ export function DataTable<T extends Record<string, any>>({
               <tr>
                 {columns.map((col, idx) => {
                   const alignClass =
-                    col.align === 'right'
-                      ? 'text-right'
-                      : col.align === 'center'
-                      ? 'text-center'
-                      : 'text-left';
+                    col.align === "right"
+                      ? "text-right"
+                      : col.align === "center"
+                        ? "text-center"
+                        : "text-left";
                   return (
                     <th
                       key={idx}
-                      className={`px-4 py-3.5 ${alignClass} ${col.className || ''}`}
+                      className={`px-4 py-2.5 ${alignClass} ${col.className || ""}`}
                     >
                       {col.header}
                     </th>
@@ -138,21 +149,27 @@ export function DataTable<T extends Record<string, any>>({
                   >
                     {columns.map((col, cIdx) => {
                       const alignClass =
-                        col.align === 'right'
-                          ? 'text-right'
-                          : col.align === 'center'
-                          ? 'text-center'
-                          : 'text-left';
+                        col.align === "right"
+                          ? "text-right"
+                          : col.align === "center"
+                            ? "text-center"
+                            : "text-left";
                       return (
                         <td
                           key={cIdx}
-                          className={`px-4 py-3.5 align-middle ${alignClass} ${col.className || ''}`}
+                          className={`px-4 py-2.5 align-middle ${alignClass} ${col.className || ""}`}
                         >
                           {col.cell
-                            ? col.cell({ row: { original: row, index: rIdx, totalRows: paginatedData.length } as any })
+                            ? col.cell({
+                                row: {
+                                  original: row,
+                                  index: rIdx,
+                                  totalRows: paginatedData.length,
+                                } as any,
+                              })
                             : col.accessorKey
-                            ? String(row[col.accessorKey as keyof T] ?? '')
-                            : null}
+                              ? String(row[col.accessorKey as keyof T] ?? "")
+                              : null}
                         </td>
                       );
                     })}
@@ -166,7 +183,9 @@ export function DataTable<T extends Record<string, any>>({
                   >
                     <div className="flex flex-col items-center justify-center gap-1 py-6">
                       <Inbox className="h-8 w-8 text-muted-foreground/50 stroke-1" />
-                      <p className="font-semibold text-foreground">No records found</p>
+                      <p className="font-semibold text-foreground">
+                        No records found
+                      </p>
                       <p className="text-[11px] text-muted-foreground">
                         Try adjusting your search filter or add a new entry.
                       </p>
@@ -181,8 +200,15 @@ export function DataTable<T extends Record<string, any>>({
         {/* Pagination Footer */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border px-4 py-3 text-xs text-muted-foreground">
           <div>
-            Showing <span className="font-semibold text-foreground">{paginatedData.length}</span> of{' '}
-            <span className="font-semibold text-foreground">{filteredData.length}</span> records
+            Showing{" "}
+            <span className="font-semibold text-foreground">
+              {paginatedData.length}
+            </span>{" "}
+            of{" "}
+            <span className="font-semibold text-foreground">
+              {filteredData.length}
+            </span>{" "}
+            records
           </div>
           <div className="flex items-center gap-2">
             <Button

@@ -25,7 +25,7 @@ export function WorkerLedgerTab({
   canWrite,
   onSwitchToRecordWork,
 }: WorkerLedgerTabProps) {
-  const groupedDailyLogs = useGroupedDailyLogs(dailyWorkData?.logs);
+  const groupedDailyLogs = useGroupedDailyLogs(dailyWorkData?.logs, worker.category);
   const deleteDailyWorkLog = useDeleteDailyWorkLog(orgId);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [expandedRowKeys, setExpandedRowKeys] = useState<Record<string, boolean>>({});
@@ -57,6 +57,9 @@ export function WorkerLedgerTab({
     }
   };
 
+  const isNoDailyWorkRole =
+    worker.category === "BHATKAR" || worker.category === "AALYAWALE";
+
   return (
     <div className="rounded-b-lg border border-border bg-card p-4 shadow-xs space-y-3">
       <div className="flex items-center justify-between">
@@ -64,7 +67,7 @@ export function WorkerLedgerTab({
           <Coins className="h-3.5 w-3.5 text-amber-500" /> Daily Work Logs &
           Earnings Ledger
         </h3>
-        {canWrite && (
+        {canWrite && !isNoDailyWorkRole && (
           <Button
             variant="outline"
             size="sm"
@@ -78,7 +81,7 @@ export function WorkerLedgerTab({
 
       {groupedDailyLogs && groupedDailyLogs.length > 0 ? (
         <div className="border border-border rounded-lg overflow-x-auto shadow-xs">
-          <table className="w-full min-w-[680px] text-xs text-left border-collapse">
+          <table className="w-full min-w-170 text-xs text-left border-collapse">
             <thead className="bg-muted/60 text-muted-foreground border-b border-border font-semibold uppercase text-[10px] tracking-wider whitespace-nowrap">
               <tr>
                 <th className="py-3 px-3.5">Day / वार</th>
@@ -88,13 +91,13 @@ export function WorkerLedgerTab({
                 <th className="py-3 px-3.5 text-right">Billable Qty</th>
                 <th className="py-3 px-3.5 text-right">Rate</th>
                 <th className="py-3 px-3.5 text-right">Earned Amount</th>
-                {worker.category === "AALYAWALE" ? (
+                {worker.category === "AALYAWALE" || worker.category === "BHATKAR" ? (
                   <th className="py-3 px-3.5">Kachha Maal Majur</th>
                 ) : (
                   <th className="py-3 px-3.5">Aalyawala</th>
                 )}
                 {worker.category === "BHATKAR" ? (
-                  <th className="py-3 px-3.5">Kachha Maal Majur</th>
+                  <th className="py-3 px-3.5">Aalyawala</th>
                 ) : (
                   <th className="py-3 px-3.5">Bhatkar</th>
                 )}
@@ -105,10 +108,25 @@ export function WorkerLedgerTab({
               {groupedDailyLogs.map((logGroup: any) => {
                 const isMulti = logGroup.items.length > 1;
                 const isExpanded = !!expandedRowKeys[logGroup.id];
-                const aalyawalaNames = logGroup.items
-                  .map((i: any) => i.aalyawala_name)
-                  .filter(Boolean)
-                  .join(", ");
+
+                const uniqueAalyawalas = Array.from(
+                  new Set(
+                    logGroup.items
+                      .map((i: any) => i.aalyawala_name)
+                      .filter(Boolean),
+                  ),
+                );
+                const aalyawalaNames = uniqueAalyawalas.join(", ");
+
+                const uniqueKachhaMaals = Array.from(
+                  new Set(
+                    logGroup.items
+                      .map((i: any) => i.kachha_maal_name)
+                      .filter(Boolean),
+                  ),
+                );
+                const kachhaMaalNames = uniqueKachhaMaals.join(", ");
+
                 const logToDeleteId =
                   logGroup.items?.[0]?.id || logGroup.id;
                 const isDeletingThis =
@@ -142,6 +160,13 @@ export function WorkerLedgerTab({
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
                             {logGroup.input_quantity?.toLocaleString()} Pinjri
                           </span>
+                        ) : isMulti || logGroup.entry_mode === "MULTI" ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] font-sans bg-amber-500/10 text-amber-600 border-amber-500/30"
+                          >
+                            {logGroup.items.length} Entries
+                          </Badge>
                         ) : (
                           <Badge
                             variant="outline"
@@ -160,19 +185,49 @@ export function WorkerLedgerTab({
                         {logGroup.billable_quantity?.toLocaleString()}
                       </td>
                       <td className="py-3 px-3.5 text-right text-muted-foreground whitespace-nowrap">
-                        ₹{Number(logGroup.rate || 0).toFixed(2)}
+                        {isMulti && logGroup.items.some((i: any) => i.rate !== logGroup.items[0]?.rate)
+                          ? "—"
+                          : `₹${Number(logGroup.rate || 0).toFixed(2)}`}
                       </td>
                       <td className="py-3 px-3.5 text-right font-bold text-emerald-600 dark:text-emerald-400 text-xs whitespace-nowrap">
                         ₹{Number(logGroup.earned_amount || 0).toFixed(2)}
                       </td>
                       <td className="py-3 px-3.5 font-sans text-foreground text-[11px] font-medium whitespace-nowrap">
-                        {worker.category === "AALYAWALE" ? (
-                          <span>{logGroup.kachha_maal_name || "—"}</span>
+                        {isNoDailyWorkRole ? (
+                          isMulti ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                                <Users className="h-3 w-3 text-amber-500" />
+                                {logGroup.items.length} Kachha Maal Logs
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleRowExpand(logGroup.id);
+                                }}
+                                className="p-1 rounded-md hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-colors"
+                                title={
+                                  isExpanded
+                                    ? "Hide breakdown"
+                                    : "View breakdown"
+                                }
+                              >
+                                <ChevronDown
+                                  className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                                    isExpanded ? "rotate-180" : ""
+                                  }`}
+                                />
+                              </button>
+                            </div>
+                          ) : (
+                            <span>{kachhaMaalNames || "—"}</span>
+                          )
                         ) : isMulti ? (
                           <div className="flex items-center gap-1.5">
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
                               <Users className="h-3 w-3 text-amber-500" />
-                              {logGroup.items.length} Aalyawalas
+                              {uniqueAalyawalas.length} Aalyawalas
                             </span>
                             <button
                               type="button"
@@ -199,9 +254,18 @@ export function WorkerLedgerTab({
                         )}
                       </td>
                       <td className="py-3 px-3.5 font-sans text-foreground text-[11px] font-medium whitespace-nowrap">
-                        {worker.category === "BHATKAR"
-                          ? logGroup.kachha_maal_name || "—"
-                          : logGroup.bhatkar_name || "—"}
+                        {worker.category === "BHATKAR" ? (
+                          uniqueAalyawalas.length > 1 ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                              <Users className="h-3 w-3 text-amber-500" />
+                              {uniqueAalyawalas.length} Aalyawalas
+                            </span>
+                          ) : (
+                            <span>{aalyawalaNames || "—"}</span>
+                          )
+                        ) : (
+                          <span>{logGroup.bhatkar_name || "—"}</span>
+                        )}
                       </td>
                       <td className="py-3 px-3.5 text-center whitespace-nowrap">
                         <Button
@@ -231,18 +295,28 @@ export function WorkerLedgerTab({
                           <div className="bg-card dark:bg-slate-900/90 border border-amber-500/30 rounded-lg p-3 sm:p-4 space-y-3 shadow-md">
                             {/* Responsive Sub-table */}
                             <div className="overflow-x-auto rounded-md border border-border/80 bg-background/50">
-                              <table className="w-full min-w-[580px] text-xs text-left border-collapse font-mono">
+                              <table className="w-full min-w-145 text-xs text-left border-collapse font-mono">
                                 <thead className="bg-muted/70 text-muted-foreground border-b border-border text-[10px] uppercase font-sans tracking-wider font-semibold whitespace-nowrap">
                                   <tr>
                                     <th className="py-2 px-3">#</th>
-                                    <th className="py-2 px-3">
-                                      Aalyawala Name
-                                    </th>
+                                    {worker.category === "BHATKAR" ? (
+                                      <>
+                                        <th className="py-2 px-3">
+                                          Kachha Maal Majur
+                                        </th>
+                                        <th className="py-2 px-3">
+                                          Aalyawala Name
+                                        </th>
+                                      </>
+                                    ) : (
+                                      <th className="py-2 px-3">
+                                        {isNoDailyWorkRole
+                                          ? "Kachha Maal Majur"
+                                          : "Aalyawala Name"}
+                                      </th>
+                                    )}
                                     <th className="py-2 px-3 text-right">
-                                      {logGroup.entry_mode ===
-                                      "PINJRI_COUNT"
-                                        ? "Input (Pinjri)"
-                                        : "Input Qty"}
+                                      Input Qty / Mode
                                     </th>
                                     <th className="py-2 px-3 text-right">
                                       Physical Bricks
@@ -268,16 +342,33 @@ export function WorkerLedgerTab({
                                         <td className="py-2 px-3 font-sans text-muted-foreground text-[10px] whitespace-nowrap">
                                           {idx + 1}
                                         </td>
-                                        <td className="py-2 px-3 font-sans font-bold text-foreground whitespace-nowrap">
-                                          {item.aalyawala_name ||
-                                            `Aalyawala #${idx + 1}`}
-                                        </td>
+                                        {worker.category === "BHATKAR" ? (
+                                          <>
+                                            <td className="py-2 px-3 font-sans font-bold text-foreground whitespace-nowrap">
+                                              {item.kachha_maal_name ||
+                                                `Kachha Maal #${idx + 1}`}
+                                            </td>
+                                            <td className="py-2 px-3 font-sans font-semibold text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                                              {item.aalyawala_name ||
+                                                `Aalyawala #${idx + 1}`}
+                                            </td>
+                                          </>
+                                        ) : (
+                                          <td className="py-2 px-3 font-sans font-bold text-foreground whitespace-nowrap">
+                                            {isNoDailyWorkRole
+                                              ? item.kachha_maal_name ||
+                                                `Kachha Maal #${idx + 1}`
+                                              : item.aalyawala_name ||
+                                                `Aalyawala #${idx + 1}`}
+                                          </td>
+                                        )}
                                         <td className="py-2 px-3 text-right text-muted-foreground whitespace-nowrap">
                                           {item.input_quantity?.toLocaleString()}{" "}
-                                          {logGroup.entry_mode ===
-                                          "PINJRI_COUNT"
+                                          {item.entry_mode === "PINJRI_COUNT"
                                             ? "Pinjri"
-                                            : ""}
+                                            : item.entry_mode === "SHIFT_COUNT"
+                                              ? "Shift"
+                                              : "pcs"}
                                         </td>
                                         <td className="py-2 px-3 text-right text-muted-foreground whitespace-nowrap">
                                           {item.physical_quantity?.toLocaleString()}{" "}
@@ -290,7 +381,7 @@ export function WorkerLedgerTab({
                                         <td className="py-2 px-3 text-right text-muted-foreground whitespace-nowrap">
                                           ₹
                                           {Number(
-                                            logGroup.rate || 0,
+                                            item.rate || logGroup.rate || 0,
                                           ).toFixed(2)}
                                         </td>
                                         <td className="py-2 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
@@ -306,24 +397,13 @@ export function WorkerLedgerTab({
                                 <tfoot className="bg-muted/40 font-bold border-t border-border text-foreground text-[11px] whitespace-nowrap">
                                   <tr>
                                     <td
-                                      colSpan={2}
+                                      colSpan={worker.category === "BHATKAR" ? 3 : 2}
                                       className="py-2 px-3 font-sans text-[10px] uppercase tracking-wider text-muted-foreground"
                                     >
                                       Combined Total
                                     </td>
-                                    <td className="py-2 px-3 text-right font-mono">
-                                      {logGroup.items
-                                        .reduce(
-                                          (sum: number, i: any) =>
-                                            sum +
-                                            Number(i.input_quantity || 0),
-                                          0,
-                                        )
-                                        .toLocaleString()}{" "}
-                                      {logGroup.entry_mode ===
-                                      "PINJRI_COUNT"
-                                        ? "Pinjri"
-                                        : ""}
+                                    <td className="py-2 px-3 text-right font-mono text-muted-foreground">
+                                      {logGroup.items.length} Entries
                                     </td>
                                     <td className="py-2 px-3 text-right font-mono text-muted-foreground">
                                       {logGroup.physical_quantity?.toLocaleString()}{" "}

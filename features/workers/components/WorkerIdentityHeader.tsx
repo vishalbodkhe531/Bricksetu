@@ -24,6 +24,7 @@ interface WorkerIdentityHeaderProps {
   onSelectTab: (tab: "profile" | "record_work" | "ledger") => void;
   onOpenRateDialog: () => void;
   onOpenDeactivateDialog: () => void;
+  hideRecordWork?: boolean;
 }
 
 export function WorkerIdentityHeader({
@@ -33,6 +34,7 @@ export function WorkerIdentityHeader({
   onSelectTab,
   onOpenRateDialog,
   onOpenDeactivateDialog,
+  hideRecordWork = false,
 }: WorkerIdentityHeaderProps) {
   const userInitials = worker.full_name
     ? worker.full_name
@@ -99,13 +101,15 @@ export function WorkerIdentityHeader({
 
         {canWrite && (
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            <Button
-              variant={activeTab === "record_work" ? "default" : "outline"}
-              size="sm"
-              onClick={() => onSelectTab("record_work")}
-            >
-              <Coins className="h-3.5 w-3.5" /> Record Daily Work
-            </Button>
+            {!hideRecordWork && (
+              <Button
+                variant={activeTab === "record_work" ? "default" : "outline"}
+                size="sm"
+                onClick={() => onSelectTab("record_work")}
+              >
+                <Coins className="h-3.5 w-3.5" /> Record Daily Work
+              </Button>
+            )}
 
             <Link href={`/workers/${worker.id}/edit`}>
               <Button variant="outline" size="sm">
