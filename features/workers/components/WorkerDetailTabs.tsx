@@ -8,6 +8,7 @@ interface WorkerDetailTabsProps {
   onSelectTab: (tab: "profile" | "record_work" | "ledger") => void;
   canWrite: boolean;
   logCount?: number;
+  hideRecordWork?: boolean;
 }
 
 export function WorkerDetailTabs({
@@ -15,6 +16,7 @@ export function WorkerDetailTabs({
   onSelectTab,
   canWrite,
   logCount = 0,
+  hideRecordWork = false,
 }: WorkerDetailTabsProps) {
   return (
     <div className="flex border-b border-border bg-card rounded-t-lg px-2 pt-2 gap-1 overflow-x-auto">
@@ -29,7 +31,7 @@ export function WorkerDetailTabs({
         <User className="h-4 w-4" /> View Profile Details / प्रोफाइल माहिती
       </button>
 
-      {canWrite && (
+      {canWrite && !hideRecordWork && (
         <button
           onClick={() => onSelectTab("record_work")}
           className={`px-4 cursor-pointer py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${

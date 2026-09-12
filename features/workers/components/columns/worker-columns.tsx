@@ -1,15 +1,14 @@
 "use client";
 
-import React from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { Coins, Edit, Eye, Trash2 } from "lucide-react";
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Column } from "@/components/ui/data-table/data-table";
 import { formatWorkerCategory } from "@/features/workers/constants/worker-options";
-import { getInitials } from "@/features/workers/utils/worker-display";
 import type { Worker } from "@/features/workers/types/worker.types";
+import { getInitials } from "@/features/workers/utils/worker-display";
+import { Coins, Edit, Eye, Trash2 } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
 interface WorkerColumnCallbacks {
   onDeactivate: (worker: Worker) => void;
@@ -27,9 +26,6 @@ export function getWorkerColumns(
       cell: ({ row }) => {
         const isInactive = row.original.status === "inactive";
         const initials = getInitials(row.original.full_name || "Worker");
-        const workerIdDisplay =
-          row.original.code ||
-          `WID-${row.original.id.slice(0, 6).toUpperCase()}`;
 
         return (
           <div className="flex items-center gap-3">
@@ -47,7 +43,7 @@ export function getWorkerColumns(
               </div>
             )}
 
-            <div className="space-y-0.5 min-w-0">
+            <div className="min-w-0">
               <Link
                 href={`/workers/${row.original.id}`}
                 className={`font-semibold hover:underline flex items-center gap-1.5 truncate ${
@@ -58,17 +54,19 @@ export function getWorkerColumns(
               >
                 <span className="truncate">{row.original.full_name}</span>
               </Link>
-              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                <span className="font-mono text-[10px] bg-muted/60 px-1.5 py-0.2 rounded border border-border">
-                  {workerIdDisplay}
-                </span>
-                <span>•</span>
-                <span>{formatWorkerCategory(row.original.category)}</span>
-              </div>
             </div>
           </div>
         );
       },
+    },
+    {
+      accessorKey: "category",
+      header: "Role",
+      cell: ({ row }) => (
+        <span className="text-xs font-medium text-muted-foreground">
+          {formatWorkerCategory(row.original.category)}
+        </span>
+      ),
     },
     {
       accessorKey: "phone",
@@ -144,11 +142,17 @@ export function getWorkerColumns(
         ];
 
         if (canWrite) {
-          items.push({
-            label: "Record Daily Work",
-            icon: <Coins className="h-3.5 w-3.5 text-amber-500" />,
-            href: `/workers/${row.original.id}?tab=record_work`,
-          });
+          const isNoDailyWorkRole =
+            row.original.category === "BHATKAR" ||
+            row.original.category === "AALYAWALE";
+
+          if (!isNoDailyWorkRole) {
+            items.push({
+              label: "Record Daily Work",
+              icon: <Coins className="h-3.5 w-3.5 text-amber-500" />,
+              href: `/workers/${row.original.id}?tab=record_work`,
+            });
+          }
           items.push({
             label: "Edit Profile",
             icon: <Edit className="h-3.5 w-3.5 text-muted-foreground" />,

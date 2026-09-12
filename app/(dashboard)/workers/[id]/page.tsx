@@ -40,11 +40,14 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
   const changeWorkerRate = useChangeWorkerRate(orgId, workerId);
   const deactivateWorker = useDeactivateWorker(orgId);
 
+  const isNoDailyWorkRole =
+    worker?.category === "BHATKAR" || worker?.category === "AALYAWALE";
+
   // Tab State
   const [activeTab, setActiveTab] = useState<
     "profile" | "record_work" | "ledger"
   >(
-    initialTab === "record_work"
+    initialTab === "record_work" && !isNoDailyWorkRole
       ? "record_work"
       : initialTab === "ledger"
         ? "ledger"
@@ -53,10 +56,12 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab === "record_work" || tab === "ledger" || tab === "profile") {
+    if (tab === "record_work" && !isNoDailyWorkRole) {
+      setActiveTab("record_work");
+    } else if (tab === "ledger" || tab === "profile") {
       setActiveTab(tab);
     }
-  }, [searchParams]);
+  }, [searchParams, isNoDailyWorkRole]);
 
   // Modal Dialog states
   const [showRateDialog, setShowRateDialog] = useState(false);
@@ -104,17 +109,19 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
         onSelectTab={setActiveTab}
         onOpenRateDialog={() => setShowRateDialog(true)}
         onOpenDeactivateDialog={() => setShowDeactivateDialog(true)}
+        hideRecordWork={isNoDailyWorkRole}
       />
 
       {/* KPI Ledger Summary Cards */}
       <WorkerKPISummary worker={worker} />
 
-      {/* 3-Tab Header Navigation */}
+      {/* Navigation Tabs */}
       <WorkerDetailTabs
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         canWrite={canWrite}
         logCount={dailyWorkData?.logs?.length ?? 0}
+        hideRecordWork={isNoDailyWorkRole}
       />
 
       {/* Tab 1: Profile & Verification Details */}

@@ -64,7 +64,7 @@ export function WorkerLedgerTab({
           <Coins className="h-3.5 w-3.5 text-amber-500" /> Daily Work Logs &
           Earnings Ledger
         </h3>
-        {canWrite && (
+        {canWrite && worker.category !== "BHATKAR" && worker.category !== "AALYAWALE" && (
           <Button
             variant="outline"
             size="sm"
