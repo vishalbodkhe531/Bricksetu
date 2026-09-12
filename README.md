@@ -1,4 +1,4 @@
-# 🧱 BrickSetu (ब्रिकसेतू) - Kiln Operations ERP
+# 🧱 BrickSetu (ब्रिकसेतू) - Brick Kiln Management
 
 [![Next.js](https://img.shields.io/badge/Next.js-16.3.3-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.2.8-blue?style=for-the-badge&logo=react)](https://react.dev/)

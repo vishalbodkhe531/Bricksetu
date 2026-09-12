@@ -5,6 +5,14 @@ export const CATEGORY_OPTIONS = [
   { value: "PAKKA_MAAL", label: "पक्का माल मजूर" },
 ];
 
+export const WORKER_TABS = [
+  { id: "ALL", label: "सर्व मजूर (All Workers)" },
+  { id: "AALYAWALE", label: "आल्यावाले" },
+  { id: "BHATKAR", label: "भटकर" },
+  { id: "KACHA_MAAL", label: "कच्चा माल मजूर" },
+  { id: "PAKKA_MAAL", label: "पक्का माल मजूर" },
+];
+
 export const GENDER_OPTIONS = [
   { value: "MALE", label: "Male" },
   { value: "FEMALE", label: "Female" },

@@ -1,41 +1,29 @@
 "use client";
 
-import { ActionMenu, type ActionMenuItem } from "@/components/ui/action-menu";
-import { Badge } from "@/components/ui/badge";
+import React, { useState } from "react";
+import Link from "next/link";
+import { Filter, Layers, Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Column, DataTable } from "@/components/ui/data-table/data-table";
-import { Input } from "@/components/ui/input";
+import { DataTable } from "@/components/ui/data-table/data-table";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/context/AuthContext";
+import { usePermissions } from "@/features/auth/hooks/usePermissions";
+import { AdvanceModal } from "@/features/workers/components/AdvanceModal";
 import { BulkRecordWorkSheet } from "@/features/workers/components/BulkRecordWorkSheet";
+import { getWorkerColumns } from "@/features/workers/components/columns/worker-columns";
 import { RateChangeDialog } from "@/features/workers/components/RateChangeDialog";
 import { WorkerDeactivateDialog } from "@/features/workers/components/WorkerDeactivateDialog";
-import { formatWorkerCategory } from "@/features/workers/constants/worker-options";
+import { WORKER_TABS } from "@/features/workers/constants/worker-options";
+import { useAdvanceForm } from "@/features/workers/hooks/useAdvanceForm";
+import { useFilteredWorkers } from "@/features/workers/hooks/useFilteredWorkers";
 import {
   useChangeWorkerRate,
   useDeactivateWorker,
-  useRecordAdvance,
   useWorkers,
 } from "@/features/workers/hooks/useWorkers";
 import type { Worker } from "@/features/workers/types/worker.types";
-import {
-  Coins,
-  Edit,
-  Eye,
-  Filter,
-  Layers,
-  Plus,
-  Trash2,
-  Users,
-  X,
-} from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import React, { useMemo, useReducer, useState } from "react";
-import { toast } from "sonner";
 
 export default function WorkersPage() {
-  const { profile } = useAuth();
+  const { profile, canManageWorkers: canWrite } = usePermissions();
   const orgId = profile?.organization_id ?? "";
 
   const [includeInactive, setIncludeInactive] = useState(false);
@@ -46,294 +34,30 @@ export default function WorkersPage() {
 
   const deactivateWorker = useDeactivateWorker(orgId);
   const changeWorkerRate = useChangeWorkerRate(orgId, "");
-  const recordAdvance = useRecordAdvance(orgId, "");
 
   // Dialog States
-  const [rateChangeWorker, setRateChangeWorker] = useState<Worker | null>(null);
+  const [rateChangeWorker, setRateChangeWorker] = useState<Worker | null>(
+    null,
+  );
   const [deactivateWorkerItem, setDeactivateWorkerItem] =
     useState<Worker | null>(null);
   const [showBulkRecordSheet, setShowBulkRecordSheet] = useState(false);
 
-  // Advance Dialog Reducer
-  type AdvanceState = {
-    isOpen: boolean;
-    workerId: string;
-    workerName: string;
-    amount: string;
-    dateGiven: string;
-    reason: string;
-  };
+  // Advance Form Hook
+  const {
+    state: advanceState,
+    closeAdvance,
+    setField: setAdvanceField,
+  } = useAdvanceForm();
 
-  type AdvanceAction =
-    | { type: "open"; workerId: string; workerName: string }
-    | { type: "close" }
-    | { type: "setField"; field: keyof AdvanceState; value: string };
-
-  const initialAdvanceState: AdvanceState = {
-    isOpen: false,
-    workerId: "",
-    workerName: "",
-    amount: "",
-    dateGiven: new Date().toISOString().split("T")[0],
-    reason: "",
-  };
-
-  function advanceReducer(
-    state: AdvanceState,
-    action: AdvanceAction,
-  ): AdvanceState {
-    switch (action.type) {
-      case "open":
-        return {
-          ...initialAdvanceState,
-          isOpen: true,
-          workerId: action.workerId,
-          workerName: action.workerName,
-        };
-      case "close":
-        return initialAdvanceState;
-      case "setField":
-        return { ...state, [action.field]: action.value };
-      default:
-        return state;
-    }
-  }
-
-  const [
-    {
-      isOpen: showAdvanceModal,
-      workerId: selectedWorkerId,
-      workerName: selectedWorkerName,
-      amount: advanceAmount,
-      dateGiven: advanceDateGiven,
-      reason: advanceReason,
-    },
-    dispatchAdvance,
-  ] = useReducer(advanceReducer, initialAdvanceState);
-
-  const roleUpper = (profile?.role || "").toUpperCase();
-  const canWrite =
-    !profile?.role || ["OWNER", "MANAGER", "ADMIN"].includes(roleUpper);
-
-  const handleAdvanceSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedWorkerId) return;
-    recordAdvance.mutate(
-      {
-        worker_id: selectedWorkerId,
-        amount: parseFloat(advanceAmount),
-        date_given: advanceDateGiven,
-        reason: advanceReason || null,
-      },
-      {
-        onSuccess: () => {
-          toast.success("Advance recorded successfully");
-          dispatchAdvance({ type: "close" });
-        },
-        onError: (err: Error) => {
-          toast.error(err.message || "Failed to record advance");
-        },
-      },
-    );
-  };
-
-  const formatCategory = (cat: string | null) => {
-    return formatWorkerCategory(cat);
-  };
-
-  const getInitials = (name: string) => {
-    if (!name) return "W";
-    return name
-      .trim()
-      .split(/\s+/)
-      .map((part) => part[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const workerColumns: Column<Worker>[] = [
-    {
-      accessorKey: "full_name",
-      header: "Worker",
-      cell: ({ row }) => {
-        const isInactive = row.original.status === "inactive";
-        const initials = getInitials(row.original.full_name || "Worker");
-        const workerIdDisplay =
-          row.original.code ||
-          `WID-${row.original.id.slice(0, 6).toUpperCase()}`;
-
-        return (
-          <div className="flex items-center gap-3">
-            {row.original.photo_url ? (
-              <Image
-                src={row.original.photo_url}
-                alt={row.original.full_name || "Worker"}
-                width={36}
-                height={36}
-                className="h-9 w-9 rounded-full object-cover border border-border shrink-0"
-              />
-            ) : (
-              <div className="h-9 w-9 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-xs shrink-0 select-none">
-                {initials}
-              </div>
-            )}
-
-            <div className="space-y-0.5 min-w-0">
-              <Link
-                href={`/workers/${row.original.id}`}
-                className={`font-semibold hover:underline flex items-center gap-1.5 truncate ${
-                  isInactive
-                    ? "text-muted-foreground line-through"
-                    : "text-foreground hover:text-primary"
-                }`}
-              >
-                <span className="truncate">{row.original.full_name}</span>
-              </Link>
-              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                <span className="font-mono text-[10px] bg-muted/60 px-1.5 py-0.2 rounded border border-border">
-                  {workerIdDisplay}
-                </span>
-                <span>•</span>
-                <span>{formatCategory(row.original.category)}</span>
-              </div>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: "phone",
-      header: "Phone",
-      cell: ({ row }) => (
-        <span className="font-mono text-xs">{row.original.phone || "—"}</span>
-      ),
-    },
-    {
-      accessorKey: "current_rate_amount",
-      header: "Current Rate",
-      cell: ({ row }) => {
-        const rate = row.original.current_rate_amount;
-        const cat = row.original.category;
-        const unit =
-          cat === "DAILY_WAGE"
-            ? "/ day"
-            : cat === "MONTHLY_SALARY"
-              ? "/ mo"
-              : "/ 1K";
-
-        return (
-          <span className="font-mono font-semibold text-foreground text-xs">
-            {rate !== undefined && rate !== null
-              ? `₹${rate.toFixed(2)} ${unit}`
-              : "—"}
-          </span>
-        );
-      },
-    },
-    {
-      accessorKey: "advance_balance",
-      header: "Advance Balance",
-      align: "right",
-      cell: ({ row }) => {
-        const adv = row.original.advance_balance || 0;
-        return (
-          <span
-            className={`font-mono text-xs ${
-              adv > 0
-                ? "font-bold text-amber-600 dark:text-amber-400"
-                : "text-muted-foreground"
-            }`}
-          >
-            ₹{adv.toFixed(2)}
-          </span>
-        );
-      },
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
-      align: "center",
-      cell: ({ row }) => (
-        <Badge
-          variant={row.original.status === "active" ? "success" : "secondary"}
-        >
-          {row.original.status}
-        </Badge>
-      ),
-    },
-    {
-      id: "actions",
-      header: "Actions",
-      align: "center",
-      cell: ({ row }) => {
-        const items: ActionMenuItem[] = [
-          {
-            label: "View Profile",
-            icon: <Eye className="h-3.5 w-3.5 text-muted-foreground" />,
-            href: `/workers/${row.original.id}`,
-          },
-        ];
-
-        if (canWrite) {
-          items.push({
-            label: "Record Daily Work",
-            icon: <Coins className="h-3.5 w-3.5 text-amber-500" />,
-            href: `/workers/${row.original.id}?tab=record_work`,
-          });
-          items.push({
-            label: "Edit Profile",
-            icon: <Edit className="h-3.5 w-3.5 text-muted-foreground" />,
-            href: `/workers/${row.original.id}/edit`,
-          });
-          items.push({
-            label: "Delete",
-            icon: <Trash2 className="h-3.5 w-3.5 text-destructive" />,
-            onClick: () => setDeactivateWorkerItem(row.original),
-            variant: "destructive",
-          });
-        }
-
-        return (
-          <div className="flex justify-center">
-            <ActionMenu items={items} />
-          </div>
-        );
-      },
-    },
-  ];
-
-  const WORKER_TABS = [
-    { id: "ALL", label: "सर्व मजूर" },
-    { id: "AALYAWALE", label: "आल्यावाले" },
-    { id: "BHATKAR", label: "भटकर" },
-    { id: "KACHA_MAAL", label: "कच्चा माल मजूर" },
-    { id: "PAKKA_MAAL", label: "पक्का माल मजूर" },
-  ];
-
+  // Tabbed Filtering State & Helper Hook
   const [activeTab, setActiveTab] = useState<string>("ALL");
+  const { counts, filteredWorkers } = useFilteredWorkers(workers, activeTab);
 
-  const counts = useMemo(() => {
-    const c: Record<string, number> = {
-      ALL: workers.length,
-      AALYAWALE: 0,
-      BHATKAR: 0,
-      KACHA_MAAL: 0,
-      PAKKA_MAAL: 0,
-    };
-    for (const w of workers) {
-      const cat = w.category;
-      if (cat && cat in c) {
-        c[cat] += 1;
-      }
-    }
-    return c;
-  }, [workers]);
-
-  const filteredWorkers = useMemo(() => {
-    if (activeTab === "ALL") return workers;
-    return workers.filter((w) => w.category === activeTab);
-  }, [workers, activeTab]);
+  // Table Columns Definition
+  const workerColumns = getWorkerColumns(canWrite, {
+    onDeactivate: (worker) => setDeactivateWorkerItem(worker),
+  });
 
   return (
     <div className="space-y-4">
@@ -384,7 +108,7 @@ export default function WorkersPage() {
 
       {/* Tabbed Filter Bar */}
       <div className="border-b border-border bg-card rounded-t-xl px-2 pt-2 flex gap-1 overflow-x-auto">
-        <TabsList className="bg-transparent  p-0 gap-1 h-auto flex flex-nowrap">
+        <TabsList className="bg-transparent p-0 gap-1 h-auto flex flex-nowrap">
           {WORKER_TABS.map((t) => {
             const count = counts[t.id] ?? 0;
             const isActive = activeTab === t.id;
@@ -455,95 +179,18 @@ export default function WorkersPage() {
       )}
 
       {/* Modal: Give Advance */}
-      {showAdvanceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-4 shadow-xl space-y-3">
-            <div className="flex items-center justify-between border-b border-border pb-2">
-              <h3 className="text-sm font-bold text-foreground">
-                Give Advance to {selectedWorkerName}
-              </h3>
-              <button
-                type="button"
-                onClick={() => dispatchAdvance({ type: "close" })}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAdvanceSubmit} className="space-y-3 text-xs">
-              <div>
-                <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
-                  Amount (₹) *
-                </label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="1"
-                  required
-                  value={advanceAmount}
-                  onChange={(e) =>
-                    dispatchAdvance({
-                      type: "setField",
-                      field: "amount",
-                      value: e.target.value,
-                    })
-                  }
-                  placeholder="e.g. 1000"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
-                  Date Given *
-                </label>
-                <Input
-                  type="date"
-                  required
-                  value={advanceDateGiven}
-                  onChange={(e) =>
-                    dispatchAdvance({
-                      type: "setField",
-                      field: "dateGiven",
-                      value: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
-                  Reason / Notes
-                </label>
-                <Input
-                  type="text"
-                  value={advanceReason}
-                  onChange={(e) =>
-                    dispatchAdvance({
-                      type: "setField",
-                      field: "reason",
-                      value: e.target.value,
-                    })
-                  }
-                  placeholder="e.g. Festival advance"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-border">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => dispatchAdvance({ type: "close" })}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={recordAdvance.isPending}>
-                  {recordAdvance.isPending ? "Saving..." : "Record Advance"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {advanceState.isOpen && (
+        <AdvanceModal
+          isOpen={advanceState.isOpen}
+          onClose={closeAdvance}
+          workerId={advanceState.workerId}
+          workerName={advanceState.workerName}
+          amount={advanceState.amount}
+          dateGiven={advanceState.dateGiven}
+          reason={advanceState.reason}
+          onSetField={setAdvanceField}
+          orgId={orgId}
+        />
       )}
 
       {/* Sheet: Bulk Record Work */}
