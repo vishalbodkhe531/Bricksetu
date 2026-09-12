@@ -14,6 +14,8 @@ export interface LogGroupItem {
   earned_amount: number;
   is_auto_generated: boolean;
   is_primary: boolean;
+  entry_mode?: string;
+  rate?: number;
 }
 
 export interface LogGroup {
@@ -28,24 +30,36 @@ export interface LogGroup {
   earned_amount: number;
   bhatkar_name?: string | null;
   kachha_maal_name?: string | null;
+  aalyawala_name?: string | null;
   is_auto_generated: boolean;
   is_primary: boolean;
   items: LogGroupItem[];
 }
 
-export function useGroupedDailyLogs(logs: any[] | undefined): LogGroup[] {
+export function useGroupedDailyLogs(
+  logs: any[] | undefined,
+  workerCategory?: string | null,
+): LogGroup[] {
   return useMemo(() => {
     if (!logs || logs.length === 0) return [];
+
+    const isNoDailyWorkRole =
+      workerCategory === "BHATKAR" || workerCategory === "AALYAWALE";
 
     const groupMap = new Map<string, LogGroup>();
 
     for (const log of logs) {
       const datePart = log.work_date ? log.work_date.split("T")[0] : "";
-      const key = log.log_group_id
-        ? `group_${log.log_group_id}`
-        : log.batch_id
-          ? `batch_${log.batch_id}`
-          : `${datePart}_${log.entry_mode}_${log.rate}_${log.id}`;
+      
+      // For Bhatkar & Aalyawale, group ALL logs on the same date into a single row map
+      const key = isNoDailyWorkRole
+        ? `date_${datePart}`
+        : log.log_group_id
+          ? `group_${log.log_group_id}`
+          : log.batch_id
+            ? `batch_${log.batch_id}`
+            : `${datePart}_${log.entry_mode}_${log.rate}_${log.id}`;
+
       const existing = groupMap.get(key);
 
       const item: LogGroupItem = {
@@ -63,6 +77,8 @@ export function useGroupedDailyLogs(logs: any[] | undefined): LogGroup[] {
         earned_amount: Number(log.earned_amount || 0),
         is_auto_generated: log.is_auto_generated ?? false,
         is_primary: log.is_primary ?? true,
+        entry_mode: log.entry_mode,
+        rate: Number(log.rate || 0),
       };
 
       if (existing) {
@@ -70,11 +86,17 @@ export function useGroupedDailyLogs(logs: any[] | undefined): LogGroup[] {
         existing.physical_quantity += Number(log.physical_quantity || 0);
         existing.billable_quantity += Number(log.billable_quantity || 0);
         existing.earned_amount += Number(log.earned_amount || 0);
+        if (existing.entry_mode !== log.entry_mode) {
+          existing.entry_mode = "MULTI";
+        }
         if (!existing.bhatkar_name && log.bhatkar_name) {
           existing.bhatkar_name = log.bhatkar_name;
         }
         if (!existing.kachha_maal_name && log.kachha_maal_name) {
           existing.kachha_maal_name = log.kachha_maal_name;
+        }
+        if (!existing.aalyawala_name && log.aalyawala_name) {
+          existing.aalyawala_name = log.aalyawala_name;
         }
         existing.items.push(item);
       } else {
@@ -90,6 +112,7 @@ export function useGroupedDailyLogs(logs: any[] | undefined): LogGroup[] {
           earned_amount: Number(log.earned_amount || 0),
           bhatkar_name: log.bhatkar_name || null,
           kachha_maal_name: log.kachha_maal_name || null,
+          aalyawala_name: log.aalyawala_name || null,
           is_auto_generated: log.is_auto_generated ?? false,
           is_primary: log.is_primary ?? true,
           items: [item],
@@ -98,5 +121,5 @@ export function useGroupedDailyLogs(logs: any[] | undefined): LogGroup[] {
     }
 
     return Array.from(groupMap.values());
-  }, [logs]);
+  }, [logs, workerCategory]);
 }
