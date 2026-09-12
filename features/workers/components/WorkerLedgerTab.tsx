@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useState, Fragment } from "react";
-import { ChevronDown, Clock, Coins, PlusCircle, Trash2, Users } from "lucide-react";
+import { Calendar, ChevronDown, Clock, Coins, PlusCircle, Trash2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useGroupedDailyLogs } from "@/features/workers/hooks/useGroupedDailyLogs";
+import { useWeeklyGroupedLogs } from "@/features/workers/hooks/useWeeklyGroupedLogs";
 import { useDeleteDailyWorkLog } from "@/features/workers/hooks/useWorkers";
 import { getMarathiDay, formatDateDdMmYyyy } from "@/features/workers/utils/date-utils";
+import { formatWeekLabel } from "@/features/workers/utils/getWeekBoundary";
 import type { Worker } from "@/features/workers/types/worker.types";
 
 interface WorkerLedgerTabProps {
@@ -26,6 +28,7 @@ export function WorkerLedgerTab({
   onSwitchToRecordWork,
 }: WorkerLedgerTabProps) {
   const groupedDailyLogs = useGroupedDailyLogs(dailyWorkData?.logs, worker.category);
+  const weeklyBuckets = useWeeklyGroupedLogs(groupedDailyLogs);
   const deleteDailyWorkLog = useDeleteDailyWorkLog(orgId);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [expandedRowKeys, setExpandedRowKeys] = useState<Record<string, boolean>>({});
@@ -60,6 +63,11 @@ export function WorkerLedgerTab({
   const isNoDailyWorkRole =
     worker.category === "BHATKAR" || worker.category === "AALYAWALE";
 
+  // Calculate Overall Grand Totals
+  const grandTotalEarned = weeklyBuckets.reduce((sum, w) => sum + w.totalEarnedAmount, 0);
+  const grandTotalBillable = weeklyBuckets.reduce((sum, w) => sum + w.totalBillableQty, 0);
+  const grandTotalPhysical = weeklyBuckets.reduce((sum, w) => sum + w.totalPhysicalQty, 0);
+
   return (
     <div className="rounded-b-lg border border-border bg-card p-4 shadow-xs space-y-3">
       <div className="flex items-center justify-between">
@@ -79,7 +87,7 @@ export function WorkerLedgerTab({
         )}
       </div>
 
-      {groupedDailyLogs && groupedDailyLogs.length > 0 ? (
+      {weeklyBuckets && weeklyBuckets.length > 0 ? (
         <div className="border border-border rounded-lg overflow-x-auto shadow-xs">
           <table className="w-full min-w-170 text-xs text-left border-collapse">
             <thead className="bg-muted/60 text-muted-foreground border-b border-border font-semibold uppercase text-[10px] tracking-wider whitespace-nowrap">
@@ -105,335 +113,388 @@ export function WorkerLedgerTab({
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60 font-mono">
-              {groupedDailyLogs.map((logGroup: any) => {
-                const isMulti = logGroup.items.length > 1;
-                const isExpanded = !!expandedRowKeys[logGroup.id];
+              {weeklyBuckets.map((week) => (
+                <Fragment key={week.id}>
+                  {/* Daily Work Logs for this Week */}
+                  {week.logs.map((logGroup: any) => {
+                    const isMulti = logGroup.items.length > 1;
+                    const isExpanded = !!expandedRowKeys[logGroup.id];
 
-                const uniqueAalyawalas = Array.from(
-                  new Set(
-                    logGroup.items
-                      .map((i: any) => i.aalyawala_name)
-                      .filter(Boolean),
-                  ),
-                );
-                const aalyawalaNames = uniqueAalyawalas.join(", ");
+                    const uniqueAalyawalas = Array.from(
+                      new Set(
+                        logGroup.items
+                          .map((i: any) => i.aalyawala_name)
+                          .filter(Boolean),
+                      ),
+                    );
+                    const aalyawalaNames = uniqueAalyawalas.join(", ");
 
-                const uniqueKachhaMaals = Array.from(
-                  new Set(
-                    logGroup.items
-                      .map((i: any) => i.kachha_maal_name)
-                      .filter(Boolean),
-                  ),
-                );
-                const kachhaMaalNames = uniqueKachhaMaals.join(", ");
+                    const uniqueKachhaMaals = Array.from(
+                      new Set(
+                        logGroup.items
+                          .map((i: any) => i.kachha_maal_name)
+                          .filter(Boolean),
+                      ),
+                    );
+                    const kachhaMaalNames = uniqueKachhaMaals.join(", ");
 
-                const logToDeleteId =
-                  logGroup.items?.[0]?.id || logGroup.id;
-                const isDeletingThis =
-                  deletingId === logToDeleteId ||
-                  deletingId === logGroup.id;
+                    const logToDeleteId =
+                      logGroup.items?.[0]?.id || logGroup.id;
+                    const isDeletingThis =
+                      deletingId === logToDeleteId ||
+                      deletingId === logGroup.id;
 
-                return (
-                  <Fragment key={logGroup.id}>
-                    <tr
-                      onClick={() =>
-                        isMulti && toggleRowExpand(logGroup.id)
-                      }
-                      className={`transition-colors ${
-                        isMulti
-                          ? "cursor-pointer hover:bg-amber-500/10 dark:hover:bg-amber-500/15"
-                          : "hover:bg-muted/30"
-                      } ${
-                        isExpanded
-                          ? "bg-amber-500/10 dark:bg-amber-950/30"
-                          : ""
-                      }`}
-                    >
-                      <td className="py-3 px-3.5 font-sans font-semibold text-amber-600 dark:text-amber-400 text-xs whitespace-nowrap">
-                        {getMarathiDay(logGroup.work_date)}
-                      </td>
-                      <td className="py-3 px-3.5 font-semibold text-foreground whitespace-nowrap">
-                        {formatDateDdMmYyyy(logGroup.work_date)}
-                      </td>
-                      <td className="py-3 px-3.5 whitespace-nowrap">
-                        {logGroup.entry_mode === "PINJRI_COUNT" ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                            {logGroup.input_quantity?.toLocaleString()} Pinjri
-                          </span>
-                        ) : isMulti || logGroup.entry_mode === "MULTI" ? (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] font-sans bg-amber-500/10 text-amber-600 border-amber-500/30"
-                          >
-                            {logGroup.items.length} Entries
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] font-sans"
-                          >
-                            {logGroup.entry_mode === "SHIFT_COUNT"
-                              ? "Shift"
-                              : "Direct Bricks"}
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="py-3 px-3.5 text-right text-muted-foreground font-semibold whitespace-nowrap">
-                        {logGroup.physical_quantity?.toLocaleString()}
-                      </td>
-                      <td className="py-3 px-3.5 text-right font-bold text-foreground whitespace-nowrap">
-                        {logGroup.billable_quantity?.toLocaleString()}
-                      </td>
-                      <td className="py-3 px-3.5 text-right text-muted-foreground whitespace-nowrap">
-                        {isMulti && logGroup.items.some((i: any) => i.rate !== logGroup.items[0]?.rate)
-                          ? "—"
-                          : `₹${Number(logGroup.rate || 0).toFixed(2)}`}
-                      </td>
-                      <td className="py-3 px-3.5 text-right font-bold text-emerald-600 dark:text-emerald-400 text-xs whitespace-nowrap">
-                        ₹{Number(logGroup.earned_amount || 0).toFixed(2)}
-                      </td>
-                      <td className="py-3 px-3.5 font-sans text-foreground text-[11px] font-medium whitespace-nowrap">
-                        {isNoDailyWorkRole ? (
-                          isMulti ? (
-                            <div className="flex items-center gap-1.5">
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                                <Users className="h-3 w-3 text-amber-500" />
-                                {logGroup.items.length} Kachha Maal Logs
+                    return (
+                      <Fragment key={logGroup.id}>
+                        <tr
+                          onClick={() =>
+                            isMulti && toggleRowExpand(logGroup.id)
+                          }
+                          className={`transition-colors ${
+                            isMulti
+                              ? "cursor-pointer hover:bg-amber-500/10 dark:hover:bg-amber-500/15"
+                              : "hover:bg-muted/30"
+                          } ${
+                            isExpanded
+                              ? "bg-amber-500/10 dark:bg-amber-950/30"
+                              : ""
+                          }`}
+                        >
+                          <td className="py-3 px-3.5 font-sans font-semibold text-amber-600 dark:text-amber-400 text-xs whitespace-nowrap">
+                            {getMarathiDay(logGroup.work_date)}
+                          </td>
+                          <td className="py-3 px-3.5 font-semibold text-foreground whitespace-nowrap">
+                            {formatDateDdMmYyyy(logGroup.work_date)}
+                          </td>
+                          <td className="py-3 px-3.5 whitespace-nowrap">
+                            {logGroup.entry_mode === "PINJRI_COUNT" ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                                {logGroup.input_quantity?.toLocaleString()} Pinjri
                               </span>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleRowExpand(logGroup.id);
-                                }}
-                                className="p-1 rounded-md hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-colors"
-                                title={
-                                  isExpanded
-                                    ? "Hide breakdown"
-                                    : "View breakdown"
-                                }
+                            ) : isMulti || logGroup.entry_mode === "MULTI" ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] font-sans bg-amber-500/10 text-amber-600 border-amber-500/30"
                               >
-                                <ChevronDown
-                                  className={`h-3.5 w-3.5 transition-transform duration-200 ${
-                                    isExpanded ? "rotate-180" : ""
-                                  }`}
-                                />
-                              </button>
-                            </div>
-                          ) : (
-                            <span>{kachhaMaalNames || "—"}</span>
-                          )
-                        ) : isMulti ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                              <Users className="h-3 w-3 text-amber-500" />
-                              {uniqueAalyawalas.length} Aalyawalas
-                            </span>
-                            <button
-                              type="button"
+                                {logGroup.items.length} Entries
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] font-sans"
+                              >
+                                {logGroup.entry_mode === "SHIFT_COUNT"
+                                  ? "Shift"
+                                  : "Direct Bricks"}
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="py-3 px-3.5 text-right text-muted-foreground font-semibold whitespace-nowrap">
+                            {logGroup.physical_quantity?.toLocaleString()}
+                          </td>
+                          <td className="py-3 px-3.5 text-right font-bold text-foreground whitespace-nowrap">
+                            {logGroup.billable_quantity?.toLocaleString()}
+                          </td>
+                          <td className="py-3 px-3.5 text-right text-muted-foreground whitespace-nowrap">
+                            {isMulti && logGroup.items.some((i: any) => i.rate !== logGroup.items[0]?.rate)
+                              ? "—"
+                              : `₹${Number(logGroup.rate || 0).toFixed(2)}`}
+                          </td>
+                          <td className="py-3 px-3.5 text-right font-bold text-emerald-600 dark:text-emerald-400 text-xs whitespace-nowrap">
+                            ₹{Number(logGroup.earned_amount || 0).toFixed(2)}
+                          </td>
+                          <td className="py-3 px-3.5 font-sans text-foreground text-[11px] font-medium whitespace-nowrap">
+                            {isNoDailyWorkRole ? (
+                              isMulti ? (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                                    <Users className="h-3 w-3 text-amber-500" />
+                                    {logGroup.items.length} Kachha Maal Logs
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleRowExpand(logGroup.id);
+                                    }}
+                                    className="p-1 rounded-md hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-colors"
+                                    title={
+                                      isExpanded
+                                        ? "Hide breakdown"
+                                        : "View breakdown"
+                                    }
+                                  >
+                                    <ChevronDown
+                                      className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                                        isExpanded ? "rotate-180" : ""
+                                      }`}
+                                    />
+                                  </button>
+                                </div>
+                              ) : (
+                                <span>{kachhaMaalNames || "—"}</span>
+                              )
+                            ) : isMulti ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                                  <Users className="h-3 w-3 text-amber-500" />
+                                  {uniqueAalyawalas.length} Aalyawalas
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleRowExpand(logGroup.id);
+                                  }}
+                                  className="p-1 rounded-md hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-colors"
+                                  title={
+                                    isExpanded
+                                      ? "Hide breakdown"
+                                      : "View breakdown"
+                                  }
+                                >
+                                  <ChevronDown
+                                    className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                                      isExpanded ? "rotate-180" : ""
+                                    }`}
+                                  />
+                                </button>
+                              </div>
+                            ) : (
+                              <span>{aalyawalaNames || "—"}</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3.5 font-sans text-foreground text-[11px] font-medium whitespace-nowrap">
+                            {worker.category === "BHATKAR" ? (
+                              uniqueAalyawalas.length > 1 ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                                  <Users className="h-3 w-3 text-amber-500" />
+                                  {uniqueAalyawalas.length} Aalyawalas
+                                </span>
+                              ) : (
+                                <span>{aalyawalaNames || "—"}</span>
+                              )
+                            ) : (
+                              <span>{logGroup.bhatkar_name || "—"}</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={isDeletingThis}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toggleRowExpand(logGroup.id);
+                                handleDeleteLog(logToDeleteId);
                               }}
-                              className="p-1 rounded-md hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-colors"
-                              title={
-                                isExpanded
-                                  ? "Hide breakdown"
-                                  : "View breakdown"
-                              }
+                              className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors"
+                              title="Delete daily work log entry / काम नोंद हटवा"
                             >
-                              <ChevronDown
-                                className={`h-3.5 w-3.5 transition-transform duration-200 ${
-                                  isExpanded ? "rotate-180" : ""
-                                }`}
-                              />
-                            </button>
-                          </div>
-                        ) : (
-                          <span>{aalyawalaNames || "—"}</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-3.5 font-sans text-foreground text-[11px] font-medium whitespace-nowrap">
-                        {worker.category === "BHATKAR" ? (
-                          uniqueAalyawalas.length > 1 ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                              <Users className="h-3 w-3 text-amber-500" />
-                              {uniqueAalyawalas.length} Aalyawalas
-                            </span>
-                          ) : (
-                            <span>{aalyawalaNames || "—"}</span>
-                          )
-                        ) : (
-                          <span>{logGroup.bhatkar_name || "—"}</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-3.5 text-center whitespace-nowrap">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={isDeletingThis}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteLog(logToDeleteId);
-                          }}
-                          className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors"
-                          title="Delete daily work log entry / काम नोंद हटवा"
-                        >
-                          {isDeletingThis ? (
-                            <Clock className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
-                      </td>
-                    </tr>
+                              {isDeletingThis ? (
+                                <Clock className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                          </td>
+                        </tr>
 
-                    {/* Inline Expandable Breakdown Sub-row with Table Format */}
-                    {isMulti && isExpanded && (
-                      <tr className="bg-amber-500/5 dark:bg-amber-950/20 border-b border-amber-500/20 animate-in fade-in-50 duration-200">
-                        <td colSpan={10} className="p-3 sm:p-4">
-                          <div className="bg-card dark:bg-slate-900/90 border border-amber-500/30 rounded-lg p-3 sm:p-4 space-y-3 shadow-md">
-                            {/* Responsive Sub-table */}
-                            <div className="overflow-x-auto rounded-md border border-border/80 bg-background/50">
-                              <table className="w-full min-w-145 text-xs text-left border-collapse font-mono">
-                                <thead className="bg-muted/70 text-muted-foreground border-b border-border text-[10px] uppercase font-sans tracking-wider font-semibold whitespace-nowrap">
-                                  <tr>
-                                    <th className="py-2 px-3">#</th>
-                                    {worker.category === "BHATKAR" ? (
-                                      <>
-                                        <th className="py-2 px-3">
-                                          Kachha Maal Majur
-                                        </th>
-                                        <th className="py-2 px-3">
-                                          Aalyawala Name
-                                        </th>
-                                      </>
-                                    ) : (
-                                      <th className="py-2 px-3">
-                                        {isNoDailyWorkRole
-                                          ? "Kachha Maal Majur"
-                                          : "Aalyawala Name"}
-                                      </th>
-                                    )}
-                                    <th className="py-2 px-3 text-right">
-                                      Input Qty / Mode
-                                    </th>
-                                    <th className="py-2 px-3 text-right">
-                                      Physical Bricks
-                                    </th>
-                                    <th className="py-2 px-3 text-right">
-                                      Billable Bricks
-                                    </th>
-                                    <th className="py-2 px-3 text-right">
-                                      Rate
-                                    </th>
-                                    <th className="py-2 px-3 text-right">
-                                      Earned Amount
-                                    </th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-border/50 text-[11px]">
-                                  {logGroup.items.map(
-                                    (item: any, idx: number) => (
-                                      <tr
-                                        key={item.id || idx}
-                                        className="hover:bg-muted/40 transition-colors"
-                                      >
-                                        <td className="py-2 px-3 font-sans text-muted-foreground text-[10px] whitespace-nowrap">
-                                          {idx + 1}
-                                        </td>
+                        {/* Inline Expandable Breakdown Sub-row with Table Format */}
+                        {isMulti && isExpanded && (
+                          <tr className="bg-amber-500/5 dark:bg-amber-950/20 border-b border-amber-500/20 animate-in fade-in-50 duration-200">
+                            <td colSpan={10} className="p-3 sm:p-4">
+                              <div className="bg-card dark:bg-slate-900/90 border border-amber-500/30 rounded-lg p-3 sm:p-4 space-y-3 shadow-md">
+                                <div className="overflow-x-auto rounded-md border border-border/80 bg-background/50">
+                                  <table className="w-full min-w-145 text-xs text-left border-collapse font-mono">
+                                    <thead className="bg-muted/70 text-muted-foreground border-b border-border text-[10px] uppercase font-sans tracking-wider font-semibold whitespace-nowrap">
+                                      <tr>
+                                        <th className="py-2 px-3">#</th>
                                         {worker.category === "BHATKAR" ? (
                                           <>
-                                            <td className="py-2 px-3 font-sans font-bold text-foreground whitespace-nowrap">
-                                              {item.kachha_maal_name ||
-                                                `Kachha Maal #${idx + 1}`}
-                                            </td>
-                                            <td className="py-2 px-3 font-sans font-semibold text-amber-600 dark:text-amber-400 whitespace-nowrap">
-                                              {item.aalyawala_name ||
-                                                `Aalyawala #${idx + 1}`}
-                                            </td>
+                                            <th className="py-2 px-3">
+                                              Kachha Maal Majur
+                                            </th>
+                                            <th className="py-2 px-3">
+                                              Aalyawala Name
+                                            </th>
                                           </>
                                         ) : (
-                                          <td className="py-2 px-3 font-sans font-bold text-foreground whitespace-nowrap">
+                                          <th className="py-2 px-3">
                                             {isNoDailyWorkRole
-                                              ? item.kachha_maal_name ||
-                                                `Kachha Maal #${idx + 1}`
-                                              : item.aalyawala_name ||
-                                                `Aalyawala #${idx + 1}`}
-                                          </td>
+                                              ? "Kachha Maal Majur"
+                                              : "Aalyawala Name"}
+                                          </th>
                                         )}
-                                        <td className="py-2 px-3 text-right text-muted-foreground whitespace-nowrap">
-                                          {item.input_quantity?.toLocaleString()}{" "}
-                                          {item.entry_mode === "PINJRI_COUNT"
-                                            ? "Pinjri"
-                                            : item.entry_mode === "SHIFT_COUNT"
-                                              ? "Shift"
-                                              : "pcs"}
+                                        <th className="py-2 px-3 text-right">
+                                          Input Qty / Mode
+                                        </th>
+                                        <th className="py-2 px-3 text-right">
+                                          Physical Bricks
+                                        </th>
+                                        <th className="py-2 px-3 text-right">
+                                          Billable Bricks
+                                        </th>
+                                        <th className="py-2 px-3 text-right">
+                                          Rate
+                                        </th>
+                                        <th className="py-2 px-3 text-right">
+                                          Earned Amount
+                                        </th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border/50 text-[11px]">
+                                      {logGroup.items.map(
+                                        (item: any, idx: number) => (
+                                          <tr
+                                            key={item.id || idx}
+                                            className="hover:bg-muted/40 transition-colors"
+                                          >
+                                            <td className="py-2 px-3 font-sans text-muted-foreground text-[10px] whitespace-nowrap">
+                                              {idx + 1}
+                                            </td>
+                                            {worker.category === "BHATKAR" ? (
+                                              <>
+                                                <td className="py-2 px-3 font-sans font-bold text-foreground whitespace-nowrap">
+                                                  {item.kachha_maal_name ||
+                                                    `Kachha Maal #${idx + 1}`}
+                                                </td>
+                                                <td className="py-2 px-3 font-sans font-semibold text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                                                  {item.aalyawala_name ||
+                                                    `Aalyawala #${idx + 1}`}
+                                                </td>
+                                              </>
+                                            ) : (
+                                              <td className="py-2 px-3 font-sans font-bold text-foreground whitespace-nowrap">
+                                                {isNoDailyWorkRole
+                                                  ? item.kachha_maal_name ||
+                                                    `Kachha Maal #${idx + 1}`
+                                                  : item.aalyawala_name ||
+                                                    `Aalyawala #${idx + 1}`}
+                                              </td>
+                                            )}
+                                            <td className="py-2 px-3 text-right text-muted-foreground whitespace-nowrap">
+                                              {item.input_quantity?.toLocaleString()}{" "}
+                                              {item.entry_mode === "PINJRI_COUNT"
+                                                ? "Pinjri"
+                                                : item.entry_mode === "SHIFT_COUNT"
+                                                  ? "Shift"
+                                                  : "pcs"}
+                                            </td>
+                                            <td className="py-2 px-3 text-right text-muted-foreground whitespace-nowrap">
+                                              {item.physical_quantity?.toLocaleString()}{" "}
+                                              pcs
+                                            </td>
+                                            <td className="py-2 px-3 text-right font-semibold text-foreground whitespace-nowrap">
+                                              {item.billable_quantity?.toLocaleString()}{" "}
+                                              pcs
+                                            </td>
+                                            <td className="py-2 px-3 text-right text-muted-foreground whitespace-nowrap">
+                                              ₹
+                                              {Number(
+                                                item.rate || logGroup.rate || 0,
+                                              ).toFixed(2)}
+                                            </td>
+                                            <td className="py-2 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                                              ₹
+                                              {Number(
+                                                item.earned_amount || 0,
+                                              ).toFixed(2)}
+                                            </td>
+                                          </tr>
+                                        ),
+                                      )}
+                                    </tbody>
+                                    <tfoot className="bg-muted/40 font-bold border-t border-border text-foreground text-[11px] whitespace-nowrap">
+                                      <tr>
+                                        <td
+                                          colSpan={worker.category === "BHATKAR" ? 3 : 2}
+                                          className="py-2 px-3 font-sans text-[10px] uppercase tracking-wider text-muted-foreground"
+                                        >
+                                          Combined Total
                                         </td>
-                                        <td className="py-2 px-3 text-right text-muted-foreground whitespace-nowrap">
-                                          {item.physical_quantity?.toLocaleString()}{" "}
+                                        <td className="py-2 px-3 text-right font-mono text-muted-foreground">
+                                          {logGroup.items.length} Entries
+                                        </td>
+                                        <td className="py-2 px-3 text-right font-mono text-muted-foreground">
+                                          {logGroup.physical_quantity?.toLocaleString()}{" "}
                                           pcs
                                         </td>
-                                        <td className="py-2 px-3 text-right font-semibold text-foreground whitespace-nowrap">
-                                          {item.billable_quantity?.toLocaleString()}{" "}
+                                        <td className="py-2 px-3 text-right font-mono font-extrabold text-foreground">
+                                          {logGroup.billable_quantity?.toLocaleString()}{" "}
                                           pcs
                                         </td>
-                                        <td className="py-2 px-3 text-right text-muted-foreground whitespace-nowrap">
-                                          ₹
-                                          {Number(
-                                            item.rate || logGroup.rate || 0,
-                                          ).toFixed(2)}
+                                        <td className="py-2 px-3 text-right text-muted-foreground">
+                                          —
                                         </td>
-                                        <td className="py-2 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                                        <td className="py-2 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-extrabold">
                                           ₹
                                           {Number(
-                                            item.earned_amount || 0,
+                                            logGroup.earned_amount || 0,
                                           ).toFixed(2)}
                                         </td>
                                       </tr>
-                                    ),
-                                  )}
-                                </tbody>
-                                <tfoot className="bg-muted/40 font-bold border-t border-border text-foreground text-[11px] whitespace-nowrap">
-                                  <tr>
-                                    <td
-                                      colSpan={worker.category === "BHATKAR" ? 3 : 2}
-                                      className="py-2 px-3 font-sans text-[10px] uppercase tracking-wider text-muted-foreground"
-                                    >
-                                      Combined Total
-                                    </td>
-                                    <td className="py-2 px-3 text-right font-mono text-muted-foreground">
-                                      {logGroup.items.length} Entries
-                                    </td>
-                                    <td className="py-2 px-3 text-right font-mono text-muted-foreground">
-                                      {logGroup.physical_quantity?.toLocaleString()}{" "}
-                                      pcs
-                                    </td>
-                                    <td className="py-2 px-3 text-right font-mono font-extrabold text-foreground">
-                                      {logGroup.billable_quantity?.toLocaleString()}{" "}
-                                      pcs
-                                    </td>
-                                    <td className="py-2 px-3 text-right text-muted-foreground">
-                                      —
-                                    </td>
-                                    <td className="py-2 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-extrabold">
-                                      ₹
-                                      {Number(
-                                        logGroup.earned_amount || 0,
-                                      ).toFixed(2)}
-                                    </td>
-                                  </tr>
-                                </tfoot>
-                              </table>
-                            </div>
+                                    </tfoot>
+                                  </table>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+
+                  {/* Weekly Summary Divider Row */}
+                  <tr className="bg-amber-500/10 dark:bg-amber-950/40 border-t-2 border-b border-amber-500/30 font-sans">
+                    <td colSpan={10} className="py-2.5 px-3.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/40">
+                            <Calendar className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                            {formatWeekLabel(week.weekStartSaturday, week.weekEndFriday)}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground font-medium">
+                            ({week.logs.length} {week.logs.length === 1 ? "day" : "days"} logged)
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-4 text-xs font-mono">
+                          <div className="text-muted-foreground text-[11px]">
+                            Billable Total: <span className="font-bold text-foreground">{week.totalBillableQty.toLocaleString()}</span> pcs
                           </div>
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                );
-              })}
+                          <div className="flex items-center gap-1.5 bg-emerald-500/15 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-md font-bold text-xs">
+                            <span>साप्ताहिक कमाई / Weekly Earned:</span>
+                            <span className="text-sm font-extrabold">₹{week.totalEarnedAmount.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </Fragment>
+              ))}
             </tbody>
+            <tfoot className="bg-muted/80 font-bold border-t-2 border-border text-foreground text-xs font-mono">
+              <tr>
+                <td colSpan={3} className="py-3 px-3.5 font-sans uppercase text-[10px] tracking-wider text-muted-foreground">
+                  Overall Grand Total / एकूण कमाई
+                </td>
+                <td className="py-3 px-3.5 text-right text-muted-foreground">
+                  {grandTotalPhysical.toLocaleString()}
+                </td>
+                <td className="py-3 px-3.5 text-right font-extrabold text-foreground">
+                  {grandTotalBillable.toLocaleString()}
+                </td>
+                <td className="py-3 px-3.5 text-right text-muted-foreground">
+                  —
+                </td>
+                <td className="py-3 px-3.5 text-right font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">
+                  ₹{grandTotalEarned.toFixed(2)}
+                </td>
+                <td colSpan={3} className="py-3 px-3.5 text-muted-foreground font-sans text-[11px]">
+                  {weeklyBuckets.length} {weeklyBuckets.length === 1 ? "Week" : "Weeks"} Total
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       ) : (
