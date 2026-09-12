@@ -396,8 +396,8 @@ export function RecordWorkModal({
                           <div className="flex items-center gap-1.5 w-36 shrink-0">
                             <input
                               type="number"
-                              min="0.5"
-                              step={entryMode === 'PINJRI_COUNT' ? '0.5' : '1'}
+                              min="0"
+                              step="any"
                               value={currentQty}
                               onChange={(e) => {
                                 const val = e.target.value;
@@ -515,7 +515,8 @@ export function RecordWorkModal({
                 <input
                   type="number"
                   inputMode="decimal"
-                  step={entryMode === 'PINJRI_COUNT' || entryMode === 'SHIFT_COUNT' ? '0.5' : '1'}
+                  min="0"
+                  step="any"
                   value={inputQuantity}
                   onChange={(e) => setInputQuantity(e.target.value === '' ? '' : parseFloat(e.target.value))}
                   placeholder="0"

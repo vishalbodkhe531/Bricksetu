@@ -150,6 +150,7 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
       };
 
       if (existing) {
+        existing.input_quantity += Number(log.input_quantity || 0);
         existing.physical_quantity += Number(log.physical_quantity || 0);
         existing.billable_quantity += Number(log.billable_quantity || 0);
         existing.earned_amount += Number(log.earned_amount || 0);
@@ -166,6 +167,7 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
           batch_id: log.batch_id,
           work_date: log.work_date,
           entry_mode: log.entry_mode,
+          input_quantity: Number(log.input_quantity || 0),
           physical_quantity: Number(log.physical_quantity || 0),
           billable_quantity: Number(log.billable_quantity || 0),
           rate: Number(log.rate || 0),
@@ -776,16 +778,20 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
                             {formatDateDdMmYyyy(logGroup.work_date)}
                           </td>
                           <td className="py-3 px-3.5 whitespace-nowrap">
-                            <Badge
-                              variant="outline"
-                              className="text-[10px] font-sans"
-                            >
-                              {logGroup.entry_mode === "PINJRI_COUNT"
-                                ? "Pinjri (22/20)"
-                                : logGroup.entry_mode === "SHIFT_COUNT"
+                            {logGroup.entry_mode === "PINJRI_COUNT" ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                                {logGroup.input_quantity?.toLocaleString()} Pinjri
+                              </span>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] font-sans"
+                              >
+                                {logGroup.entry_mode === "SHIFT_COUNT"
                                   ? "Shift"
-                                  : "Direct"}
-                            </Badge>
+                                  : "Direct Bricks"}
+                              </Badge>
+                            )}
                           </td>
                           <td className="py-3 px-3.5 text-right text-muted-foreground font-semibold whitespace-nowrap">
                             {logGroup.physical_quantity?.toLocaleString()}
