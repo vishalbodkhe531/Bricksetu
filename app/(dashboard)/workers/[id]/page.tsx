@@ -112,9 +112,6 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
         hideRecordWork={isNoDailyWorkRole}
       />
 
-      {/* KPI Ledger Summary Cards */}
-      <WorkerKPISummary worker={worker} />
-
       {/* Navigation Tabs */}
       <WorkerDetailTabs
         activeTab={activeTab}
@@ -126,34 +123,40 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
 
       {/* Tab 1: Profile & Verification Details */}
       {activeTab === "profile" && (
-        <WorkerProfileTab
-          worker={worker}
-          canWrite={canWrite}
-          onOpenRateDialog={() => setShowRateDialog(true)}
-        />
+        <div className="space-y-4">
+          <WorkerKPISummary worker={worker} />
+          <WorkerProfileTab
+            worker={worker}
+            canWrite={canWrite}
+            onOpenRateDialog={() => setShowRateDialog(true)}
+          />
+        </div>
       )}
 
       {/* Tab 2: Embedded Record Daily Work Form */}
       {activeTab === "record_work" && (
-        <div className="rounded-b-lg border border-border bg-card p-4 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-border pb-3">
-            <div>
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <Coins className="h-4 w-4 text-amber-500" /> Record Daily Work /
-                दैनंदिन काम नोंदवा
-              </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Log daily production for {worker.full_name} using Pinjrya count
-                or direct quantity.
-              </p>
+        <div className="space-y-4">
+          <WorkerKPISummary worker={worker} />
+          <div className="rounded-b-lg border border-border bg-card p-4 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div>
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Coins className="h-4 w-4 text-amber-500" /> Record Daily Work /
+                  दैनंदिन काम नोंदवा
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Log daily production for {worker.full_name} using Pinjrya count
+                  or direct quantity.
+                </p>
+              </div>
             </div>
-          </div>
 
-          <EmbeddedRecordWorkForm
-            worker={worker}
-            orgId={orgId}
-            onSuccess={() => setActiveTab("ledger")}
-          />
+            <EmbeddedRecordWorkForm
+              worker={worker}
+              orgId={orgId}
+              onSuccess={() => setActiveTab("ledger")}
+            />
+          </div>
         </div>
       )}
 

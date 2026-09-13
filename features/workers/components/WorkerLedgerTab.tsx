@@ -21,6 +21,7 @@ import { useDeleteDailyWorkLog, useCreateSettlement } from "@/features/workers/h
 import { getMarathiDay, formatDateDdMmYyyy } from "@/features/workers/utils/date-utils";
 import { formatWeekLabel } from "@/features/workers/utils/getWeekBoundary";
 import { WeeklyCheckoutDialog } from "./WeeklyCheckoutDialog";
+import { WorkerLedgerKPICards } from "./WorkerLedgerKPICards";
 import type { Worker } from "@/features/workers/types/worker.types";
 
 interface WorkerLedgerTabProps {
@@ -77,31 +78,58 @@ export function WorkerLedgerTab({
   const isNoDailyWorkRole =
     worker.category === "BHATKAR" || worker.category === "AALYAWALE";
 
-  // Calculate Overall Grand Totals
+  // Calculate Overall Grand Totals & KPI Metrics
   const grandTotalEarned = weeklyBuckets.reduce((sum, w) => sum + w.totalEarnedAmount, 0);
   const grandTotalBillable = weeklyBuckets.reduce((sum, w) => sum + w.totalBillableQty, 0);
   const grandTotalPhysical = weeklyBuckets.reduce((sum, w) => sum + w.totalPhysicalQty, 0);
 
-  return (
-    <div className="rounded-b-lg border border-border bg-card p-4 shadow-xs space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-          <Coins className="h-3.5 w-3.5 text-amber-500" /> Daily Work Logs &
-          Earnings Ledger
-        </h3>
-        {canWrite && !isNoDailyWorkRole && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 gap-1 text-[11px] border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
-            onClick={onSwitchToRecordWork}
-          >
-            <PlusCircle className="h-3 w-3 text-amber-500" /> Log Daily Work
-          </Button>
-        )}
-      </div>
+  const unpaidWeeklyEarnings = weeklyBuckets
+    .filter((w) => !w.isPaid)
+    .reduce((sum, w) => sum + w.totalEarnedAmount, 0);
 
-      {weeklyBuckets && weeklyBuckets.length > 0 ? (
+  const paidWeeklyEarnings = weeklyBuckets
+    .filter((w) => w.isPaid)
+    .reduce((sum, w) => sum + w.totalEarnedAmount, 0);
+
+  const unpaidWeeksCount = weeklyBuckets.filter((w) => !w.isPaid).length;
+  const paidWeeksCount = weeklyBuckets.filter((w) => w.isPaid).length;
+  const totalDaysWorked = groupedDailyLogs?.length || 0;
+
+  return (
+    <div className="space-y-4">
+      {/* 1. KPI Summary Cards section */}
+      <WorkerLedgerKPICards
+        worker={worker}
+        grandTotalEarned={grandTotalEarned}
+        grandTotalBillable={grandTotalBillable}
+        grandTotalPhysical={grandTotalPhysical}
+        unpaidWeeklyEarnings={unpaidWeeklyEarnings}
+        paidWeeklyEarnings={paidWeeklyEarnings}
+        unpaidWeeksCount={unpaidWeeksCount}
+        paidWeeksCount={paidWeeksCount}
+        totalDaysWorked={totalDaysWorked}
+      />
+
+      {/* 2. Daily Work Logs & Earnings Ledger Table Container */}
+      <div className="rounded-b-lg border border-border bg-card p-4 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <Coins className="h-3.5 w-3.5 text-amber-500" /> Daily Work Logs &
+            Earnings Ledger
+          </h3>
+          {canWrite && !isNoDailyWorkRole && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1 text-[11px] border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+              onClick={onSwitchToRecordWork}
+            >
+              <PlusCircle className="h-3 w-3 text-amber-500" /> Log Daily Work
+            </Button>
+          )}
+        </div>
+
+        {weeklyBuckets && weeklyBuckets.length > 0 ? (
         <div className="border border-border rounded-lg overflow-x-auto shadow-xs">
           <table className="w-full min-w-170 text-xs text-left border-collapse">
             <thead className="bg-muted/60 text-muted-foreground border-b border-border font-semibold uppercase text-[10px] tracking-wider whitespace-nowrap">
@@ -547,6 +575,7 @@ export function WorkerLedgerTab({
           No daily work logs recorded yet for this worker.
         </p>
       )}
+      </div>
 
       {/* Weekly Settlement Checkout Modal */}
       {selectedWeekForCheckout && (
