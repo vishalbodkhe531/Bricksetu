@@ -15,10 +15,17 @@ export const queryKeys = {
 
   production: {
     all: ['production'] as const,
-    list: (orgId: string, date?: string) =>
-      [...queryKeys.production.all, 'list', orgId, date] as const,
+    list: (orgId: string, filters?: Record<string, any>) =>
+      [...queryKeys.production.all, 'list', orgId, filters] as const,
     detail: (id: string) => [...queryKeys.production.all, 'detail', id] as const,
-    batches: (orgId: string) => [...queryKeys.production.all, 'batches', orgId] as const,
+    stages: (batchId: string) => [...queryKeys.production.all, 'stages', batchId] as const,
+    consumption: (batchId: string) => [...queryKeys.production.all, 'consumption', batchId] as const,
+    mouldingLogs: (batchId: string) => [...queryKeys.production.all, 'mouldingLogs', batchId] as const,
+    expenses: (batchId: string) => [...queryKeys.production.all, 'expenses', batchId] as const,
+    finishedGoods: (batchId: string) => [...queryKeys.production.all, 'finishedGoods', batchId] as const,
+    analytics: (orgId: string) => [...queryKeys.production.all, 'analytics', orgId] as const,
+    brickTypes: (orgId: string) => [...queryKeys.production.all, 'brickTypes', orgId] as const,
+    brickGrades: (orgId: string) => [...queryKeys.production.all, 'brickGrades', orgId] as const,
   },
 
   inventory: {

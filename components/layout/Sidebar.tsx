@@ -20,7 +20,7 @@ import {
 export const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Workers & Wages', href: '/workers', icon: Users },
-  { name: 'Production', href: '/production', icon: Factory },
+  { name: 'Production (भट्टी)', href: '/production', icon: Factory },
   { name: 'Inventory & Stock', href: '/inventory', icon: Boxes },
   { name: 'Materials & Purchases', href: '/materials', icon: Package },
   { name: 'Sales & Customers', href: '/sales', icon: ShoppingCart },

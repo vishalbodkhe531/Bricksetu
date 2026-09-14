@@ -25,11 +25,11 @@ export function KPICard({ item, className = "" }: KPICardProps) {
         {Icon && <Icon className={`h-3 w-3 ${item.iconColor || "text-primary"}`} />}
         {item.label}
       </span>
-      <span className={`text-lg font-bold font-mono block tabular-nums ${item.valueColor || "text-foreground"}`}>
+      <span suppressHydrationWarning className={`text-lg font-bold font-mono block tabular-nums ${item.valueColor || "text-foreground"}`}>
         {item.value}
       </span>
       {item.subtext && (
-        <span className="text-[10px] text-muted-foreground block truncate">
+        <span suppressHydrationWarning className="text-[10px] text-muted-foreground block truncate">
           {item.subtext}
         </span>
       )}

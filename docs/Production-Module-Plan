@@ -1,0 +1,580 @@
+# Production Module — End-to-End Implementation Plan
+
+## 🎯 Goal
+
+Build a **production-ready Production Module** that tracks the full brick manufacturing lifecycle — from raw batch creation through moulding, drying, firing, to finished goods output — with material consumption tracking, stage transitions, daily moulding logs, expense linking, and production analytics.
+
+---
+
+## Background & Current State
+
+### What already exists:
+- **DB Schema** — `batches`, `daily_moulding_logs`, `stage_transitions` (in `production` schema), `consumption` (in `materials` schema), `expenses` (in `finance` schema), `finished_lots` (in `inventory` schema)
+- **Feature scaffold** — basic `features/production/` with simple batch CRUD (create, list, detail)
+- **Single page** — `app/(dashboard)/production/page.tsx` (flat table, basic modal)
+- **API route** — `app/api/production/route.ts` (GET list, POST create)
+
+### What's missing (and what we'll build):
+1. ❌ No Batch Detail page (only a modal)
+2. ❌ No Stage Transition tracking (MOULDING → DRYING → FIRING → SORTING → COMPLETED)
+3. ❌ No Material Consumption recording (coal, wood, husk linked to batch)
+4. ❌ No Daily Moulding Log integration (workers doing moulding for this batch)
+5. ❌ No Finished Goods output (converting fired output → inventory finished_lots)
+6. ❌ No Batch expenses tracking
+7. ❌ No Production KPIs / Analytics dashboard
+8. ❌ No Batch timeline / progress visualization
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Batch Stages**: The plan uses 5 stages: `MOULDING → DRYING → FIRING → SORTING → COMPLETED`. 
+> Is this the correct flow for your Brick Kiln? Should we add/remove any stages? 
+> (e.g., कच्ची वीट → वाळवणे → भट्टीत भरणी → भाजणी → काढणी / प्रतवारी → पक्की माल)
+
+> [!IMPORTANT]
+> **Stage Skip**: Should we allow skipping stages? (e.g., directly moving from MOULDING to FIRING if drying is done on the field and not tracked?)
+
+> [!WARNING]
+> **Auto Inventory Transfer**: When a batch reaches `COMPLETED` stage and finished goods are recorded, should we automatically create `finished_lots` in the inventory schema? Or should it require a manual "Transfer to Stock" action?
+
+> [!IMPORTANT]
+> **Existing Data**: The existing `ProductionBatch` type and `AddBatchModal` will be significantly refactored. The DB schema (`batches`, `daily_moulding_logs`, `stage_transitions`) already supports the full flow — we just need to build the frontend and backend logic around it.
+
+---
+
+## Proposed Changes
+
+### Folder Structure (Final)
+
+```
+features/production/
+├── api/
+│   └── production.api.ts              [MODIFY] — expanded API client
+├── components/
+│   ├── columns/
+│   │   └── batch-columns.tsx          [MODIFY] — enhanced columns with stage badge
+│   ├── BatchCard.tsx                  [NEW] — reusable batch summary card
+│   ├── BatchKPISummary.tsx            [NEW] — KPI cards for batch detail page
+│   ├── BatchProgressBar.tsx           [NEW] — visual stage progress indicator
+│   ├── BatchStatusBadge.tsx           [NEW] — reusable stage/status badge
+│   ├── CreateBatchModal.tsx           [MODIFY] — replace AddBatchModal (richer form)
+│   ├── StageTransitionModal.tsx       [NEW] — modal to record stage transition
+│   ├── RecordConsumptionModal.tsx     [NEW] — modal to record fuel/material usage
+│   ├── RecordFinishedGoodsModal.tsx   [NEW] — modal to output finished goods to inventory
+│   ├── AddBatchExpenseModal.tsx       [NEW] — log expense against batch
+│   ├── tabs/
+│   │   ├── BatchOverviewTab.tsx       [NEW] — batch summary + timeline
+│   │   ├── BatchStageTab.tsx          [NEW] — stage transition history
+│   │   ├── BatchMouldingTab.tsx       [NEW] — daily moulding logs for this batch
+│   │   ├── BatchConsumptionTab.tsx    [NEW] — material consumption records
+│   │   └── BatchExpensesTab.tsx       [NEW] — batch-linked expenses
+│   └── charts/
+│       ├── ProductionTrendChart.tsx   [NEW] — production over time chart
+│       └── WastagePieChart.tsx        [NEW] — wastage/yield breakdown
+├── constants/
+│   └── production-options.ts          [NEW] — stage definitions, tab config
+├── hooks/
+│   ├── useProduction.ts              [MODIFY] — expanded hooks
+│   ├── useBatchDetail.ts             [NEW] — batch detail + related data
+│   ├── useStageTransitions.ts        [NEW] — stage CRUD hooks
+│   ├── useConsumption.ts             [NEW] — consumption CRUD hooks
+│   └── useMouldingLogs.ts            [NEW] — moulding logs hooks
+├── schemas/
+│   ├── batch.schema.ts               [NEW] — Zod validation schemas
+│   ├── stage-transition.schema.ts    [NEW]
+│   └── consumption.schema.ts         [NEW]
+├── services/
+│   ├── production.service.ts         [MODIFY] — expanded batch service
+│   ├── stage-transition.service.ts   [NEW] — stage transition DB logic
+│   ├── consumption.service.ts        [NEW] — material consumption DB logic
+│   ├── moulding-log.service.ts       [NEW] — daily moulding logs DB logic
+│   └── finished-goods.service.ts     [NEW] — finished lots creation
+├── types/
+│   └── production.types.ts           [MODIFY] — comprehensive types
+└── utils/
+    ├── stage-helpers.ts              [NEW] — stage ordering, validation
+    └── production-calculations.ts    [NEW] — yield %, cost per brick, etc.
+
+app/(dashboard)/production/
+├── page.tsx                          [MODIFY] — batch list page (overhauled)
+├── loading.tsx                       [EXISTS] — keep as is
+└── [id]/
+    ├── page.tsx                      [NEW] — batch detail page with tabs
+    └── loading.tsx                   [NEW] — skeleton for batch detail
+
+app/api/production/
+├── route.ts                          [MODIFY] — batch list + create
+├── [id]/
+│   ├── route.ts                      [NEW] — GET/PATCH/DELETE single batch
+│   ├── stage-transitions/
+│   │   └── route.ts                  [NEW] — GET/POST stage transitions
+│   ├── consumption/
+│   │   └── route.ts                  [NEW] — GET/POST material consumption
+│   ├── moulding-logs/
+│   │   └── route.ts                  [NEW] — GET/POST daily moulding logs
+│   ├── expenses/
+│   │   └── route.ts                  [NEW] — GET batch expenses
+│   └── finished-goods/
+│       └── route.ts                  [NEW] — POST output to inventory
+├── analytics/
+│   └── route.ts                      [NEW] — production KPI aggregations
+└── brick-types/
+    └── route.ts                      [EXISTS? or inline] — brick type CRUD
+```
+
+---
+
+### Phase 1: Types, Schemas & Constants
+
+#### [MODIFY] [production.types.ts](file:///d:/Development/Personal-Projects/brick-setu/features/production/types/production.types.ts)
+
+Replace the existing simple types with comprehensive ones aligned to the DB schema:
+
+```typescript
+// Batch (maps to `batches` table)
+export interface Batch {
+  id: string;
+  business_unit_id: string;
+  batch_number: string;
+  brick_type_id: string;
+  stage: BatchStage;
+  target_quantity: number;
+  moulded_quantity: number;
+  dried_quantity: number;
+  fired_good_quantity: number;
+  damaged_quantity: number;
+  start_date: string;
+  end_date: string | null;
+  status: BatchStatus;
+  notes: string | null;
+  created_at: string;
+  created_by: string | null;
+  // Joined
+  brick_type?: { id: string; name: string; dimensions: string | null };
+  created_by_name?: string;
+  // Computed
+  total_consumption_cost?: number;    // sum of consumption cost_paise
+  total_expense_cost?: number;        // sum of expenses amount_paise
+  stage_transition_count?: number;
+  moulding_log_count?: number;
+}
+
+export type BatchStage = 'MOULDING' | 'DRYING' | 'FIRING' | 'SORTING' | 'COMPLETED';
+export type BatchStatus = 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+// Stage Transition (maps to `stage_transitions` table)
+export interface StageTransition {
+  id: string;
+  batch_id: string;
+  from_stage: BatchStage;
+  to_stage: BatchStage;
+  transition_date: string;
+  input_quantity: number;
+  output_good_quantity: number;
+  damaged_quantity: number;
+  notes: string | null;
+  created_at: string;
+  created_by_name?: string;
+}
+
+// Material Consumption (maps to `consumption` table)
+export interface MaterialConsumption {
+  id: string;
+  batch_id: string;
+  material_lot_id: string;
+  consumption_date: string;
+  quantity: number;          // decimal
+  cost_paise: number;
+  notes: string | null;
+  // Joined
+  material_name?: string;
+  material_unit?: string;
+  lot_number?: string;
+}
+
+// Daily Moulding Log (maps to `daily_moulding_logs` table)
+export interface MouldingLog {
+  id: string;
+  batch_id: string;
+  worker_id: string;
+  work_date: string;
+  bricks_moulded: number;
+  rate_per_1000_paise: number;
+  earned_amount_paise: number;
+  settlement_id: string | null;
+  notes: string | null;
+  // Joined
+  worker_name?: string;
+}
+
+// Batch KPI summary
+export interface BatchKPIs {
+  target_quantity: number;
+  moulded_quantity: number;
+  dried_quantity: number;
+  fired_good_quantity: number;
+  damaged_quantity: number;
+  yield_percentage: number;         // (fired_good / moulded) * 100
+  wastage_percentage: number;       // (damaged / moulded) * 100
+  total_material_cost: number;      // paise
+  total_expense_cost: number;       // paise
+  cost_per_brick_paise: number;     // total cost / fired_good
+  total_moulding_labour_cost: number; // sum of moulding log earned_amount
+  days_in_production: number;
+}
+```
+
+#### [NEW] `features/production/schemas/batch.schema.ts`
+Zod validation for batch create/update forms.
+
+#### [NEW] `features/production/schemas/stage-transition.schema.ts`
+Zod validation for stage transition form (from_stage, to_stage, input_quantity, output_good_quantity, damaged_quantity, transition_date).
+
+#### [NEW] `features/production/schemas/consumption.schema.ts`
+Zod validation for material consumption (material_lot_id, quantity, consumption_date).
+
+#### [NEW] `features/production/constants/production-options.ts`
+```typescript
+export const BATCH_STAGES = [
+  { id: 'MOULDING',  label: 'पाथाई / Moulding',   icon: 'Hammer',  color: 'amber' },
+  { id: 'DRYING',    label: 'वाळवणे / Drying',      icon: 'Sun',     color: 'yellow' },
+  { id: 'FIRING',    label: 'भाजणी / Firing',       icon: 'Flame',   color: 'orange' },
+  { id: 'SORTING',   label: 'प्रतवारी / Sorting',    icon: 'Layers',  color: 'blue' },
+  { id: 'COMPLETED', label: 'पूर्ण / Completed',    icon: 'Check',   color: 'green' },
+] as const;
+
+export const BATCH_TABS = [
+  { id: 'overview',    label: 'Overview' },
+  { id: 'stages',      label: 'Stage Transitions' },
+  { id: 'moulding',    label: 'Moulding Logs' },
+  { id: 'consumption', label: 'Material Consumption' },
+  { id: 'expenses',    label: 'Expenses' },
+] as const;
+```
+
+---
+
+### Phase 2: Backend Services
+
+#### [MODIFY] [production.service.ts](file:///d:/Development/Personal-Projects/brick-setu/features/production/services/production.service.ts)
+- Expand `getProductionBatches()` — include counts (transitions, moulding logs), support filtering by stage/status/date-range
+- Expand `createProductionBatch()` — auto-generate batch_number (format: `BATCH-YYYY-NNN`), accept `target_quantity`
+- Add `getProductionBatchDetail()` — full batch with KPI aggregations
+- Add `updateBatchStage()` — update batch `stage` field when transition happens
+- Add `completeBatch()` — mark as COMPLETED, set end_date
+
+#### [NEW] `features/production/services/stage-transition.service.ts`
+- `getStageTransitions(batchId)` — list all transitions for a batch
+- `createStageTransition(batchId, input)` — validate stage ordering, record transition, update batch quantities, update batch stage
+- Validation: cannot skip stages (MOULDING → DRYING → FIRING → SORTING → COMPLETED), no going backward
+
+#### [NEW] `features/production/services/consumption.service.ts`
+- `getConsumptionByBatch(batchId)` — with joined material name, unit, lot info
+- `createConsumption(batchId, input)` — deduct from material lot `available_quantity`, record cost
+- Validation: check lot has enough quantity
+
+#### [NEW] `features/production/services/moulding-log.service.ts`
+- `getMouldingLogs(batchId)` — with worker name join
+- `createMouldingLog(batchId, input)` — record daily moulding, update batch `moulded_quantity`
+- `deleteMouldingLog(logId)` — reverse the moulded_quantity on batch
+
+#### [NEW] `features/production/services/finished-goods.service.ts`
+- `createFinishedGoods(batchId, input)` — create `finished_lots` record in inventory schema
+  - Input: `brick_type_id`, `brick_grade_id`, quantity, `unit_cost_paise`
+  - Auto-generate `lot_number` (format: `LOT-BATCHNO-GRADE`)
+  - Update batch status to COMPLETED if all output recorded
+  - Create `stock_ledger` entry for audit trail
+
+---
+
+### Phase 3: API Routes
+
+#### [MODIFY] [route.ts](file:///d:/Development/Personal-Projects/brick-setu/app/api/production/route.ts)
+- Expand GET to support query params: `?stage=MOULDING&status=IN_PROGRESS&from=2026-01-01&to=2026-12-31`
+
+#### [NEW] `app/api/production/[id]/route.ts`
+- `GET` — batch detail with KPIs
+- `PATCH` — update batch fields (notes, target_quantity, end_date)
+- `DELETE` — soft-delete / cancel batch (only if no linked finished goods)
+
+#### [NEW] `app/api/production/[id]/stage-transitions/route.ts`
+- `GET` — list stage transitions
+- `POST` — create stage transition
+
+#### [NEW] `app/api/production/[id]/consumption/route.ts`
+- `GET` — list material consumption
+- `POST` — record material consumption
+
+#### [NEW] `app/api/production/[id]/moulding-logs/route.ts`
+- `GET` — list daily moulding logs
+- `POST` — record moulding log
+
+#### [NEW] `app/api/production/[id]/expenses/route.ts`
+- `GET` — list expenses linked to this batch (from `expenses` table where `batch_id` matches)
+
+#### [NEW] `app/api/production/[id]/finished-goods/route.ts`
+- `POST` — output finished goods to inventory
+
+#### [NEW] `app/api/production/analytics/route.ts`
+- `GET` — aggregated KPIs: total batches, total moulded, total fired, avg yield %, avg wastage %, top workers by moulding output
+
+---
+
+### Phase 4: React Query Hooks & API Layer
+
+#### [MODIFY] [production.api.ts](file:///d:/Development/Personal-Projects/brick-setu/features/production/api/production.api.ts)
+Expand to cover all new endpoints:
+```typescript
+export const productionApi = {
+  // Batches
+  listBatches: (params) => ...,
+  getBatch: (id) => ...,
+  createBatch: (input) => ...,
+  updateBatch: (id, input) => ...,
+  deleteBatch: (id) => ...,
+  
+  // Stage Transitions
+  listStageTransitions: (batchId) => ...,
+  createStageTransition: (batchId, input) => ...,
+  
+  // Material Consumption
+  listConsumption: (batchId) => ...,
+  createConsumption: (batchId, input) => ...,
+  
+  // Moulding Logs
+  listMouldingLogs: (batchId) => ...,
+  createMouldingLog: (batchId, input) => ...,
+  
+  // Expenses (read-only from batch perspective)
+  listBatchExpenses: (batchId) => ...,
+  
+  // Finished Goods
+  createFinishedGoods: (batchId, input) => ...,
+  
+  // Analytics
+  getAnalytics: (orgId, dateRange?) => ...,
+};
+```
+
+#### [MODIFY] `lib/query/queryKeys.ts`
+Add granular query keys:
+```typescript
+production: {
+  all: ['production'],
+  list: (orgId, filters?) => [..., 'list', orgId, filters],
+  detail: (id) => [..., 'detail', id],
+  stages: (batchId) => [..., 'stages', batchId],
+  consumption: (batchId) => [..., 'consumption', batchId],
+  mouldingLogs: (batchId) => [..., 'mouldingLogs', batchId],
+  expenses: (batchId) => [..., 'expenses', batchId],
+  analytics: (orgId, dateRange?) => [..., 'analytics', orgId, dateRange],
+  brickTypes: (orgId) => [..., 'brickTypes', orgId],
+  brickGrades: (orgId) => [..., 'brickGrades', orgId],
+},
+```
+
+#### New Hooks
+- `useBatchDetail(id)` — fetch single batch with KPIs
+- `useStageTransitions(batchId)` + `useCreateStageTransition(batchId)`
+- `useConsumption(batchId)` + `useCreateConsumption(batchId)`
+- `useMouldingLogs(batchId)` + `useCreateMouldingLog(batchId)`
+- `useBatchExpenses(batchId)`
+- `useCreateFinishedGoods(batchId)`
+- `useProductionAnalytics(orgId)`
+
+---
+
+### Phase 5: Batch List Page (Overhaul)
+
+#### [MODIFY] [page.tsx](file:///d:/Development/Personal-Projects/brick-setu/app/%28dashboard%29/production/page.tsx)
+
+**New UI Layout:**
+
+```
+┌──────────────────────────────────────────────────────┐
+│  🏭 Production Batches / उत्पादन बॅच                 │
+│  Track brick production from moulding to completion   │
+│                                        [+ New Batch]  │
+├──────────────────────────────────────────────────────┤
+│  KPI Cards Row:                                       │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ │
+│  │ Total    │ │ Active   │ │ Total    │ │ Avg      │ │
+│  │ Batches  │ │ Batches  │ │ Moulded  │ │ Yield %  │ │
+│  │ 24       │ │ 5        │ │ 12,50,000│ │ 87.3%    │ │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ │
+├──────────────────────────────────────────────────────┤
+│  Tab Filters: [All] [Moulding] [Drying] [Firing]      │
+│               [Sorting] [Completed] [Cancelled]       │
+├──────────────────────────────────────────────────────┤
+│  DataTable (clickable rows → navigate to /production/[id]) │
+│  Columns: Batch# | Brick Type | Stage (badge) |       │
+│           Moulded | Fired Good | Yield% | Start Date | │
+│           Status                                       │
+└──────────────────────────────────────────────────────┘
+```
+
+**Key changes:**
+- KPI summary cards at top (reuse `KPICard` from workers)
+- Tab-based stage filtering (reuse `TabsList/TabsTrigger` pattern from workers page)
+- Clickable rows → navigate to `/production/[id]` (detail page)
+- Enhanced columns with color-coded stage badges
+- Create Batch modal now includes `target_quantity`, `start_date`, `brick_type_id`
+
+---
+
+### Phase 6: Batch Detail Page (NEW — Multi-Tab)
+
+#### [NEW] `app/(dashboard)/production/[id]/page.tsx`
+
+Following the exact same pattern as workers `[id]/page.tsx`:
+
+```
+┌──────────────────────────────────────────────────────┐
+│  ← Back to Batches                                    │
+│  ┌──────────────────────────────────────────────────┐ │
+│  │ BATCH-2026-001 | लाल वीट (Red Standard)          │ │
+│  │ Stage: 🔥 FIRING   Status: IN_PROGRESS            │ │
+│  │ Progress: ▓▓▓▓▓▓▓▓▓░░ 60%                        │ │
+│  │                    [Advance Stage] [Edit] [Cancel] │ │
+│  └──────────────────────────────────────────────────┘ │
+├──────────────────────────────────────────────────────┤
+│  KPI Summary Cards:                                   │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐    │
+│  │ Target  │ │ Moulded │ │ Fired   │ │ Damaged │    │
+│  │ 1,00,000│ │ 98,000  │ │ 85,000  │ │ 3,000   │    │
+│  └─────────┘ └─────────┘ └─────────┘ └─────────┘    │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐    │
+│  │ Yield % │ │ Material│ │ Labour  │ │ Cost/   │    │
+│  │ 86.7%   │ │ Cost    │ │ Cost    │ │ Brick   │    │
+│  │         │ │ ₹45,000 │ │ ₹32,000 │ │ ₹0.91   │    │
+│  └─────────┘ └─────────┘ └─────────┘ └─────────┘    │
+├──────────────────────────────────────────────────────┤
+│  Tabs: [Overview] [Stages] [Moulding] [Consumption]   │
+│        [Expenses]                                      │
+├──────────────────────────────────────────────────────┤
+│  (Active Tab Content)                                  │
+└──────────────────────────────────────────────────────┘
+```
+
+#### Tab Breakdown:
+
+**Tab 1: Overview**
+- Batch details card (dates, type, notes)
+- Stage progress timeline (visual vertical timeline showing each stage transition with date + quantities)
+- Quick actions: "Record Moulding", "Record Consumption", "Advance Stage"
+
+**Tab 2: Stage Transitions**
+- Table of all transitions with from → to, date, input/output/damaged counts
+- "Advance Stage" button opens `StageTransitionModal`
+- Visual loss calculation: Input - Output - Damaged = Unaccounted
+
+**Tab 3: Moulding Logs** (दैनंदिन पाथाई नोंद)
+- Daily moulding logs table: Date | Worker | Bricks Moulded | Rate | Earned
+- "Add Moulding Log" button
+- Sub-total: total bricks moulded, total earned by workers
+
+**Tab 4: Material Consumption** (इंधन/साहित्य वापर)
+- Table: Date | Material | Lot# | Quantity | Unit | Cost
+- "Record Consumption" button → select from available material lots
+- Sub-total: total material cost
+
+**Tab 5: Expenses** (खर्च)
+- Read-only list of expenses from `expenses` table where `batch_id` = this batch
+- "Add Expense" button → opens expense form with batch pre-linked
+- Sub-total: total expenses
+
+---
+
+### Phase 7: Finished Goods Output
+
+When batch reaches `SORTING` or `COMPLETED` stage:
+- Show "Record Finished Goods" action button
+- Modal form: Select brick grade (Number 1, Number 2, Tukda), enter quantity, auto-calculate unit cost
+- Creates `finished_lots` entry in inventory
+- Creates `stock_ledger` entry for traceability
+- Multiple grades can be recorded per batch (one `finished_lots` per grade)
+
+---
+
+### Phase 8: Production Analytics Page (Optional Enhancement)
+
+Could be a section on the main production page or a separate analytics view:
+
+- **Production Trend** — batches completed per month (bar chart)
+- **Yield Analysis** — average yield % over time (line chart)
+- **Wastage Breakdown** — pie chart (% at each stage: drying loss, firing loss, sorting loss)
+- **Top Moulding Workers** — leaderboard of workers by bricks moulded
+- **Material Cost Trend** — fuel cost per 1000 bricks over time
+- **Active Batches Pipeline** — kanban-style view of batches by stage
+
+---
+
+## Reusable Components Strategy
+
+| Component | Reused From | Used In |
+|-----------|-------------|---------|
+| `KPICard` | `features/workers/components/KPICard.tsx` | Batch list page, Batch detail page |
+| `DataTable` | `components/ui/data-table/data-table` | All tables (batches, transitions, logs) |
+| `TabsList/TabsTrigger` | `components/ui/tabs.tsx` | Batch list filtering, batch detail tabs |
+| `Badge` | `components/ui/badge.tsx` | Stage badges, status badges |
+| `Button`, `Input`, `Select` | `components/ui/` | All forms and modals |
+| `BatchStatusBadge` | NEW (shared component) | Batch list, batch detail, batch card |
+| `BatchProgressBar` | NEW (shared component) | Batch list, batch detail header |
+
+---
+
+## Implementation Order (Recommended)
+
+| Step | Phase | Description | Estimated Files |
+|------|-------|-------------|----------------|
+| 1 | Types & Constants | Define all types, Zod schemas, constants | 6 files |
+| 2 | Backend Services | Batch service expansion, stage, consumption, moulding, finished goods services | 5 files |
+| 3 | API Routes | All REST endpoints | 8 files |
+| 4 | Query Keys & Hooks | Expand query keys, create all hooks, expand API client | 6 files |
+| 5 | Batch List Page | KPIs, tab filters, enhanced columns, improved create modal | 5 files |
+| 6 | Batch Detail Page | Detail page with 5 tabs, all tab components, modals | 12 files |
+| 7 | Finished Goods | Output modal, inventory integration | 2 files |
+| 8 | Analytics (optional) | Charts, production dashboard section | 3 files |
+
+**Total: ~47 new/modified files across 8 phases**
+
+---
+
+## Open Questions
+
+> [!IMPORTANT]
+> 1. **Stage Names**: Are 5 stages (MOULDING → DRYING → FIRING → SORTING → COMPLETED) correct? Or do you have different/more stages in your kiln process?
+
+> [!IMPORTANT]
+> 2. **Finished Goods Grades**: Which brick grades do you typically use? (e.g., "Number 1", "Number 2", "Tukda/Roda"). These need to be pre-configured in `brick_grades` table.
+
+> [!NOTE]
+> 3. **Charts Library**: For analytics charts (trend, pie, bar), should we use **Recharts** (already popular with Next.js) or do you have a preferred library?
+
+> [!NOTE]
+> 4. **Batch Numbering**: Is `BATCH-2026-001` format okay, or do you want a custom format? (e.g., kiln name prefix, season-based, etc.)
+
+> [!NOTE]
+> 5. **Phase 8 (Analytics)**: Should we include analytics in Phase 1 delivery, or treat it as a follow-up?
+
+---
+
+## Verification Plan
+
+### Automated Tests
+1. **Build Verification**: `npm run build` — ensure no TypeScript errors
+2. **API Testing**: Use the browser subagent to test each API endpoint via the running app
+3. **UI Smoke Test**: Navigate through the full flow in browser:
+   - Create a batch
+   - Record moulding logs
+   - Advance through stages
+   - Record material consumption
+   - Output finished goods
+
+### Manual Verification
+- **Full Flow Demo**: Create a batch → add moulding logs → advance stage (MOULDING → DRYING → FIRING → SORTING → COMPLETED) → record material consumption → output finished goods → verify inventory updated
+- **KPI Accuracy**: Verify yield %, cost/brick calculations match expected values
+- **Permission Checks**: Verify only owner/manager can create batches and advance stages
+- **Responsive Design**: Verify batch detail page looks good on mobile and desktop

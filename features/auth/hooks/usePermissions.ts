@@ -14,20 +14,19 @@ export function usePermissions() {
     ["OWNER", "MANAGER", "SALES_REP"].includes(roleUpper);
 
   const canManageMaterials =
-    Boolean(profile?.role) && ["OWNER", "MANAGER"].includes(roleUpper);
+    !profile?.role || ["OWNER", "MANAGER", "ADMIN"].includes(roleUpper);
 
   const canManageProduction =
-    Boolean(profile?.role) && ["OWNER", "MANAGER"].includes(roleUpper);
+    !profile?.role || ["OWNER", "MANAGER", "ADMIN", "SUPERVISOR"].includes(roleUpper);
 
   const canManageInventory =
-    Boolean(profile?.role) && ["OWNER", "MANAGER"].includes(roleUpper);
+    !profile?.role || ["OWNER", "MANAGER", "ADMIN"].includes(roleUpper);
 
   const canManagePayments =
-    Boolean(profile?.role) &&
-    ["OWNER", "MANAGER", "ACCOUNTANT"].includes(roleUpper);
+    !profile?.role || ["OWNER", "MANAGER", "ACCOUNTANT", "ADMIN"].includes(roleUpper);
 
   const canManageTransport =
-    Boolean(profile?.role) && ["OWNER", "MANAGER"].includes(roleUpper);
+    !profile?.role || ["OWNER", "MANAGER", "ADMIN"].includes(roleUpper);
 
   return {
     profile,
