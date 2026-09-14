@@ -46,18 +46,25 @@ interface KPIGridProps {
 export function KPIGrid({ items, columns = 3, className = "" }: KPIGridProps) {
   const gridColClass =
     columns === 4
-      ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+      ? "grid-cols-2 sm:grid-cols-2 lg:grid-cols-4"
       : columns === 5
-        ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-5"
+        ? "grid-cols-2 sm:grid-cols-2 lg:grid-cols-5"
         : columns === 2
-          ? "grid-cols-1 sm:grid-cols-2"
-          : "grid-cols-1 sm:grid-cols-3";
+          ? "grid-cols-2 sm:grid-cols-2"
+          : "grid-cols-2 sm:grid-cols-3";
 
   return (
     <div className={`grid ${gridColClass} gap-3 ${className}`}>
-      {items.map((item, idx) => (
-        <KPICard key={item.id || idx} item={item} />
-      ))}
+      {items.map((item, idx) => {
+        const isLastOdd = items.length % 2 !== 0 && idx === items.length - 1;
+        return (
+          <KPICard
+            key={item.id || idx}
+            item={item}
+            className={isLastOdd ? "col-span-2 sm:col-span-1" : ""}
+          />
+        );
+      })}
     </div>
   );
 }
