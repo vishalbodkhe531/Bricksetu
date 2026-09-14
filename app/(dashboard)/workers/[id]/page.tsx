@@ -35,7 +35,7 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
   const orgId = profile?.organization_id ?? "";
 
   const { data: worker, isLoading: loading } = useWorkerDetail(workerId);
-  const { data: dailyWorkData } = useDailyWorkLogs({ workerId });
+  const { data: dailyWorkData, isLoading: loadingDailyWork } = useDailyWorkLogs({ workerId });
 
   const changeWorkerRate = useChangeWorkerRate(orgId, workerId);
   const deactivateWorker = useDeactivateWorker(orgId);
@@ -165,6 +165,7 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
         <WorkerLedgerTab
           worker={worker}
           dailyWorkData={dailyWorkData}
+          isLoading={loadingDailyWork}
           orgId={orgId}
           canWrite={canWrite}
           onSwitchToRecordWork={() => setActiveTab("record_work")}
