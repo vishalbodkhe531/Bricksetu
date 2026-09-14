@@ -129,13 +129,13 @@ export default function BatchDetailPage({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto shrink-0 sm:justify-end">
             <Button
               variant="outline"
               size="sm"
               onClick={() => refetch()}
               disabled={isRefetching}
-              className="rounded-full h-8 px-3.5 text-[11px] font-semibold gap-1.5"
+              className="rounded-full h-8 px-2.5 sm:px-3.5 text-[11px] font-semibold gap-1.5 w-full sm:w-auto justify-center"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${isRefetching ? "animate-spin" : ""}`} /> Refresh
             </Button>
@@ -146,7 +146,7 @@ export default function BatchDetailPage({
                   variant="outline"
                   size="sm"
                   onClick={() => setIsMouldingModalOpen(true)}
-                  className="rounded-full h-8 px-3.5 text-[11px] font-semibold gap-1.5"
+                  className="rounded-full h-8 px-2.5 sm:px-3.5 text-[11px] font-semibold gap-1.5 w-full sm:w-auto justify-center"
                 >
                   <Hammer className="h-3.5 w-3.5 text-amber-500" /> Log Moulding
                 </Button>
@@ -154,7 +154,7 @@ export default function BatchDetailPage({
                   variant="outline"
                   size="sm"
                   onClick={() => setIsConsumptionModalOpen(true)}
-                  className="rounded-full h-8 px-3.5 text-[11px] font-semibold gap-1.5"
+                  className="rounded-full h-8 px-2.5 sm:px-3.5 text-[11px] font-semibold gap-1.5 w-full sm:w-auto justify-center"
                 >
                   <Fuel className="h-3.5 w-3.5 text-amber-500" /> Material
                 </Button>
@@ -162,7 +162,7 @@ export default function BatchDetailPage({
                   variant="default"
                   size="sm"
                   onClick={() => setIsStageModalOpen(true)}
-                  className="rounded-full h-8 px-3.5 text-[11px] font-semibold gap-1.5"
+                  className="rounded-full h-8 px-2.5 sm:px-3.5 text-[11px] font-semibold gap-1.5 w-full sm:w-auto justify-center"
                 >
                   <GitCommit className="h-3.5 w-3.5" /> Advance Stage
                 </Button>
