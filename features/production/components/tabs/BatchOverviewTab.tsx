@@ -4,8 +4,7 @@ import React from "react";
 import { Factory, Coins, PackageCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Batch, BatchKPIs } from "../../types/production.types";
-import { BatchProgressBar } from "../BatchProgressBar";
-import { BatchStatusBadge } from "../BatchStatusBadge";
+import { BatchKPISummary } from "../BatchKPISummary";
 import { formatCostPerBrick, formatPaiseToRupees } from "../../utils/production-calculations";
 import { formatDateDdMmYyyy } from "@/lib/utils";
 
@@ -13,51 +12,22 @@ interface BatchOverviewTabProps {
   batch: Batch;
   kpis: BatchKPIs;
   canWrite: boolean;
-  onOpenStageModal: () => void;
-  onOpenMouldingModal: () => void;
-  onOpenConsumptionModal: () => void;
-  onOpenFinishedGoodsModal: () => void;
+  onOpenStageModal?: () => void;
+  onOpenMouldingModal?: () => void;
+  onOpenConsumptionModal?: () => void;
+  onOpenFinishedGoodsModal?: () => void;
 }
 
 export function BatchOverviewTab({
   batch,
   kpis,
   canWrite,
-  onOpenStageModal,
-  onOpenMouldingModal,
-  onOpenConsumptionModal,
   onOpenFinishedGoodsModal,
 }: BatchOverviewTabProps) {
   return (
-    <div className="space-y-6">
-      {/* Batch Header Progress Card */}
-      <div className="bg-card border border-border rounded-xl p-5 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-foreground font-mono">
-                {batch.batch_number}
-              </h2>
-              <BatchStatusBadge stage={batch.stage} status={batch.status} />
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Brick Type: <span className="font-semibold text-foreground">{batch.brick_type?.name ?? "Standard Brick"}</span>
-              {batch.brick_type?.dimensions && ` (${batch.brick_type.dimensions})`}
-            </p>
-          </div>
-
-          {canWrite && batch.status === "IN_PROGRESS" && batch.stage === "SORTING" && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={onOpenFinishedGoodsModal}>
-                <PackageCheck className="h-3.5 w-3.5" /> Transfer Stock
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Progress Bar */}
-        <BatchProgressBar currentStage={batch.stage} />
-      </div>
+    <div className="space-y-4">
+      {/* KPI Cards Summary Section */}
+      <BatchKPISummary kpis={kpis} />
 
       {/* Overview Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

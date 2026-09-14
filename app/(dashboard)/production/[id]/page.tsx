@@ -22,8 +22,8 @@ import {
   useBatchDetail,
   useBrickGrades,
 } from "@/features/production/hooks/useProduction";
-import { BatchKPISummary } from "@/features/production/components/BatchKPISummary";
 import { BatchStatusBadge } from "@/features/production/components/BatchStatusBadge";
+import { BatchProgressBar } from "@/features/production/components/BatchProgressBar";
 import { BATCH_DETAIL_TABS } from "@/features/production/constants/production-options";
 
 import { BatchOverviewTab } from "@/features/production/components/tabs/BatchOverviewTab";
@@ -99,73 +99,76 @@ export default function BatchDetailPage({
   };
 
   return (
-    <div className="space-y-6 p-6 max-w-7xl mx-auto">
-      {/* Top Header & Breadcrumb */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <Link
-            href="/production"
-            className="inline-flex items-center text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors gap-1"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to Bhatti List / सर्व भट्ट्यांच्या यादीकडे
-          </Link>
+    <div className="space-y-4">
+      {/* Top Identity Header Card */}
+      <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <Link
+              href="/production"
+              className="inline-flex items-center text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors gap-1"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to Bhatti List / सर्व भट्ट्यांच्या यादीकडे
+            </Link>
 
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground font-mono">
-              {batch.batch_number}
-            </h1>
-            <BatchStatusBadge stage={batch.stage} status={batch.status} size="lg" />
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-mono">
+                {batch.batch_number}
+              </h1>
+              <BatchStatusBadge stage={batch.stage} status={batch.status} size="lg" />
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Brick Type: <span className="font-semibold text-foreground">{batch.brick_type?.name ?? "Standard Brick"}</span>
+              {batch.brick_type?.dimensions && ` (${batch.brick_type.dimensions})`}
+              {" • "}Created by: {batch.created_by_name ?? "System"}
+            </p>
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            Brick Type: <span className="font-semibold text-foreground">{batch.brick_type?.name ?? "Standard Brick"}</span>
-            {" • "}Created by: {batch.created_by_name ?? "System"}
-          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isRefetching}
+              className="gap-1 text-xs"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isRefetching ? "animate-spin" : ""}`} /> Refresh
+            </Button>
+
+            {canWrite && batch.status === "IN_PROGRESS" && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsMouldingModalOpen(true)}
+                  className="gap-1 text-xs"
+                >
+                  <Hammer className="h-3.5 w-3.5 text-amber-500" /> Log Moulding
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsConsumptionModalOpen(true)}
+                  className="gap-1 text-xs"
+                >
+                  <Fuel className="h-3.5 w-3.5 text-amber-500" /> Material
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => setIsStageModalOpen(true)}
+                  className="gap-1 text-xs"
+                >
+                  <GitCommit className="h-3.5 w-3.5" /> Advance Stage
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            disabled={isRefetching}
-            className="gap-1 text-xs"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${isRefetching ? "animate-spin" : ""}`} /> Refresh
-          </Button>
-
-          {canWrite && batch.status === "IN_PROGRESS" && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsMouldingModalOpen(true)}
-                className="gap-1 text-xs"
-              >
-                <Hammer className="h-3.5 w-3.5 text-amber-500" /> Log Moulding
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsConsumptionModalOpen(true)}
-                className="gap-1 text-xs"
-              >
-                <Fuel className="h-3.5 w-3.5 text-amber-500" /> Material
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => setIsStageModalOpen(true)}
-                className="gap-1 text-xs"
-              >
-                <GitCommit className="h-3.5 w-3.5" /> Advance Stage
-              </Button>
-            </>
-          )}
-        </div>
+        {/* Progress Bar inside Top Card */}
+        <BatchProgressBar currentStage={batch.stage} />
       </div>
-
-      {/* KPI Cards Summary Section */}
-      <BatchKPISummary kpis={kpis} />
 
       {/* Tabs Navigation Bar */}
       <div className="border-b border-border">
