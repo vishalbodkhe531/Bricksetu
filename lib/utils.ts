@@ -50,3 +50,21 @@ export function formatPgError(err: any): string {
   }
   return err.message || 'Database operation failed.';
 }
+
+export function formatDateDdMmYyyy(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  const parts = dateStr.split("T")[0].split("-");
+  if (parts.length === 3) {
+    const [yyyy, mm, dd] = parts;
+    if (yyyy.length === 4 && mm.length <= 2 && dd.length <= 2) {
+      return `${dd.padStart(2, "0")}-${mm.padStart(2, "0")}-${yyyy}`;
+    }
+  }
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return String(dateStr);
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yyyy = date.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}
+

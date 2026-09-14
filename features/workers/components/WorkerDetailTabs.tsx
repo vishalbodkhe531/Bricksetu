@@ -53,7 +53,7 @@ export function WorkerDetailTabs({
             : "border-transparent text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/5 rounded-t-md"
         }`}
       >
-        <Receipt className="h-4 w-4 text-emerald-500" /> Work Ledger Logs /
+        <Receipt className="h-4 w-4 text-emerald-500" /> Work Logs /
         कामाची नोंदवही
         {logCount > 0 && (
           <span className="ml-1 px-1.5 py-0.2 text-[10px] font-mono font-semibold rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
