@@ -100,24 +100,30 @@ export function WorkerIdentityHeader({
         </div>
 
         {canWrite && (
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto shrink-0 sm:justify-end">
             {!hideRecordWork && (
               <Button
                 variant={activeTab === "record_work" ? "default" : "outline"}
                 size="sm"
                 onClick={() => onSelectTab("record_work")}
+                className="rounded-full h-8 px-2.5 sm:px-3.5 text-[11px] font-semibold gap-1.5 w-full sm:w-auto justify-center"
               >
                 <Coins className="h-3.5 w-3.5" /> Record Daily Work
               </Button>
             )}
 
-            <Link href={`/workers/${worker.id}/edit`}>
-              <Button variant="outline" size="sm">
+            <Link href={`/workers/${worker.id}/edit`} className="w-full sm:w-auto">
+              <Button variant="outline" size="sm" className="rounded-full h-8 px-2.5 sm:px-3.5 text-[11px] font-semibold gap-1.5 w-full sm:w-auto justify-center">
                 <Edit className="h-3.5 w-3.5" /> Edit Profile
               </Button>
             </Link>
 
-            <Button variant="default" size="sm" onClick={onOpenRateDialog}>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={onOpenRateDialog}
+              className="rounded-full h-8 px-2.5 sm:px-3.5 text-[11px] font-semibold gap-1.5 w-full sm:w-auto justify-center"
+            >
               <Banknote className="h-3.5 w-3.5" /> Change Rate
             </Button>
 
@@ -126,6 +132,7 @@ export function WorkerIdentityHeader({
                 variant="destructive"
                 size="sm"
                 onClick={onOpenDeactivateDialog}
+                className="rounded-full h-8 px-2.5 sm:px-3.5 text-[11px] font-semibold gap-1.5 w-full sm:w-auto justify-center"
               >
                 <UserX className="h-3.5 w-3.5" /> Deactivate
               </Button>

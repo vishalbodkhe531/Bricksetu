@@ -4,6 +4,7 @@ import React, { useState, use } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
+  Flame,
   GitCommit,
   Hammer,
   Fuel,
@@ -101,37 +102,40 @@ export default function BatchDetailPage({
   return (
     <div className="space-y-4">
       {/* Top Identity Header Card */}
-      <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <Link
-              href="/production"
-              className="inline-flex items-center text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors gap-1"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" /> Back to Bhatti List / सर्व भट्ट्यांच्या यादीकडे
+      <div className="rounded-lg border border-border bg-card p-4 shadow-xs relative overflow-hidden space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Link href="/production">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-xs">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
             </Link>
 
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-mono">
-                {batch.batch_number}
-              </h1>
-              <BatchStatusBadge stage={batch.stage} status={batch.status} size="lg" />
-            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-base font-bold tracking-tight text-foreground font-mono">
+                  {batch.batch_number}
+                </h1>
+                <BatchStatusBadge stage={batch.stage} status={batch.status} />
+              </div>
 
-            <p className="text-xs text-muted-foreground">
-              Brick Type: <span className="font-semibold text-foreground">{batch.brick_type?.name ?? "Standard Brick"}</span>
-              {batch.brick_type?.dimensions && ` (${batch.brick_type.dimensions})`}
-              {" • "}Created by: {batch.created_by_name ?? "System"}
-            </p>
+              <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
+                <span className="font-medium">
+                  Brick Type: <span className="font-semibold text-foreground">{batch.brick_type?.name ?? "Standard Brick"}</span>
+                  {batch.brick_type?.dimensions && ` (${batch.brick_type.dimensions})`}
+                </span>
+                <span className="font-mono">• Created by: {batch.created_by_name ?? "System"}</span>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto shrink-0 sm:justify-end">
             <Button
               variant="outline"
               size="sm"
               onClick={() => refetch()}
               disabled={isRefetching}
-              className="gap-1 text-xs"
+              className="rounded-full h-8 px-2.5 sm:px-3.5 text-[11px] font-semibold gap-1.5 w-full sm:w-auto justify-center"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${isRefetching ? "animate-spin" : ""}`} /> Refresh
             </Button>
@@ -142,7 +146,7 @@ export default function BatchDetailPage({
                   variant="outline"
                   size="sm"
                   onClick={() => setIsMouldingModalOpen(true)}
-                  className="gap-1 text-xs"
+                  className="rounded-full h-8 px-2.5 sm:px-3.5 text-[11px] font-semibold gap-1.5 w-full sm:w-auto justify-center"
                 >
                   <Hammer className="h-3.5 w-3.5 text-amber-500" /> Log Moulding
                 </Button>
@@ -150,14 +154,15 @@ export default function BatchDetailPage({
                   variant="outline"
                   size="sm"
                   onClick={() => setIsConsumptionModalOpen(true)}
-                  className="gap-1 text-xs"
+                  className="rounded-full h-8 px-2.5 sm:px-3.5 text-[11px] font-semibold gap-1.5 w-full sm:w-auto justify-center"
                 >
                   <Fuel className="h-3.5 w-3.5 text-amber-500" /> Material
                 </Button>
                 <Button
+                  variant="default"
                   size="sm"
                   onClick={() => setIsStageModalOpen(true)}
-                  className="gap-1 text-xs"
+                  className="rounded-full h-8 px-2.5 sm:px-3.5 text-[11px] font-semibold gap-1.5 w-full sm:w-auto justify-center"
                 >
                   <GitCommit className="h-3.5 w-3.5" /> Advance Stage
                 </Button>
