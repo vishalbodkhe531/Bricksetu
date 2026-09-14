@@ -118,8 +118,8 @@ export function DataTable<T extends Record<string, any>>({
 
       {/* Table Container with hairline border & subtle elevation */}
       <div className="rounded-lg border border-border bg-card overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left text-xs min-w-max">
             <thead className="border-b border-border bg-muted/60 text-[11px] font-bold uppercase tracking-wider text-muted-foreground select-none">
               <tr>
                 {columns.map((col, idx) => {
@@ -132,7 +132,7 @@ export function DataTable<T extends Record<string, any>>({
                   return (
                     <th
                       key={idx}
-                      className={`px-4 py-2.5 ${alignClass} ${col.className || ""}`}
+                      className={`px-4 py-2.5 whitespace-nowrap ${alignClass} ${col.className || ""}`}
                     >
                       {col.header}
                     </th>
@@ -157,7 +157,7 @@ export function DataTable<T extends Record<string, any>>({
                       return (
                         <td
                           key={cIdx}
-                          className={`px-4 py-2.5 align-middle ${alignClass} ${col.className || ""}`}
+                          className={`px-4 py-2.5 align-middle whitespace-nowrap ${alignClass} ${col.className || ""}`}
                         >
                           {col.cell
                             ? col.cell({

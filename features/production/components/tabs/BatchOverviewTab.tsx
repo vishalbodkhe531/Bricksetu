@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Factory, Calendar, Clock, GitCommit, Layers, Hammer, Fuel, Coins, PackageCheck } from "lucide-react";
+import { Factory, Coins, PackageCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Batch, BatchKPIs } from "../../types/production.types";
 import { BatchProgressBar } from "../BatchProgressBar";
@@ -46,22 +46,11 @@ export function BatchOverviewTab({
             </p>
           </div>
 
-          {canWrite && batch.status === "IN_PROGRESS" && (
+          {canWrite && batch.status === "IN_PROGRESS" && batch.stage === "SORTING" && (
             <div className="flex items-center gap-2 flex-wrap">
-              <Button size="sm" variant="outline" onClick={onOpenMouldingModal}>
-                <Hammer className="h-3.5 w-3.5 text-amber-500" /> Log Moulding
+              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={onOpenFinishedGoodsModal}>
+                <PackageCheck className="h-3.5 w-3.5" /> Transfer Stock
               </Button>
-              <Button size="sm" variant="outline" onClick={onOpenConsumptionModal}>
-                <Fuel className="h-3.5 w-3.5 text-amber-500" /> Record Material
-              </Button>
-              <Button size="sm" variant="default" onClick={onOpenStageModal}>
-                <GitCommit className="h-3.5 w-3.5" /> Advance Stage
-              </Button>
-              {batch.stage === "SORTING" && (
-                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={onOpenFinishedGoodsModal}>
-                  <PackageCheck className="h-3.5 w-3.5" /> Transfer Stock
-                </Button>
-              )}
             </div>
           )}
         </div>

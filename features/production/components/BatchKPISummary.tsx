@@ -14,7 +14,7 @@ export function BatchKPISummary({ kpis }: BatchKPISummaryProps) {
   const items: KPICardItem[] = [
     {
       id: 'target',
-      label: 'Target Output / उद्दिष्ट',
+      label: 'उद्दिष्ट',
       value: kpis.target_quantity.toLocaleString(),
       subtext: `Days active: ${kpis.days_in_production} days`,
       icon: Target,
@@ -22,7 +22,7 @@ export function BatchKPISummary({ kpis }: BatchKPISummaryProps) {
     },
     {
       id: 'moulded',
-      label: 'Moulded Bricks / पाडलेली वीट',
+      label: 'पाडलेली वीट',
       value: kpis.moulded_quantity.toLocaleString(),
       subtext: `Labour cost: ${formatPaiseToRupees(kpis.total_moulding_labour_cost_paise)}`,
       icon: Hammer,
@@ -31,7 +31,7 @@ export function BatchKPISummary({ kpis }: BatchKPISummaryProps) {
     },
     {
       id: 'fired_good',
-      label: 'Fired Good Bricks / पक्की वीट',
+      label: 'पक्की वीट',
       value: kpis.fired_good_quantity.toLocaleString(),
       subtext: `Yield: ${kpis.yield_percentage}% of moulded`,
       icon: Flame,
@@ -40,7 +40,7 @@ export function BatchKPISummary({ kpis }: BatchKPISummaryProps) {
     },
     {
       id: 'wastage',
-      label: 'Wastage & Loss / नुकसान',
+      label: 'नुकसान',
       value: kpis.damaged_quantity.toLocaleString(),
       subtext: `Wastage: ${kpis.wastage_percentage}% loss`,
       icon: AlertTriangle,
@@ -49,7 +49,7 @@ export function BatchKPISummary({ kpis }: BatchKPISummaryProps) {
     },
     {
       id: 'material_cost',
-      label: 'Material Cost / इंधन खर्च',
+      label: 'इंधन खर्च',
       value: formatPaiseToRupees(kpis.total_material_cost_paise),
       subtext: 'Coal, Wood, Husk usage',
       icon: Coins,
@@ -57,7 +57,7 @@ export function BatchKPISummary({ kpis }: BatchKPISummaryProps) {
     },
     {
       id: 'expenses',
-      label: 'Expenses / इतर खर्च',
+      label: 'इतर खर्च',
       value: formatPaiseToRupees(kpis.total_expense_cost_paise),
       subtext: 'Batch linked expenses',
       icon: DollarSign,
@@ -65,7 +65,7 @@ export function BatchKPISummary({ kpis }: BatchKPISummaryProps) {
     },
     {
       id: 'total_cost',
-      label: 'Total Cost / एकूण खर्च',
+      label: 'एकूण खर्च',
       value: formatPaiseToRupees(kpis.total_production_cost_paise),
       subtext: 'Material + Labour + Expense',
       icon: TrendingUp,
@@ -74,7 +74,7 @@ export function BatchKPISummary({ kpis }: BatchKPISummaryProps) {
     },
     {
       id: 'cost_per_brick',
-      label: 'Cost Per Brick / दर वीट खर्च',
+      label: 'दर वीट खर्च',
       value: formatCostPerBrick(kpis.cost_per_brick_paise),
       subtext: 'Based on fired good yield',
       icon: Calendar,

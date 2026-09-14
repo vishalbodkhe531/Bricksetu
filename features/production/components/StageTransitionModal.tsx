@@ -38,6 +38,22 @@ export function StageTransitionModal({
   const [damagedQuantity, setDamagedQuantity] = useState("0");
   const [notes, setNotes] = useState("");
 
+  const handleInputQuantityChange = (val: string) => {
+    setInputQuantity(val);
+    const inputQty = parseInt(val, 10) || 0;
+    const goodQty = parseInt(outputGoodQuantity, 10) || 0;
+    const calcDamaged = Math.max(0, inputQty - goodQty);
+    setDamagedQuantity(calcDamaged.toString());
+  };
+
+  const handleOutputGoodQuantityChange = (val: string) => {
+    setOutputGoodQuantity(val);
+    const inputQty = parseInt(inputQuantity, 10) || 0;
+    const goodQty = parseInt(val, 10) || 0;
+    const calcDamaged = Math.max(0, inputQty - goodQty);
+    setDamagedQuantity(calcDamaged.toString());
+  };
+
   useEffect(() => {
     if (!transitionDate) {
       setTransitionDate(new Date().toISOString().split("T")[0]);
@@ -56,6 +72,7 @@ export function StageTransitionModal({
     }
     setInputQuantity(baseQty.toString());
     setOutputGoodQuantity(baseQty.toString());
+    setDamagedQuantity("0");
   }, [batch, nextStage]);
 
   if (!isOpen || !nextStage) return null;
@@ -148,7 +165,7 @@ export function StageTransitionModal({
               </label>
               <FormattedNumberInput
                 value={inputQuantity}
-                onChange={setInputQuantity}
+                onChange={handleInputQuantityChange}
                 required
               />
             </div>
@@ -159,7 +176,7 @@ export function StageTransitionModal({
               </label>
               <FormattedNumberInput
                 value={outputGoodQuantity}
-                onChange={setOutputGoodQuantity}
+                onChange={handleOutputGoodQuantityChange}
                 required
               />
             </div>
