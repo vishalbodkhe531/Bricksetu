@@ -1,13 +1,18 @@
-"use client";
+import { Hammer, PlusCircle, Receipt, User } from "lucide-react";
 
-import { PlusCircle, Receipt, User } from "lucide-react";
+export type WorkerTabType =
+  | "profile"
+  | "record_work"
+  | "ledger"
+  | "aalyawale_brick_logs";
 
 interface WorkerDetailTabsProps {
-  activeTab: "profile" | "record_work" | "ledger";
-  onSelectTab: (tab: "profile" | "record_work" | "ledger") => void;
+  activeTab: WorkerTabType;
+  onSelectTab: (tab: WorkerTabType) => void;
   canWrite: boolean;
   logCount?: number;
   hideRecordWork?: boolean;
+  workerCategory?: string | null;
 }
 
 export function WorkerDetailTabs({
@@ -16,7 +21,10 @@ export function WorkerDetailTabs({
   canWrite,
   logCount = 0,
   hideRecordWork = false,
+  workerCategory,
 }: WorkerDetailTabsProps) {
+  const isAalyawale = workerCategory === "AALYAWALE";
+
   return (
     <div className="flex border-b border-border bg-card rounded-t-lg px-2 pt-2 gap-1 overflow-x-auto">
       <button
@@ -44,6 +52,20 @@ export function WorkerDetailTabs({
         </button>
       )}
 
+      {isAalyawale && (
+        <button
+          onClick={() => onSelectTab("aalyawale_brick_logs")}
+          className={`px-4 cursor-pointer py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
+            activeTab === "aalyawale_brick_logs"
+              ? "border-amber-500 text-amber-500 bg-amber-500/5 rounded-t-md"
+              : "border-transparent text-muted-foreground hover:text-amber-500 hover:bg-amber-500/5 rounded-t-md"
+          }`}
+        >
+          <Hammer className="h-4 w-4 text-amber-500" /> Daily Brick Build Log /
+          आल्यावाले वीट नोंद
+        </button>
+      )}
+
       <button
         onClick={() => onSelectTab("ledger")}
         className={`px-4 py-2.5 cursor-pointer text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
@@ -52,8 +74,8 @@ export function WorkerDetailTabs({
             : "border-transparent text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/5 rounded-t-md"
         }`}
       >
-        <Receipt className="h-4 w-4 text-emerald-500" /> Work Logs /
-        कामाची नोंदवही
+        <Receipt className="h-4 w-4 text-emerald-500" /> Work Logs / कामाची
+        नोंदवही
         {logCount > 0 && (
           <span className="ml-1 px-1.5 py-0.2 text-[10px] font-mono font-semibold rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
             {logCount}
