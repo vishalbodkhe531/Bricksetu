@@ -10,13 +10,17 @@ import {
   Loader2,
   Layers,
   Users,
+  Flame,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Select } from "@/components/ui/select";
 import { workersApi } from "@/features/workers/api/workers.api";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/queryKeys";
 import { useWorkers } from "@/features/workers/hooks/useWorkers";
+import { useProductionBatches } from "@/features/production/hooks/useProduction";
 
 import { isRateEditableForCategory } from "@/features/workers/utils/rate-permissions";
 
@@ -45,6 +49,7 @@ export function EmbeddedRecordWorkForm({
 }: EmbeddedRecordWorkFormProps) {
   const qc = useQueryClient();
   const { data: allWorkers = [] } = useWorkers(orgId);
+  const { data: productionBatches = [] } = useProductionBatches(orgId);
 
   const [workDate, setWorkDate] = useState(
     new Date().toISOString().split("T")[0],
@@ -57,6 +62,7 @@ export function EmbeddedRecordWorkForm({
   const [directQty, setDirectQty] = useState<string>("1000");
   const [shiftCount, setShiftCount] = useState<string>("1");
 
+  const [selectedBatchId, setSelectedBatchId] = useState<string>("");
   const [batchNumber, setBatchNumber] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -185,6 +191,7 @@ export function EmbeddedRecordWorkForm({
         entry_mode: entryMode,
         input_quantity: totalInputQty,
         rate_per_unit: effectiveRate,
+        batch_id: selectedBatchId || undefined,
         aalyawala_entries: isAalyawalaRequired ? aalyawalaEntries : undefined,
         bhatkar_id: selectedBhatkarId || undefined,
         reference_no: batchNumber || null,
@@ -238,19 +245,43 @@ export function EmbeddedRecordWorkForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Left Column: Form Fields */}
         <div className="space-y-3.5">
-          {/* Work Date */}
-          <div>
-            <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5 text-primary" /> Work Date /
-              कामाची तारीख
-            </label>
-            <input
-              type="date"
-              value={workDate}
-              onChange={(e) => setWorkDate(e.target.value)}
-              className="w-full bg-background border border-input rounded-md px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              required
-            />
+          {/* Work Date & Select Bhatti */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-primary" /> Work Date /
+                कामाची तारीख
+              </label>
+              <DatePicker
+                value={workDate}
+                onChange={(val) => setWorkDate(val)}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1.5">
+                <Flame className="h-3.5 w-3.5 text-amber-500" /> Select Bhatti /
+                भट्टी निवडा
+              </label>
+              <Select
+                value={selectedBatchId}
+                onValueChange={(bId) => {
+                  setSelectedBatchId(bId);
+                  const selectedBatch = productionBatches.find(
+                    (b: any) => b.id === bId,
+                  );
+                  if (selectedBatch) {
+                    setBatchNumber(selectedBatch.batch_number);
+                  }
+                }}
+                placeholder="-- Choose Bhatti / भट्टी निवडा --"
+                options={productionBatches.map((b: any) => ({
+                  value: b.id,
+                  label: `${b.batch_number} ${b.status || b.stage ? `(${b.status || b.stage})` : ""}`,
+                }))}
+              />
+            </div>
           </div>
 
           {/* Entry Mode Selector */}
@@ -416,18 +447,15 @@ export function EmbeddedRecordWorkForm({
                 <Users className="h-3.5 w-3.5 text-amber-500" />
                 Select Bhatkar / भटकर निवडा *
               </label>
-              <select
+              <Select
                 value={selectedBhatkarId}
-                onChange={(e) => setSelectedBhatkarId(e.target.value)}
-                className="w-full bg-background border border-input rounded-md px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-              >
-                <option value="">-- Choose Bhatkar / भटकर निवडा --</option>
-                {availableBhatkars.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.full_name} ({b.code}) {b.current_rate_amount ? `— Fixed Rate: ₹${b.current_rate_amount}/1K` : ""}
-                  </option>
-                ))}
-              </select>
+                onValueChange={(val) => setSelectedBhatkarId(val)}
+                placeholder="-- Choose Bhatkar / भटकर निवडा --"
+                options={availableBhatkars.map((b) => ({
+                  value: b.id,
+                  label: `${b.full_name} (${b.code}) ${b.current_rate_amount ? `— Fixed Rate: ₹${b.current_rate_amount}/1K` : ""}`,
+                }))}
+              />
             </div>
           )}
 

@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Download,
   Inbox,
+  Loader2,
   Search,
 } from "lucide-react";
 import React, { useState } from "react";
@@ -141,7 +142,32 @@ export function DataTable<T extends Record<string, any>>({
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {paginatedData.length > 0 ? (
+              {loading ? (
+                Array.from({ length: 5 }).map((_, rIdx) => (
+                  <tr key={rIdx} className="animate-pulse">
+                    {columns.map((col, cIdx) => {
+                      const alignClass =
+                        col.align === "right"
+                          ? "text-right"
+                          : col.align === "center"
+                            ? "text-center"
+                            : "text-left";
+                      return (
+                        <td
+                          key={cIdx}
+                          className={`px-4 py-3 align-middle whitespace-nowrap ${alignClass} ${col.className || ""}`}
+                        >
+                          <div
+                            className={`h-3.5 bg-muted/80 rounded-md animate-pulse inline-block ${
+                              cIdx === 0 ? "w-24" : cIdx === 1 ? "w-36" : cIdx % 2 === 0 ? "w-20" : "w-28"
+                            }`}
+                          />
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))
+              ) : paginatedData.length > 0 ? (
                 paginatedData.map((row, rIdx) => (
                   <tr
                     key={rIdx}
@@ -200,35 +226,43 @@ export function DataTable<T extends Record<string, any>>({
         {/* Pagination Footer */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border px-4 py-3 text-xs text-muted-foreground">
           <div>
-            Showing{" "}
-            <span className="font-semibold text-foreground">
-              {paginatedData.length}
-            </span>{" "}
-            of{" "}
-            <span className="font-semibold text-foreground">
-              {filteredData.length}
-            </span>{" "}
-            records
+            {loading ? (
+              <span className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> Loading records...
+              </span>
+            ) : (
+              <>
+                Showing{" "}
+                <span className="font-semibold text-foreground">
+                  {paginatedData.length}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-foreground">
+                  {filteredData.length}
+                </span>{" "}
+                records
+              </>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="icon"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
+              disabled={loading || currentPage === 1}
               className="h-8 w-8 disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Previous Page"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="font-medium text-[11px] text-foreground px-1">
-              Page {currentPage} of {totalPages}
+              Page {loading ? "1" : currentPage} of {loading ? "1" : totalPages}
             </span>
             <Button
               variant="outline"
               size="icon"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
+              disabled={loading || currentPage === totalPages}
               className="h-8 w-8 disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Next Page"
             >

@@ -11,9 +11,10 @@ import { WorkerDeactivateDialog } from "@/features/workers/components/WorkerDeac
 import { EmbeddedRecordWorkForm } from "@/features/workers/components/EmbeddedRecordWorkForm";
 import { WorkerIdentityHeader } from "@/features/workers/components/WorkerIdentityHeader";
 import { WorkerKPISummary } from "@/features/workers/components/WorkerKPISummary";
-import { WorkerDetailTabs } from "@/features/workers/components/WorkerDetailTabs";
+import { WorkerDetailTabs, WorkerTabType } from "@/features/workers/components/WorkerDetailTabs";
 import { WorkerProfileTab } from "@/features/workers/components/WorkerProfileTab";
 import { WorkerLedgerTab } from "@/features/workers/components/WorkerLedgerTab";
+import { AalyawaleBrickBuildLogTab } from "@/features/workers/components/AalyawaleBrickBuildLogTab";
 import {
   useWorkerDetail,
   useDailyWorkLogs,
@@ -35,28 +36,30 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
   const orgId = profile?.organization_id ?? "";
 
   const { data: worker, isLoading: loading } = useWorkerDetail(workerId);
-  const { data: dailyWorkData } = useDailyWorkLogs({ workerId });
+  const { data: dailyWorkData, isLoading: loadingDailyWork } = useDailyWorkLogs({ workerId });
 
   const changeWorkerRate = useChangeWorkerRate(orgId, workerId);
   const deactivateWorker = useDeactivateWorker(orgId);
 
-  const isNoDailyWorkRole =
-    worker?.category === "BHATKAR" || worker?.category === "AALYAWALE";
+  const isNoDailyWorkRole = worker?.category === "BHATKAR";
+  const isAalyawale = worker?.category === "AALYAWALE";
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<
-    "profile" | "record_work" | "ledger"
-  >(
-    initialTab === "record_work" && !isNoDailyWorkRole
+  const [activeTab, setActiveTab] = useState<WorkerTabType>(
+    initialTab === "record_work"
       ? "record_work"
-      : initialTab === "ledger"
-        ? "ledger"
-        : "profile",
+      : initialTab === "aalyawale_brick_logs" || (isAalyawale && initialTab !== "profile" && initialTab !== "ledger")
+        ? "aalyawale_brick_logs"
+        : initialTab === "ledger"
+          ? "ledger"
+          : "profile",
   );
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab === "record_work" && !isNoDailyWorkRole) {
+    if (tab === "aalyawale_brick_logs") {
+      setActiveTab("aalyawale_brick_logs");
+    } else if (tab === "record_work" && !isNoDailyWorkRole) {
       setActiveTab("record_work");
     } else if (tab === "ledger" || tab === "profile") {
       setActiveTab(tab);
@@ -117,9 +120,23 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         canWrite={canWrite}
-        logCount={dailyWorkData?.logs?.length ?? 0}
+        logCount={
+          isAalyawale
+            ? (dailyWorkData?.logs?.filter((l: any) => l.is_auto_generated)?.length ?? 0)
+            : (dailyWorkData?.logs?.length ?? 0)
+        }
         hideRecordWork={isNoDailyWorkRole}
+        workerCategory={worker.category}
       />
+
+      {/* Tab: Aalyawale Brick Build Log */}
+      {activeTab === "aalyawale_brick_logs" && (
+        <AalyawaleBrickBuildLogTab
+          worker={worker}
+          dailyWorkData={dailyWorkData}
+          isLoading={loadingDailyWork}
+        />
+      )}
 
       {/* Tab 1: Profile & Verification Details */}
       {activeTab === "profile" && (
@@ -154,7 +171,9 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
             <EmbeddedRecordWorkForm
               worker={worker}
               orgId={orgId}
-              onSuccess={() => setActiveTab("ledger")}
+              onSuccess={() =>
+                setActiveTab(isAalyawale ? "aalyawale_brick_logs" : "ledger")
+              }
             />
           </div>
         </div>
@@ -165,6 +184,7 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
         <WorkerLedgerTab
           worker={worker}
           dailyWorkData={dailyWorkData}
+          isLoading={loadingDailyWork}
           orgId={orgId}
           canWrite={canWrite}
           onSwitchToRecordWork={() => setActiveTab("record_work")}

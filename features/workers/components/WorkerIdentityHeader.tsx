@@ -16,12 +16,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatWorkerCategory } from "@/features/workers/constants/worker-options";
 import type { Worker } from "@/features/workers/types/worker.types";
+import type { WorkerTabType } from "@/features/workers/components/WorkerDetailTabs";
 
 interface WorkerIdentityHeaderProps {
   worker: Worker;
   canWrite: boolean;
-  activeTab: "profile" | "record_work" | "ledger";
-  onSelectTab: (tab: "profile" | "record_work" | "ledger") => void;
+  activeTab: WorkerTabType;
+  onSelectTab: (tab: WorkerTabType) => void;
   onOpenRateDialog: () => void;
   onOpenDeactivateDialog: () => void;
   hideRecordWork?: boolean;

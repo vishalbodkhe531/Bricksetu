@@ -68,7 +68,7 @@ export function Select({
         onKeyDown={handleKeyDown}
         aria-expanded={isOpen}
         className={cn(
-          "flex h-9 w-full items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground shadow-xs transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
+          "flex h-9 w-full items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground shadow-xs transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
           error && "border-destructive focus:ring-destructive",
           className
         )}

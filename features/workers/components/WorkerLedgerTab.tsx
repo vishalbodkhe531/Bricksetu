@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Clock,
   Coins,
+  Loader2,
   Lock,
   PlusCircle,
   Trash2,
@@ -27,6 +28,7 @@ import type { Worker } from "@/features/workers/types/worker.types";
 interface WorkerLedgerTabProps {
   worker: Worker;
   dailyWorkData: any;
+  isLoading?: boolean;
   orgId: string;
   canWrite: boolean;
   onSwitchToRecordWork: () => void;
@@ -35,11 +37,20 @@ interface WorkerLedgerTabProps {
 export function WorkerLedgerTab({
   worker,
   dailyWorkData,
+  isLoading = false,
   orgId,
   canWrite,
   onSwitchToRecordWork,
 }: WorkerLedgerTabProps) {
-  const groupedDailyLogs = useGroupedDailyLogs(dailyWorkData?.logs, worker.category);
+  const ledgerLogs = React.useMemo(() => {
+    if (!dailyWorkData?.logs) return [];
+    if (worker.category === "AALYAWALE") {
+      return dailyWorkData.logs.filter((l: any) => l.is_auto_generated);
+    }
+    return dailyWorkData.logs;
+  }, [dailyWorkData?.logs, worker.category]);
+
+  const groupedDailyLogs = useGroupedDailyLogs(ledgerLogs, worker.category);
   const weeklyBuckets = useWeeklyGroupedLogs(groupedDailyLogs);
   const deleteDailyWorkLog = useDeleteDailyWorkLog(orgId);
   const createSettlement = useCreateSettlement(orgId);
@@ -129,7 +140,11 @@ export function WorkerLedgerTab({
           )}
         </div>
 
-        {weeklyBuckets && weeklyBuckets.length > 0 ? (
+        {isLoading ? (
+          <div className="border border-border rounded-lg p-8 flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" /> Loading daily work ledger entries...
+          </div>
+        ) : weeklyBuckets && weeklyBuckets.length > 0 ? (
         <div className="border border-border rounded-lg overflow-x-auto shadow-xs">
           <table className="w-full min-w-170 text-xs text-left border-collapse">
             <thead className="bg-muted/60 text-muted-foreground border-b border-border font-semibold uppercase text-[10px] tracking-wider whitespace-nowrap">
