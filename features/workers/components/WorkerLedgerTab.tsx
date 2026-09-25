@@ -42,7 +42,15 @@ export function WorkerLedgerTab({
   canWrite,
   onSwitchToRecordWork,
 }: WorkerLedgerTabProps) {
-  const groupedDailyLogs = useGroupedDailyLogs(dailyWorkData?.logs, worker.category);
+  const ledgerLogs = React.useMemo(() => {
+    if (!dailyWorkData?.logs) return [];
+    if (worker.category === "AALYAWALE") {
+      return dailyWorkData.logs.filter((l: any) => l.is_auto_generated);
+    }
+    return dailyWorkData.logs;
+  }, [dailyWorkData?.logs, worker.category]);
+
+  const groupedDailyLogs = useGroupedDailyLogs(ledgerLogs, worker.category);
   const weeklyBuckets = useWeeklyGroupedLogs(groupedDailyLogs);
   const deleteDailyWorkLog = useDeleteDailyWorkLog(orgId);
   const createSettlement = useCreateSettlement(orgId);

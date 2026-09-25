@@ -120,7 +120,11 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         canWrite={canWrite}
-        logCount={dailyWorkData?.logs?.length ?? 0}
+        logCount={
+          isAalyawale
+            ? (dailyWorkData?.logs?.filter((l: any) => l.is_auto_generated)?.length ?? 0)
+            : (dailyWorkData?.logs?.length ?? 0)
+        }
         hideRecordWork={isNoDailyWorkRole}
         workerCategory={worker.category}
       />
@@ -167,7 +171,9 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
             <EmbeddedRecordWorkForm
               worker={worker}
               orgId={orgId}
-              onSuccess={() => setActiveTab("ledger")}
+              onSuccess={() =>
+                setActiveTab(isAalyawale ? "aalyawale_brick_logs" : "ledger")
+              }
             />
           </div>
         </div>
