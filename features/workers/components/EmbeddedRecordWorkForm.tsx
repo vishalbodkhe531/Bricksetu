@@ -23,6 +23,7 @@ import { useWorkers } from "@/features/workers/hooks/useWorkers";
 import { useProductionBatches } from "@/features/production/hooks/useProduction";
 
 import { isRateEditableForCategory } from "@/features/workers/utils/rate-permissions";
+import { dailyWorkInputSchema } from "@/features/workers/schemas/daily-work.schema";
 
 interface EmbeddedRecordWorkFormProps {
   worker: {
@@ -157,46 +158,34 @@ export function EmbeddedRecordWorkForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!workDate) {
-      toast.error("Please select a work date");
-      return;
-    }
+    const rawPayload = {
+      worker_id: worker.id,
+      work_date: workDate,
+      category,
+      entry_mode: entryMode,
+      input_quantity: totalInputQty,
+      rate_per_unit: effectiveRate,
+      batch_id: selectedBatchId || undefined,
+      aalyawala_entries: isAalyawalaRequired ? aalyawalaEntries : undefined,
+      bhatkar_id: selectedBhatkarId || undefined,
+      reference_no: batchNumber || null,
+      notes: notes || null,
+    };
 
-    if (category === "KACHA_MAAL" && !selectedBhatkarId) {
-      toast.error("Please select a Bhatkar worker / कृपया भटकर निवडा");
+    const parseResult = dailyWorkInputSchema.safeParse(rawPayload);
+    if (!parseResult.success) {
+      const issue = parseResult.error.issues[0];
+      const errMsg = issue
+        ? issue.message
+        : "Please fill out all required fields correctly";
+      toast.error(errMsg);
       return;
-    }
-
-    if (isAalyawalaRequired) {
-      if (aalyawalaEntries.length === 0) {
-        toast.error(
-          "Please select at least one Aalyawala and enter a valid quantity / किमान एका आल्यावाल्याची संख्या टाका",
-        );
-        return;
-      }
-    } else {
-      if (totalInputQty <= 0) {
-        toast.error("Please enter a valid work quantity");
-        return;
-      }
     }
 
     setIsSubmitting(true);
 
     try {
-      await workersApi.recordDailyWork({
-        worker_id: worker.id,
-        work_date: workDate,
-        category,
-        entry_mode: entryMode,
-        input_quantity: totalInputQty,
-        rate_per_unit: effectiveRate,
-        batch_id: selectedBatchId || undefined,
-        aalyawala_entries: isAalyawalaRequired ? aalyawalaEntries : undefined,
-        bhatkar_id: selectedBhatkarId || undefined,
-        reference_no: batchNumber || null,
-        notes: notes || null,
-      });
+      await workersApi.recordDailyWork(parseResult.data as any);
 
       toast.success(
         `Daily work recorded successfully: ₹${earnedAmount.toFixed(2)}`,

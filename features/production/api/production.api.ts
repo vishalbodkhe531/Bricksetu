@@ -2,6 +2,7 @@ import { api } from '@/lib/axios/axiosInstance';
 import type {
   Batch,
   BatchKPIs,
+  BatchBrickSupplyStats,
   StageTransition,
   MaterialConsumption,
   MouldingLog,
@@ -22,7 +23,7 @@ export const productionApi = {
     api.get<Batch[]>('/production', { params: filters }).then((r) => r.data),
 
   getBatchDetail: (id: string) =>
-    api.get<{ batch: Batch; kpis: BatchKPIs }>(`/production/${id}`).then((r) => r.data),
+    api.get<{ batch: Batch; kpis: BatchKPIs; brick_supply_stats: BatchBrickSupplyStats }>(`/production/${id}`).then((r) => r.data),
 
   createBatch: (input: CreateBatchInput) =>
     api.post<Batch>('/production', input).then((r) => r.data),

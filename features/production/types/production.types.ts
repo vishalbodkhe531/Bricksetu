@@ -137,6 +137,16 @@ export interface BatchKPIs {
   days_in_production: number;
 }
 
+export interface BatchBrickSupplyStats {
+  raw_bricks_supplied: number;
+  raw_bricks_supplied_direct: number;
+  raw_bricks_supplied_inferred: number;
+  raw_bricks_linked_count: number;
+  finished_bricks_produced: number;
+  finished_bricks_linked_count: number;
+  has_unlinked_ambiguity: boolean;
+}
+
 export interface ProductionAnalytics {
   total_batches: number;
   active_batches: number;
@@ -150,3 +160,4 @@ export interface ProductionAnalytics {
   avg_cost_per_brick_paise: number;
   stage_distribution: Record<BatchStage, number>;
 }
+

@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { Factory, Coins, PackageCheck } from "lucide-react";
+import { Factory, Coins, Info, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { Batch, BatchKPIs } from "../../types/production.types";
+import type { Batch, BatchKPIs, BatchBrickSupplyStats } from "../../types/production.types";
 import { BatchKPISummary } from "../BatchKPISummary";
 import { formatCostPerBrick, formatPaiseToRupees } from "../../utils/production-calculations";
 import { formatDateDdMmYyyy } from "@/lib/utils";
@@ -11,6 +11,7 @@ import { formatDateDdMmYyyy } from "@/lib/utils";
 interface BatchOverviewTabProps {
   batch: Batch;
   kpis: BatchKPIs;
+  brickSupplyStats?: BatchBrickSupplyStats;
   canWrite: boolean;
   onOpenStageModal?: () => void;
   onOpenMouldingModal?: () => void;
@@ -21,6 +22,7 @@ interface BatchOverviewTabProps {
 export function BatchOverviewTab({
   batch,
   kpis,
+  brickSupplyStats,
   canWrite,
   onOpenFinishedGoodsModal,
 }: BatchOverviewTabProps) {
@@ -56,6 +58,33 @@ export function BatchOverviewTab({
             <div className="flex justify-between py-1 border-b border-border/50">
               <span className="text-muted-foreground">Moulded Bricks / पाडलेली वीट:</span>
               <span className="font-mono font-semibold text-amber-500">{kpis.moulded_quantity.toLocaleString()}</span>
+            </div>
+
+            <div className="flex justify-between py-1 border-b border-border/50">
+              <div className="space-y-0.5">
+                <span className="text-muted-foreground">Raw Bricks Supplied / कच्च्या विटा पोहोचवल्या:</span>
+                {brickSupplyStats?.raw_bricks_supplied_inferred ? (
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                    <Info className="h-3 w-3" />
+                    {brickSupplyStats.raw_bricks_supplied_direct.toLocaleString()} direct + {brickSupplyStats.raw_bricks_supplied_inferred.toLocaleString()} inferred from Bhatkar
+                  </p>
+                ) : brickSupplyStats?.has_unlinked_ambiguity ? (
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    Some unlinked raw brick logs exist for Bhatkar
+                  </p>
+                ) : null}
+              </div>
+              <span className="font-mono font-semibold text-amber-500">
+                {(brickSupplyStats?.raw_bricks_supplied ?? 0).toLocaleString()}
+              </span>
+            </div>
+
+            <div className="flex justify-between py-1 border-b border-border/50">
+              <span className="text-muted-foreground">Finished Bricks Produced / पक्क्या विटा पोहोचवल्या:</span>
+              <span className="font-mono font-semibold text-emerald-500">
+                {(brickSupplyStats?.finished_bricks_produced ?? 0).toLocaleString()}
+              </span>
             </div>
 
             <div className="flex justify-between py-1 border-b border-border/50">

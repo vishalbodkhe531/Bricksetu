@@ -84,6 +84,113 @@ export async function getProductionBatches(
   }));
 }
 
+export async function getBatchBrickSupplyStats(batchId: string, organizationId: string) {
+  // 1. Direct raw bricks supplied (KACHA_MAAL logs linked to this batch)
+  const rawBricksDirectAgg = await prisma.daily_work_logs.aggregate({
+    where: {
+      business_unit_id: organizationId,
+      batch_id: batchId,
+      category: 'KACHA_MAAL',
+      is_primary: true,
+      deleted_at: null,
+    },
+    _sum: { physical_quantity: true },
+    _count: true,
+  });
+
+  const rawBricksDirect = Number(rawBricksDirectAgg._sum.physical_quantity || 0);
+  const rawBricksDirectCount = rawBricksDirectAgg._count;
+
+  // Find Bhatkars who have logs linked to this batch
+  const batchBhatkars = await prisma.daily_work_logs.findMany({
+    where: {
+      business_unit_id: organizationId,
+      batch_id: batchId,
+      bhatkar_id: { not: null },
+      deleted_at: null,
+    },
+    select: { bhatkar_id: true },
+    distinct: ['bhatkar_id'],
+  });
+
+  const bhatkarIds = batchBhatkars.map((b) => b.bhatkar_id).filter((id): id is string => Boolean(id));
+
+  let rawBricksInferred = 0;
+  let rawBricksInferredCount = 0;
+  let hasUnlinkedAmbiguity = false;
+
+  if (bhatkarIds.length > 0) {
+    for (const bId of bhatkarIds) {
+      const otherBatchesCount = await prisma.daily_work_logs.count({
+        where: {
+          business_unit_id: organizationId,
+          bhatkar_id: bId,
+          batch_id: { notIn: [batchId], not: null },
+          deleted_at: null,
+        },
+      });
+
+      if (otherBatchesCount === 0) {
+        const unlinkedAgg = await prisma.daily_work_logs.aggregate({
+          where: {
+            business_unit_id: organizationId,
+            bhatkar_id: bId,
+            batch_id: null,
+            category: 'KACHA_MAAL',
+            is_primary: true,
+            deleted_at: null,
+          },
+          _sum: { physical_quantity: true },
+          _count: true,
+        });
+
+        rawBricksInferred += Number(unlinkedAgg._sum.physical_quantity || 0);
+        rawBricksInferredCount += unlinkedAgg._count;
+      } else {
+        const unlinkedCount = await prisma.daily_work_logs.count({
+          where: {
+            business_unit_id: organizationId,
+            bhatkar_id: bId,
+            batch_id: null,
+            category: 'KACHA_MAAL',
+            is_primary: true,
+            deleted_at: null,
+          },
+        });
+        if (unlinkedCount > 0) {
+          hasUnlinkedAmbiguity = true;
+        }
+      }
+    }
+  }
+
+  // 2. Finished bricks produced (PAKKA_MAAL logs linked to this batch)
+  const finishedBricksDirectAgg = await prisma.daily_work_logs.aggregate({
+    where: {
+      business_unit_id: organizationId,
+      batch_id: batchId,
+      category: 'PAKKA_MAAL',
+      is_primary: true,
+      deleted_at: null,
+    },
+    _sum: { physical_quantity: true },
+    _count: true,
+  });
+
+  const finishedBricksDirect = Number(finishedBricksDirectAgg._sum.physical_quantity || 0);
+  const finishedBricksDirectCount = finishedBricksDirectAgg._count;
+
+  return {
+    raw_bricks_supplied: rawBricksDirect + rawBricksInferred,
+    raw_bricks_supplied_direct: rawBricksDirect,
+    raw_bricks_supplied_inferred: rawBricksInferred,
+    raw_bricks_linked_count: rawBricksDirectCount + rawBricksInferredCount,
+    finished_bricks_produced: finishedBricksDirect,
+    finished_bricks_linked_count: finishedBricksDirectCount,
+    has_unlinked_ambiguity: hasUnlinkedAmbiguity,
+  };
+}
+
 export async function getProductionBatchDetail(id: string, organizationId: string) {
   const b = await prisma.batches.findFirst({
     where: {
@@ -123,6 +230,8 @@ export async function getProductionBatchDetail(id: string, organizationId: strin
     (acc, curr) => acc + Number(curr.earned_amount_paise || 0),
     0
   );
+
+  const brickSupplyStats = await getBatchBrickSupplyStats(id, organizationId);
 
   const kpis = calculateBatchKPIs({
     target_quantity: b.target_quantity,
@@ -173,8 +282,10 @@ export async function getProductionBatchDetail(id: string, organizationId: strin
         : undefined,
     },
     kpis,
+    brick_supply_stats: brickSupplyStats,
   };
 }
+
 
 export async function createProductionBatch(
   organizationId: string,
