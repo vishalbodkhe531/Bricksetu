@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRecordDailyWork } from '../hooks/useWorkers';
 import type { Worker } from '../types/worker.types';
-import { Minus, Plus, Calendar, Coins, Package, Truck, FileText, CheckCircle2, Users } from 'lucide-react';
+import { Minus, Plus, Calendar, Coins, Package, Truck, FileText, CheckCircle2, Users, Layers } from 'lucide-react';
 import { isRateEditableForCategory } from '../utils/rate-permissions';
+import { dailyWorkInputSchema } from '../schemas/daily-work.schema';
 
 interface RecordWorkModalProps {
   open: boolean;
@@ -188,42 +189,31 @@ export function RecordWorkModal({
     setErrorMsg('');
 
     const targetWorkerId = worker?.id || selectedWorkerId;
-    if (!targetWorkerId) {
-      setErrorMsg('Please select a worker');
-      return;
-    }
 
-    if (category === 'KACHA_MAAL' && !selectedBhatkarId) {
-      setErrorMsg('Please select a Bhatkar for Kachha Maal daily work / कृपया भटकर निवडा');
-      return;
-    }
+    const rawPayload = {
+      worker_id: targetWorkerId,
+      work_date: workDate,
+      category,
+      entry_mode: entryMode,
+      input_quantity: totalInputQty,
+      rate_per_unit: numRate,
+      aalyawala_entries: isAalyawalaRequired ? aalyawalaEntries : undefined,
+      bhatkar_id: selectedBhatkarId || undefined,
+      batch_id: batchId || undefined,
+      reference_no: referenceNo || null,
+      notes: notes || null,
+    };
 
-    if (isAalyawalaRequired) {
-      if (aalyawalaEntries.length === 0) {
-        setErrorMsg('Please select at least one Aalyawala and enter a valid quantity / किमान एका आल्यावाल्याची संख्या टाका');
-        return;
-      }
-    } else {
-      if (totalInputQty <= 0) {
-        setErrorMsg('Please enter a valid quantity');
-        return;
-      }
+    const parseResult = dailyWorkInputSchema.safeParse(rawPayload);
+    if (!parseResult.success) {
+      const issue = parseResult.error.issues[0];
+      const errMsg = issue ? issue.message : 'Please fill all required fields correctly';
+      setErrorMsg(errMsg);
+      return;
     }
 
     try {
-      await recordMutation.mutateAsync({
-        worker_id: targetWorkerId,
-        work_date: workDate,
-        category,
-        entry_mode: entryMode,
-        input_quantity: totalInputQty,
-        rate_per_unit: numRate,
-        aalyawala_entries: isAalyawalaRequired ? aalyawalaEntries : undefined,
-        bhatkar_id: selectedBhatkarId || undefined,
-        batch_id: batchId || null,
-        reference_no: referenceNo || null,
-        notes: notes || null,
-      });
+      await recordMutation.mutateAsync(parseResult.data as any);
 
       // Reset form & close
       setInputQuantity('');
@@ -642,6 +632,28 @@ export function RecordWorkModal({
             </div>
           </div>
 
+          {/* Mandatory/Prominent Bhatti Selection for KACHA_MAAL & PAKKA_MAAL */}
+          {(category === 'KACHA_MAAL' || category === 'PAKKA_MAAL') && batches.length > 0 && (
+            <div className="space-y-1.5 p-3 bg-amber-950/30 border border-amber-500/30 rounded-xl">
+              <label className="text-xs font-semibold text-amber-300 flex items-center gap-1.5">
+                <Package className="w-4 h-4 text-amber-400" />
+                Select Bhatti / भट्टी निवडा ({category === 'KACHA_MAAL' ? 'कच्च्या विटा साठी' : 'पक्क्या विटा साठी'})
+              </label>
+              <select
+                value={batchId}
+                onChange={(e) => setBatchId(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-medium text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+              >
+                <option value="">-- Choose Bhatti / Batch --</option>
+                {batches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.batch_number}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Collapsible Additional Details */}
           <div>
             <button
@@ -649,12 +661,12 @@ export function RecordWorkModal({
               onClick={() => setShowDetails(!showDetails)}
               className="text-xs text-amber-400 hover:text-amber-300 font-medium flex items-center gap-1 py-1"
             >
-              {showDetails ? '– Hide extra details' : '+ Add extra details (Batch, Reference No, Notes)'}
+              {showDetails ? '– Hide extra details' : '+ Add extra details (Reference No, Notes)'}
             </button>
 
             {showDetails && (
               <div className="space-y-3 pt-2 border-t border-slate-800 mt-2 animate-in slide-in-from-top-2 duration-200">
-                {batches.length > 0 && (
+                {batches.length > 0 && category !== 'KACHA_MAAL' && category !== 'PAKKA_MAAL' && (
                   <div>
                     <label className="block text-xs text-slate-400 mb-1 flex items-center gap-1">
                       <Package className="w-3.5 h-3.5 text-amber-400" /> Production Batch (Optional)

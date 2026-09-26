@@ -8,12 +8,14 @@ import {
   Minus,
   Plus,
   Save,
-  Users
+  Users,
+  Package
 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { useRecordBulkDailyWork } from '../hooks/useWorkers';
 import type { Worker } from '../types/worker.types';
 import { isRateEditableForCategory } from '../utils/rate-permissions';
+import { useProductionBatches } from '@/features/production/hooks/useProduction';
 
 interface BulkRecordWorkSheetProps {
   open: boolean;
@@ -45,12 +47,14 @@ export function BulkRecordWorkSheet({
   workers,
 }: BulkRecordWorkSheetProps) {
   const bulkMutation = useRecordBulkDailyWork(orgId);
+  const { data: productionBatches = [] } = useProductionBatches(orgId);
 
   const [workDate, setWorkDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
   const [selectedCategory, setSelectedCategory] = useState<string>('AALYAWALE');
   const [selectedBhatkarId, setSelectedBhatkarId] = useState<string>('');
+  const [selectedBatchId, setSelectedBatchId] = useState<string>('');
   const [activeWorkerIndex, setActiveWorkerIndex] = useState<number>(0);
   const [entriesMap, setEntriesMap] = useState<Record<string, WorkerEntryRow>>({});
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -185,17 +189,20 @@ export function BulkRecordWorkSheet({
         work_date: workDate,
         category: selectedCategory as any,
         bhatkar_id: selectedBhatkarId || undefined,
+        batch_id: selectedBatchId || undefined,
         entries: filledRows.map((r) => ({
           worker_id: r.workerId,
           entry_mode: r.entryMode,
           input_quantity: r.quantity as number,
           rate_per_unit: r.rate,
           bhatkar_id: selectedBhatkarId || undefined,
+          batch_id: selectedBatchId || undefined,
         })),
       });
 
       setEntriesMap({});
       setSelectedBhatkarId('');
+      setSelectedBatchId('');
       setErrorMsg('');
       onOpenChange(false);
     } catch (err: any) {
@@ -270,7 +277,7 @@ export function BulkRecordWorkSheet({
           </div>
 
           {selectedCategory === 'KACHA_MAAL' && (
-            <div className="sm:col-span-2">
+            <div>
               <label className="text-amber-300 font-semibold mb-1 flex items-center gap-1">
                 <Users className="w-3.5 h-3.5 text-amber-400" /> Select Bhatkar / भटकर निवडा *
               </label>
@@ -283,6 +290,26 @@ export function BulkRecordWorkSheet({
                 {availableBhatkars.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.full_name} ({b.code}) {b.current_rate_amount ? `— Fixed Rate: ₹${b.current_rate_amount}/1K` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {(selectedCategory === 'KACHA_MAAL' || selectedCategory === 'PAKKA_MAAL') && productionBatches.length > 0 && (
+            <div className={selectedCategory === 'KACHA_MAAL' ? '' : 'sm:col-span-2'}>
+              <label className="text-amber-300 font-semibold mb-1 flex items-center gap-1">
+                <Package className="w-3.5 h-3.5 text-amber-400" /> Select Bhatti / भट्टी निवडा
+              </label>
+              <select
+                value={selectedBatchId}
+                onChange={(e) => setSelectedBatchId(e.target.value)}
+                className="w-full bg-slate-800 border border-amber-500/30 rounded-xl px-3 py-2 text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+              >
+                <option value="">-- Choose Bhatti / भट्टी निवडा --</option>
+                {productionBatches.map((b: any) => (
+                  <option key={b.id} value={b.id}>
+                    {b.batch_number} {b.status || b.stage ? `(${b.status || b.stage})` : ''}
                   </option>
                 ))}
               </select>

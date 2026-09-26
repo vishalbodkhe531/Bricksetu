@@ -84,8 +84,6 @@ export const BATCH_FILTER_TABS = [
 
 export const BATCH_DETAIL_TABS = [
   { id: 'overview', label: 'Overview / माहिती', icon: 'FileText' },
-  { id: 'stages', label: 'Stage Transitions / टप्पे', icon: 'GitCommit' },
-  { id: 'moulding', label: 'Moulding Logs / पाथाई नोंद', icon: 'Hammer' },
   { id: 'consumption', label: 'Material Usage / इंधन वापर', icon: 'Fuel' },
   { id: 'expenses', label: 'Expenses / इतर खर्च', icon: 'Coins' },
   { id: 'finished_goods', label: 'Finished Stock / पक्का माल', icon: 'PackageCheck' },
