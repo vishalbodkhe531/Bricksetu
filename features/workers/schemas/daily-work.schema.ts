@@ -13,7 +13,7 @@ export const dailyWorkInputSchema = z
     category: workerCategoryEnum,
     entry_mode: entryModeEnum,
     input_quantity: z.number().positive('Quantity must be greater than 0 / संख्या ० पेक्षा जास्त असावी'),
-    rate_per_unit: z.number().positive('Work rate must be greater than 0 / काम दर ० पेक्षा जास्त असावा'),
+    rate_per_unit: z.number().optional(),
     aalyawala_id: z.string().uuid().optional().nullable(),
     aalyawala_ids: z.array(z.string().uuid()).optional().nullable(),
     aalyawala_entries: z
@@ -59,17 +59,16 @@ export const dailyWorkInputSchema = z
       });
     }
 
-    // 3. Work Rate Validation (> 0)
+    // 3. Work Rate Validation (> 0 if provided)
     if (
-      data.rate_per_unit === undefined ||
-      data.rate_per_unit === null ||
-      isNaN(data.rate_per_unit) ||
-      data.rate_per_unit <= 0
+      data.rate_per_unit !== undefined &&
+      data.rate_per_unit !== null &&
+      (isNaN(data.rate_per_unit) || data.rate_per_unit <= 0)
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['rate_per_unit'],
-        message: 'Work rate is required and must be greater than 0 / काम दर आवश्यक आहे',
+        message: 'Work rate must be greater than 0 / काम दर ० पेक्षा जास्त असावा',
       });
     }
 
