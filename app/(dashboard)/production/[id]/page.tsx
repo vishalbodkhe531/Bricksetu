@@ -215,23 +215,7 @@ export default function BatchDetailPage({
           />
         )}
 
-        {activeTab === "stages" && (
-          <BatchStageTab
-            batchId={batch.id}
-            orgId={orgId}
-            canWrite={canWrite}
-            onOpenStageModal={() => setIsStageModalOpen(true)}
-          />
-        )}
 
-        {activeTab === "moulding" && (
-          <BatchMouldingTab
-            batchId={batch.id}
-            orgId={orgId}
-            canWrite={canWrite}
-            onOpenMouldingModal={() => setIsMouldingModalOpen(true)}
-          />
-        )}
 
         {activeTab === "consumption" && (
           <BatchConsumptionTab
