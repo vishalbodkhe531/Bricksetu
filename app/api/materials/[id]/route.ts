@@ -2,31 +2,38 @@ import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth/session';
 import { MaterialsService } from '@/features/materials/services/materials.service';
 
-export async function GET() {
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const materials = await MaterialsService.listMaterialsEnriched(user.organization_id);
-    return NextResponse.json(materials);
+    const { id } = await params;
+    const detail = await MaterialsService.getMaterialDetail(user.organization_id, id);
+    if (!detail) {
+      return NextResponse.json({ error: 'Material record not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(detail);
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }
 
-export async function POST(req: Request) {
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    const { id } = await params;
     const body = await req.json();
-    if (body.supplier_mode) {
-      const material = await MaterialsService.createMaterialWithSupplier(user.organization_id, body);
-      return NextResponse.json(material, { status: 201 });
-    } else {
-      const material = await MaterialsService.createMaterial(user.organization_id, body);
-      return NextResponse.json(material, { status: 201 });
-    }
+    const updated = await MaterialsService.updateMaterial(user.organization_id, id, body);
+    return NextResponse.json(updated);
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 400 });
   }
