@@ -75,7 +75,10 @@ export interface MaterialDetail extends MaterialListItem {
 export interface RawMaterialInput {
   name: string;
   unit: string;
-  reorder_level?: number | null;
+  quantity: number;
+  rate_per_unit: number;
+  total_estimated_cost?: number | null;
+  material_date?: string | null;
   description?: string | null;
 }
 
@@ -90,7 +93,10 @@ export interface SupplierInput {
 export interface MaterialCreateInput {
   name: string;
   unit: string;
-  reorder_level?: number | null;
+  quantity: number;
+  rate_per_unit: number;
+  total_estimated_cost?: number | null;
+  material_date?: string | null;
   description?: string | null;
   supplier_mode: "none" | "existing" | "new";
   supplier_id?: string | null;
