@@ -37,6 +37,7 @@ export function MaterialForm({
     defaultValues: {
       name: initialData?.name || "",
       unit: initialData?.unit || "tons",
+      material_date: new Date().toISOString().split("T")[0],
       quantity: undefined,
       rate_per_unit: undefined,
       total_estimated_cost: undefined,

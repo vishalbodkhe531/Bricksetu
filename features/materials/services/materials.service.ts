@@ -290,6 +290,7 @@ export class MaterialsService {
       if (initialQty > 0) {
         const ratePaise = BigInt(Math.round(ratePerUnit * 100));
         const totalPaise = BigInt(Math.round(totalCost * 100));
+        const recordDate = input.material_date ? new Date(input.material_date) : new Date();
         let purchaseId: string | null = null;
 
         if (selectedSupplierId) {
@@ -300,7 +301,7 @@ export class MaterialsService {
               purchase_number: purNum,
               supplier_id: selectedSupplierId,
               material_id: createdMat.id,
-              purchase_date: new Date(),
+              purchase_date: recordDate,
               quantity: initialQty,
               unit_price_paise: ratePaise,
               total_amount_paise: totalPaise,
@@ -320,7 +321,7 @@ export class MaterialsService {
             initial_quantity: initialQty,
             available_quantity: initialQty,
             unit_cost_paise: ratePaise,
-            received_date: new Date(),
+            received_date: recordDate,
           },
         });
       }

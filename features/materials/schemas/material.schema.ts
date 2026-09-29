@@ -31,6 +31,11 @@ export const materialCreateSchema = z
       .optional()
       .nullable(),
 
+    material_date: z
+      .string()
+      .optional()
+      .nullable(),
+
     description: z
       .string()
       .trim()

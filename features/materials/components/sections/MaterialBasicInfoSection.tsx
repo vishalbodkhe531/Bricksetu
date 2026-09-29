@@ -9,8 +9,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { FormattedNumberInput } from "@/components/ui/formatted-number-input";
 import { Select } from "@/components/ui/select";
-import { Package, Scale, Layers, AlignLeft, IndianRupee, Coins } from "lucide-react";
+import { Package, Scale, Layers, AlignLeft, IndianRupee, Coins, Calendar } from "lucide-react";
 import { UseFormReturn, useWatch } from "react-hook-form";
 
 interface MaterialBasicInfoSectionProps {
@@ -130,6 +131,27 @@ export function MaterialBasicInfoSection({ form }: MaterialBasicInfoSectionProps
           )}
         />
 
+        {/* Material / Import Date */}
+        <FormField
+          control={form.control}
+          name="material_date"
+          render={({ field }) => (
+            <FormItem className="space-y-1">
+              <FormLabel className="flex items-center gap-1">
+                <Calendar className="h-3 w-3 text-muted-foreground" /> Import / Received Date / नोंदणी तारीख
+              </FormLabel>
+              <FormControl>
+                <Input
+                  type="date"
+                  {...field}
+                  value={field.value || new Date().toISOString().split("T")[0]}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         {/* Quantity */}
         <FormField
           control={form.control}
@@ -141,14 +163,12 @@ export function MaterialBasicInfoSection({ form }: MaterialBasicInfoSectionProps
                 <span className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
-                <Input
-                  type="number"
-                  step="0.01"
+                <FormattedNumberInput
+                  allowDecimal
                   placeholder="e.g. 10"
-                  {...field}
                   value={field.value ?? ""}
-                  onChange={(e) => {
-                    const val = e.target.value === "" ? "" : Number(e.target.value);
+                  onChange={(rawVal) => {
+                    const val = rawVal === "" ? "" : Number(rawVal);
                     field.onChange(val);
                     const currentRate = form.getValues("rate_per_unit");
                     if (val !== "" && currentRate !== undefined && currentRate !== "" && !isNaN(Number(val)) && !isNaN(Number(currentRate))) {
@@ -176,14 +196,12 @@ export function MaterialBasicInfoSection({ form }: MaterialBasicInfoSectionProps
                 <span className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="e.g. 4500 (₹ per Unit)"
-                  {...field}
+                <FormattedNumberInput
+                  allowDecimal
+                  placeholder="e.g. 4,500 (₹ per Unit)"
                   value={field.value ?? ""}
-                  onChange={(e) => {
-                    const val = e.target.value === "" ? "" : Number(e.target.value);
+                  onChange={(rawVal) => {
+                    const val = rawVal === "" ? "" : Number(rawVal);
                     field.onChange(val);
                     const qty = form.getValues("quantity");
                     if (val !== "" && qty !== undefined && qty !== "" && !isNaN(Number(val)) && !isNaN(Number(qty))) {
@@ -207,7 +225,10 @@ export function MaterialBasicInfoSection({ form }: MaterialBasicInfoSectionProps
           render={({ field }) => {
             const formattedValue =
               field.value !== undefined && field.value !== null && field.value !== "" && !isNaN(Number(field.value))
-                ? Number(field.value).toFixed(2)
+                ? Number(field.value).toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })
                 : "0.00";
 
             return (

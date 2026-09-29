@@ -78,6 +78,7 @@ export interface RawMaterialInput {
   quantity: number;
   rate_per_unit: number;
   total_estimated_cost?: number | null;
+  material_date?: string | null;
   description?: string | null;
 }
 
@@ -95,6 +96,7 @@ export interface MaterialCreateInput {
   quantity: number;
   rate_per_unit: number;
   total_estimated_cost?: number | null;
+  material_date?: string | null;
   description?: string | null;
   supplier_mode: "none" | "existing" | "new";
   supplier_id?: string | null;
