@@ -46,10 +46,10 @@ export function getWorkerColumns(
             <div className="min-w-0">
               <Link
                 href={`/workers/${row.original.id}`}
-                className={`font-semibold hover:underline flex items-center gap-1.5 truncate ${
+                className={`font-bold hover:underline flex items-center gap-1.5 truncate ${
                   isInactive
                     ? "text-muted-foreground line-through"
-                    : "text-foreground hover:text-primary"
+                    : "text-primary"
                 }`}
               >
                 <span className="truncate">{row.original.full_name}</span>
