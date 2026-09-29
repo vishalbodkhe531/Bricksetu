@@ -20,13 +20,8 @@ export async function POST(req: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    if (body.supplier_mode) {
-      const material = await MaterialsService.createMaterialWithSupplier(user.organization_id, body);
-      return NextResponse.json(material, { status: 201 });
-    } else {
-      const material = await MaterialsService.createMaterial(user.organization_id, body);
-      return NextResponse.json(material, { status: 201 });
-    }
+    const material = await MaterialsService.createMaterialWithSupplier(user.organization_id, body);
+    return NextResponse.json(material, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 400 });
   }
