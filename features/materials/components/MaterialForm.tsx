@@ -37,10 +37,9 @@ export function MaterialForm({
     defaultValues: {
       name: initialData?.name || "",
       unit: initialData?.unit || "tons",
-      reorder_level:
-        initialData?.reorder_level !== undefined && initialData?.reorder_level !== null
-          ? initialData.reorder_level
-          : undefined,
+      quantity: undefined,
+      rate_per_unit: undefined,
+      total_estimated_cost: undefined,
       description: initialData?.description || "",
 
       // Supplier section (Create mode)

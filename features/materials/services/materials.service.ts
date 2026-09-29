@@ -275,11 +275,55 @@ export class MaterialsService {
           code: matCode,
           name: input.name,
           unit_id: unit.id,
-          reorder_level: input.reorder_level ?? 0,
+          reorder_level: 0,
           description: input.description ?? null,
         },
         include: { material_units: true },
       });
+
+      const initialQty = input.quantity ? Number(input.quantity) : 0;
+      const ratePerUnit = input.rate_per_unit ? Number(input.rate_per_unit) : 0;
+      const totalCost = input.total_estimated_cost
+        ? Number(input.total_estimated_cost)
+        : initialQty * ratePerUnit;
+
+      if (initialQty > 0) {
+        const ratePaise = BigInt(Math.round(ratePerUnit * 100));
+        const totalPaise = BigInt(Math.round(totalCost * 100));
+        let purchaseId: string | null = null;
+
+        if (selectedSupplierId) {
+          const purNum = `PUR-${Date.now()}`;
+          const purchase = await tx.purchases.create({
+            data: {
+              business_unit_id: orgId,
+              purchase_number: purNum,
+              supplier_id: selectedSupplierId,
+              material_id: createdMat.id,
+              purchase_date: new Date(),
+              quantity: initialQty,
+              unit_price_paise: ratePaise,
+              total_amount_paise: totalPaise,
+              notes: "Initial stock registration",
+            },
+          });
+          purchaseId = purchase.id;
+        }
+
+        const lotNum = `LOT-INIT-${Date.now()}`;
+        await tx.lots.create({
+          data: {
+            business_unit_id: orgId,
+            material_id: createdMat.id,
+            purchase_id: purchaseId,
+            lot_number: lotNum,
+            initial_quantity: initialQty,
+            available_quantity: initialQty,
+            unit_cost_paise: ratePaise,
+            received_date: new Date(),
+          },
+        });
+      }
 
       return {
         id: createdMat.id,
@@ -419,7 +463,7 @@ export class MaterialsService {
         code,
         name: input.name,
         unit_id: unit.id,
-        reorder_level: input.reorder_level ?? 0,
+        reorder_level: 0,
         description: input.description ?? null,
       },
       include: { material_units: true },

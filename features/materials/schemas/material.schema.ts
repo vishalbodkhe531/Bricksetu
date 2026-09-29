@@ -14,10 +14,20 @@ export const materialCreateSchema = z
 
     unit: z.string().min(1, "Unit of measure is required"),
 
-    reorder_level: z
+    quantity: z
       .coerce
       .number()
-      .min(0, "Reorder level must be a non-negative number")
+      .min(0.01, "Quantity must be greater than 0 / प्रमाण ० पेक्षा जास्त असावे"),
+
+    rate_per_unit: z
+      .coerce
+      .number()
+      .min(0.01, "Rate must be greater than 0 / दर ० पेक्षा जास्त असावा"),
+
+    total_estimated_cost: z
+      .coerce
+      .number()
+      .min(0, "Total cost must be a non-negative number")
       .optional()
       .nullable(),
 
