@@ -200,30 +200,33 @@ export function MaterialBasicInfoSection({ form }: MaterialBasicInfoSectionProps
           )}
         />
 
-        {/* Total Estimated Cost (Auto-calculated, read-only) */}
+        {/* Total Estimated Cost (Auto-calculated display card) */}
         <FormField
           control={form.control}
           name="total_estimated_cost"
-          render={({ field }) => (
-            <FormItem className="space-y-1">
-              <FormLabel className="flex items-center gap-1">
-                <Coins className="h-3 w-3 text-muted-foreground" /> Total Estimated Cost / एकूण खर्च (₹)
-              </FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="Auto-calculated"
-                  readOnly
-                  {...field}
-                  value={field.value ?? ""}
-                  className="bg-muted/50 cursor-not-allowed"
-                />
-              </FormControl>
-              <p className="text-[10px] text-muted-foreground">Quantity × Rate = Total / प्रमाण × दर = एकूण खर्च</p>
-              <FormMessage />
-            </FormItem>
-          )}
+          render={({ field }) => {
+            const formattedValue =
+              field.value !== undefined && field.value !== null && field.value !== "" && !isNaN(Number(field.value))
+                ? Number(field.value).toFixed(2)
+                : "0.00";
+
+            return (
+              <FormItem className="space-y-1">
+                <FormLabel className="flex items-center gap-1">
+                  <Coins className="h-3 w-3 text-muted-foreground" /> Total Estimated Cost / एकूण खर्च (₹)
+                </FormLabel>
+                <FormControl>
+                  <div className="h-10 px-4 rounded-xl border border-amber-200/90 bg-[#FFF6EB] dark:bg-amber-950/20 dark:border-amber-800/50 flex items-center transition-all">
+                    <span className="font-semibold text-amber-600 dark:text-amber-400 text-sm">
+                      ₹ {formattedValue}
+                    </span>
+                  </div>
+                </FormControl>
+                <p className="text-[10px] text-muted-foreground">Quantity × Rate = Total / प्रमाण × दर = एकूण खर्च</p>
+                <FormMessage />
+              </FormItem>
+            );
+          }}
         />
 
         {/* Description / Notes */}
