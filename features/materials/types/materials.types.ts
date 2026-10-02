@@ -34,6 +34,8 @@ export interface MaterialListItem {
   description: string | null;
   is_active: boolean;
   primary_supplier_name: string | null;
+  primary_supplier_phone: string | null;
+  material_date: string | null;
   total_purchases: number;
   total_quantity_purchased: number;
   available_stock: number;

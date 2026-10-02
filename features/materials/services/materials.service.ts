@@ -63,6 +63,10 @@ export class MaterialsService {
       // Most recent supplier from purchases
       const recentPurchase = item.purchases[0];
       const primarySupplierName = recentPurchase?.suppliers?.name || null;
+      const primarySupplierPhone = recentPurchase?.suppliers?.phone || null;
+      const materialDate = recentPurchase?.purchase_date
+        ? recentPurchase.purchase_date.toISOString().split("T")[0]
+        : item.created_at.toISOString().split("T")[0];
 
       const totalPurchases = item.purchases.length;
       const totalQtyPurchased = item.purchases.reduce(
@@ -84,6 +88,8 @@ export class MaterialsService {
         description: item.description,
         is_active: item.is_active,
         primary_supplier_name: primarySupplierName,
+        primary_supplier_phone: primarySupplierPhone,
+        material_date: materialDate,
         total_purchases: totalPurchases,
         total_quantity_purchased: totalQtyPurchased,
         available_stock: availableStock,
@@ -146,6 +152,11 @@ export class MaterialsService {
 
     const suppliersList = Array.from(supplierMap.values());
     const primarySupplierName = suppliersList[0]?.name || null;
+    const primarySupplierPhone = suppliersList[0]?.phone || null;
+    const latestPurchase = item.purchases[0];
+    const materialDate = latestPurchase?.purchase_date
+      ? latestPurchase.purchase_date.toISOString().split("T")[0]
+      : item.created_at.toISOString().split("T")[0];
 
     const totalPurchases = item.purchases.length;
     const totalQtyPurchased = item.purchases.reduce(
@@ -204,6 +215,8 @@ export class MaterialsService {
       description: item.description,
       is_active: item.is_active,
       primary_supplier_name: primarySupplierName,
+      primary_supplier_phone: primarySupplierPhone,
+      material_date: materialDate,
       total_purchases: totalPurchases,
       total_quantity_purchased: totalQtyPurchased,
       available_stock: availableStock,
