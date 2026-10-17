@@ -1,0 +1,25 @@
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: bricksetu
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: bricksetu
+
+  template:
+    metadata:
+      labels:
+        app: bricksetu
+
+    spec:
+      containers:
+        - name: bricksetu
+          image: YOUR_DOCKERHUB_USERNAME/bricksetu:latest
+          ports:
+            - containerPort: 3000

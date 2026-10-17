@@ -263,7 +263,7 @@ export function RecordConsumptionModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
-                Usage Date / तारीख (DD-MM-YYYY) *
+                Usage Date *
               </label>
               <DatePicker
                 value={consumptionDate}
@@ -302,7 +302,7 @@ export function RecordConsumptionModal({
 
             <div>
               <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
-                Total Estimated Cost / एकूण खर्च (₹)
+                Total Cost / एकूण खर्च (₹)
               </label>
               <div className="h-9 px-3 flex items-center rounded-md border border-amber-500/30 bg-amber-500/10 font-mono font-bold text-amber-600 dark:text-amber-400 text-xs">
                 ₹ {calculatedTotalCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

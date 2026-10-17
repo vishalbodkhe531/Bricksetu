@@ -74,7 +74,7 @@ export function MaterialBasicInfoSection({ form }: MaterialBasicInfoSectionProps
           render={({ field }) => (
             <FormItem className="space-y-1 md:col-span-1">
               <FormLabel className="flex items-center gap-1">
-                <Package className="h-3 w-3 text-muted-foreground" /> Material Name / नाव{" "}
+                <Package className="h-3 w-3 text-muted-foreground" /> Material Name{" "}
                 <span className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
@@ -138,7 +138,7 @@ export function MaterialBasicInfoSection({ form }: MaterialBasicInfoSectionProps
           render={({ field }) => (
             <FormItem className="space-y-1">
               <FormLabel className="flex items-center gap-1">
-                <Calendar className="h-3 w-3 text-muted-foreground" /> Import / Received Date / नोंदणी तारीख
+                <Calendar className="h-3 w-3 text-muted-foreground" /> Import Date / नोंदणी तारीख
               </FormLabel>
               <FormControl>
                 <Input

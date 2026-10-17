@@ -63,10 +63,25 @@ export interface ConsumptionRecord {
   notes: string | null;
 }
 
+export interface BatchConsumptionSummary {
+  batch_id: string;
+  batch_name: string;
+  batch_status: string;
+  batch_stage?: string | null;
+  total_quantity: number;
+  total_cost: number;
+  entry_count: number;
+  first_consumption_date: string;
+  last_consumption_date: string;
+}
+
 export interface MaterialDetail extends MaterialListItem {
   suppliers: Supplier[];
   recent_purchases: PurchaseRecord[];
   recent_consumption: ConsumptionRecord[];
+  batch_consumption_summary: BatchConsumptionSummary[];
+  total_consumption_count?: number;
+  total_batches_used?: number;
   lots_summary: {
     total_lots: number;
     active_lots: number;
