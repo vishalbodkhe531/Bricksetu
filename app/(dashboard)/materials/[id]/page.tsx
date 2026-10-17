@@ -88,12 +88,17 @@ export default function MaterialDetailPage({ params }: MaterialDetailPageProps) 
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         purchaseCount={material.total_purchases}
-        consumptionCount={material.recent_consumption.length}
+        consumptionCount={
+          material.total_consumption_count ?? material.recent_consumption.length
+        }
       />
 
       {/* Tab Content */}
       {activeTab === "overview" && (
-        <MaterialOverviewTab material={material} />
+        <MaterialOverviewTab
+          material={material}
+          onSelectTab={setActiveTab}
+        />
       )}
 
       {activeTab === "purchases" && (

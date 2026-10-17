@@ -10,6 +10,7 @@ import type {
   MaterialUpdateInput,
   PurchaseRecord,
   ConsumptionRecord,
+  BatchConsumptionSummary,
 } from "../types/materials.types";
 
 export class MaterialsService {
@@ -119,7 +120,6 @@ export class MaterialsService {
             consumption: {
               include: { batches: true },
               orderBy: { consumption_date: "desc" },
-              take: 10,
             },
           },
           orderBy: { received_date: "desc" },
@@ -184,18 +184,58 @@ export class MaterialsService {
       notes: p.notes,
     }));
 
-    // Flatten consumption from lots
+    // Flatten consumption from lots and aggregate by batch
     const allConsumption: ConsumptionRecord[] = [];
+    const batchMap = new Map<string, BatchConsumptionSummary>();
+
     item.lots.forEach((lot: any) => {
       lot.consumption.forEach((c: any) => {
+        const batchName =
+          c.batches?.batch_number ||
+          c.batches?.code ||
+          c.batches?.name ||
+          (c.batch_id ? `Batch #${c.batch_id.slice(0, 8)}` : null);
+        const batchStatus = c.batches?.status || "IN_PROGRESS";
+        const batchStage = c.batches?.stage || null;
+        const consumptionDate = c.consumption_date.toISOString().split("T")[0];
+        const qty = Number(c.quantity);
+        const cost = Number(c.cost_paise) / 100;
+
         allConsumption.push({
           id: c.id,
-          batch_name: c.batches?.code || c.batches?.name || null,
-          consumption_date: c.consumption_date.toISOString().split("T")[0],
-          quantity: Number(c.quantity),
-          cost: Number(c.cost_paise) / 100,
+          batch_name: batchName,
+          consumption_date: consumptionDate,
+          quantity: qty,
+          cost: cost,
           notes: c.notes,
         });
+
+        // Batch grouping & aggregation
+        const key = c.batch_id || "__general__";
+        if (!batchMap.has(key)) {
+          batchMap.set(key, {
+            batch_id: c.batch_id || "",
+            batch_name: batchName || "General Usage / इतर वापर",
+            batch_status: batchStatus,
+            batch_stage: batchStage,
+            total_quantity: 0,
+            total_cost: 0,
+            entry_count: 0,
+            first_consumption_date: consumptionDate,
+            last_consumption_date: consumptionDate,
+          });
+        }
+
+        const bSummary = batchMap.get(key)!;
+        bSummary.total_quantity += qty;
+        bSummary.total_cost += cost;
+        bSummary.entry_count += 1;
+        if (consumptionDate < bSummary.first_consumption_date) {
+          bSummary.first_consumption_date = consumptionDate;
+        }
+        if (consumptionDate > bSummary.last_consumption_date) {
+          bSummary.last_consumption_date = consumptionDate;
+        }
       });
     });
 
@@ -204,6 +244,13 @@ export class MaterialsService {
       (a, b) =>
         new Date(b.consumption_date).getTime() -
         new Date(a.consumption_date).getTime(),
+    );
+
+    // Sort batch summary by latest consumption date descending
+    const batchConsumptionSummary = Array.from(batchMap.values()).sort(
+      (a, b) =>
+        new Date(b.last_consumption_date).getTime() -
+        new Date(a.last_consumption_date).getTime(),
     );
 
     return {
@@ -224,6 +271,9 @@ export class MaterialsService {
       suppliers: suppliersList,
       recent_purchases: recentPurchases,
       recent_consumption: allConsumption.slice(0, 10),
+      batch_consumption_summary: batchConsumptionSummary,
+      total_consumption_count: allConsumption.length,
+      total_batches_used: batchConsumptionSummary.length,
       lots_summary: {
         total_lots: item.lots.length,
         active_lots: activeLots.length,
@@ -454,7 +504,8 @@ export class MaterialsService {
 
     return list.map((c: any) => ({
       id: c.id,
-      batch_name: c.batches?.code || c.batches?.name || null,
+      batch_name:
+        c.batches?.batch_number || c.batches?.code || c.batches?.name || null,
       consumption_date: c.consumption_date.toISOString().split("T")[0],
       quantity: Number(c.quantity),
       cost: Number(c.cost_paise) / 100,
