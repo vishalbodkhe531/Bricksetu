@@ -6,12 +6,15 @@ import { cookies } from 'next/headers';
  * Reads auth cookies to run queries as the authenticated user.
  * Use in Server Components, Server Actions, and API Route Handlers.
  */
+const defaultUrl = 'https://bkqumgjimrzrlyvdvuvs.supabase.co';
+const defaultKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcXVtZ2ppbXJ6cmx5dmR2dXZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzMDg1MjgsImV4cCI6MjEwMzg4NDUyOH0.PqWdpbUXaZP6clJmRLxvmM7khz8MBZxA_HxbcIFlo2s';
+
 export async function createServerSupabase() {
   const cookieStore = await cookies();
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL || defaultUrl,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || defaultKey,
     {
       cookies: {
         getAll() {

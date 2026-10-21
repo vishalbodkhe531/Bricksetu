@@ -11,9 +11,21 @@ import { createServerClient } from '@supabase/ssr';
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env['NEXT_PUBLIC_SUPABASE_URL'] ||
+    'https://bkqumgjimrzrlyvdvuvs.supabase.co';
+
+  const supabaseKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'] ||
+    process.env['NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'] ||
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcXVtZ2ppbXJ6cmx5dmR2dXZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzMDg1MjgsImV4cCI6MjEwMzg4NDUyOH0.PqWdpbUXaZP6clJmRLxvmM7khz8MBZxA_HxbcIFlo2s';
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {

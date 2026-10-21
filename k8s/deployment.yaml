@@ -1,25 +1,43 @@
-
 apiVersion: apps/v1
 kind: Deployment
-
 metadata:
   name: bricksetu
-
+  labels:
+    app: bricksetu
 spec:
   replicas: 1
-
   selector:
     matchLabels:
       app: bricksetu
-
   template:
     metadata:
       labels:
         app: bricksetu
-
     spec:
       containers:
         - name: bricksetu
-          image: YOUR_DOCKERHUB_USERNAME/bricksetu:latest
+          image: vishalbodkhe532/bricksetu:v1
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
+              name: http
+          envFrom:
+            - secretRef:
+                name: bricksetu-secret
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
