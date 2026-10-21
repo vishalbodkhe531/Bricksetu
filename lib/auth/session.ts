@@ -1,3 +1,4 @@
+import { unstable_rethrow } from 'next/navigation';
 import { createServerSupabase } from '../supabase/server';
 import { prisma } from '../prisma';
 import { ensureAdminUserSeeded } from './seed-admin';
@@ -65,6 +66,7 @@ export async function getSessionUser(): Promise<AuthUser | null> {
       role: dbUser.role,
     };
   } catch (error) {
+    unstable_rethrow(error);
     console.error('[AUTH SESSION ERROR]', error);
     return null;
   }
