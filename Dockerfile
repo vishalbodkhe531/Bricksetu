@@ -40,10 +40,10 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy full application source
 COPY . .
 
-# Build-time environment arguments for Next.js public variables (embedded into client bundle)
-ARG NEXT_PUBLIC_SUPABASE_URL=https://bkqumgjimrzrlyvdvuvs.supabase.co
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcXVtZ2ppbXJ6cmx5dmR2dXZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzMDg1MjgsImV4cCI6MjEwMzg4NDUyOH0.PqWdpbUXaZP6clJmRLxvmM7khz8MBZxA_HxbcIFlo2s
-ARG NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xvp3iAQU86JfvMDvquFyug_JtTKxnGY
+# Build-time environment arguments for Next.js public variables (passed via --build-arg or CI/CD)
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
