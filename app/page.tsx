@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth/session';
 
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export default async function Home() {
