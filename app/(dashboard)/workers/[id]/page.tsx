@@ -15,6 +15,7 @@ import { WorkerDetailTabs, WorkerTabType } from "@/features/workers/components/W
 import { WorkerProfileTab } from "@/features/workers/components/WorkerProfileTab";
 import { WorkerLedgerTab } from "@/features/workers/components/WorkerLedgerTab";
 import { AalyawaleBrickBuildLogTab } from "@/features/workers/components/AalyawaleBrickBuildLogTab";
+import { WorkerWeeklyPaymentTab } from "@/features/workers/components/WorkerWeeklyPaymentTab";
 import {
   useWorkerDetail,
   useDailyWorkLogs,
@@ -43,28 +44,38 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
 
   const isNoDailyWorkRole = worker?.category === "BHATKAR";
   const isAalyawale = worker?.category === "AALYAWALE";
+  const isBhatkarOrAalyawale =
+    worker?.category === "BHATKAR" || worker?.category === "AALYAWALE";
 
   // Tab State
   const [activeTab, setActiveTab] = useState<WorkerTabType>(
-    initialTab === "record_work"
-      ? "record_work"
-      : initialTab === "aalyawale_brick_logs" || (isAalyawale && initialTab !== "profile" && initialTab !== "ledger")
-        ? "aalyawale_brick_logs"
-        : initialTab === "ledger"
-          ? "ledger"
-          : "profile",
+    initialTab === "weekly_payment" && isBhatkarOrAalyawale
+      ? "weekly_payment"
+      : initialTab === "record_work"
+        ? "record_work"
+        : initialTab === "aalyawale_brick_logs" ||
+            (isAalyawale &&
+              initialTab !== "profile" &&
+              initialTab !== "ledger" &&
+              initialTab !== "weekly_payment")
+          ? "aalyawale_brick_logs"
+          : initialTab === "ledger"
+            ? "ledger"
+            : "profile",
   );
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab === "aalyawale_brick_logs") {
+    if (tab === "weekly_payment" && isBhatkarOrAalyawale) {
+      setActiveTab("weekly_payment");
+    } else if (tab === "aalyawale_brick_logs") {
       setActiveTab("aalyawale_brick_logs");
     } else if (tab === "record_work" && !isNoDailyWorkRole) {
       setActiveTab("record_work");
     } else if (tab === "ledger" || tab === "profile") {
       setActiveTab(tab);
     }
-  }, [searchParams, isNoDailyWorkRole]);
+  }, [searchParams, isNoDailyWorkRole, isBhatkarOrAalyawale]);
 
   // Modal Dialog states
   const [showRateDialog, setShowRateDialog] = useState(false);
@@ -177,6 +188,15 @@ export default function WorkerDetailPage({ params }: WorkerDetailPageProps) {
             />
           </div>
         </div>
+      )}
+
+      {/* Tab: Weekly Payments (For Bhatkar & Aalyawale) */}
+      {activeTab === "weekly_payment" && isBhatkarOrAalyawale && (
+        <WorkerWeeklyPaymentTab
+          worker={worker}
+          orgId={orgId}
+          canWrite={canWrite}
+        />
       )}
 
       {/* Tab 3: Daily Work Ledger & Logs */}

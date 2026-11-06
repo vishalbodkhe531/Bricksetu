@@ -11,6 +11,7 @@ export const queryKeys = {
     settlements: (orgId: string) => [...queryKeys.workers.all, 'settlements', orgId] as const,
     dailyWork: (params?: Record<string, any>) => [...queryKeys.workers.all, 'dailyWork', params] as const,
     todaySummary: (date?: string) => [...queryKeys.workers.all, 'todaySummary', date] as const,
+    weeklyPayments: (workerId: string) => [...queryKeys.workers.all, 'weeklyPayments', workerId] as const,
   },
 
   production: {

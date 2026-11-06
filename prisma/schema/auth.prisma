@@ -42,6 +42,7 @@ model users {
   records                                    records[]
   trips                                      trips[]
   rate_history                               rate_history[]
+  weekly_payments                            weekly_payments[]
 
   @@index([business_unit_id], map: "idx_users_business_unit")
   @@schema("app_auth")
