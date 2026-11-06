@@ -9,6 +9,11 @@ import type {
   AdvanceInput,
   SettlementInput,
 } from '../types/worker.types';
+import type {
+  WeeklyPayment,
+  WeeklyPaymentData,
+  WeeklyPaymentInput,
+} from '../types/weekly-payment.types';
 
 /**
  * Helper to unwrap payload from standard API response wrapper { success: true, data: T }
@@ -66,4 +71,19 @@ export const workersApi = {
 
   deleteDailyWorkLog: (id: string) =>
     api.delete(`/workers/daily-work/${id}`).then((r) => extractData<any>(r.data)),
+
+  getWeeklyPayments: (workerId: string) =>
+    api
+      .get<WeeklyPaymentData>(`/workers/${workerId}/weekly-payments`)
+      .then((r) => extractData<WeeklyPaymentData>(r.data)),
+
+  recordWeeklyPayment: (workerId: string, input: WeeklyPaymentInput) =>
+    api
+      .post<WeeklyPayment>(`/workers/${workerId}/weekly-payments`, input)
+      .then((r) => extractData<WeeklyPayment>(r.data)),
+
+  deleteWeeklyPayment: (paymentId: string) =>
+    api
+      .delete<{ id: string; success: boolean }>(`/workers/weekly-payments/${paymentId}`)
+      .then((r) => extractData<{ id: string; success: boolean }>(r.data)),
 };

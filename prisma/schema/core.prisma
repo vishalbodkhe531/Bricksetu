@@ -67,6 +67,7 @@ model business_units {
   profiles           profiles[]
   daily_work_logs    daily_work_logs[]
   work_unit_conversions work_unit_conversions[]
+  weekly_payments    weekly_payments[]
 
   @@schema("core")
 }

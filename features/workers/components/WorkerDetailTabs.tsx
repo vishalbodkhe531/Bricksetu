@@ -1,10 +1,11 @@
-import { Hammer, PlusCircle, Receipt, User } from "lucide-react";
+import { Banknote, Hammer, PlusCircle, Receipt, User } from "lucide-react";
 
 export type WorkerTabType =
   | "profile"
   | "record_work"
   | "ledger"
-  | "aalyawale_brick_logs";
+  | "aalyawale_brick_logs"
+  | "weekly_payment";
 
 interface WorkerDetailTabsProps {
   activeTab: WorkerTabType;
@@ -24,6 +25,8 @@ export function WorkerDetailTabs({
   workerCategory,
 }: WorkerDetailTabsProps) {
   const isAalyawale = workerCategory === "AALYAWALE";
+  const isBhatkarOrAalyawale =
+    workerCategory === "BHATKAR" || workerCategory === "AALYAWALE";
 
   return (
     <div className="flex border-b border-border bg-card rounded-t-lg px-2 pt-2 gap-1 overflow-x-auto">
@@ -63,6 +66,19 @@ export function WorkerDetailTabs({
         >
           <Hammer className="h-4 w-4 text-amber-500" /> Daily Brick Build Log /
           आल्यावाले वीट नोंद
+        </button>
+      )}
+
+      {isBhatkarOrAalyawale && (
+        <button
+          onClick={() => onSelectTab("weekly_payment")}
+          className={`px-4 cursor-pointer py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
+            activeTab === "weekly_payment"
+              ? "border-purple-500 text-purple-600 dark:text-purple-400 bg-purple-500/5 rounded-t-md"
+              : "border-transparent text-muted-foreground hover:text-purple-600 hover:bg-purple-500/5 rounded-t-md"
+          }`}
+        >
+          <Banknote className="h-4 w-4 text-purple-500" /> Weekly Payment / साप्ताहिक
         </button>
       )}
 
