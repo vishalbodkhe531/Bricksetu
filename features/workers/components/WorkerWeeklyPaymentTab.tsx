@@ -7,21 +7,15 @@ import {
   Coins,
   CreditCard,
   PlusCircle,
-  Trash2,
-  Loader2,
   Clock,
   AlertCircle,
   Filter,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { KPIGrid, KPICardItem } from "./KPICard";
 import { WeeklyPaymentModal } from "./WeeklyPaymentModal";
-import {
-  useWeeklyPayments,
-  useDeleteWeeklyPayment,
-} from "../hooks/useWeeklyPayments";
+import { useWeeklyPayments } from "../hooks/useWeeklyPayments";
 import { formatDateDdMmYyyy } from "../utils/date-utils";
 import {
   getWeekEndFriday,
@@ -42,13 +36,11 @@ export function WorkerWeeklyPaymentTab({
   canWrite,
 }: WorkerWeeklyPaymentTabProps) {
   const { data, isLoading, error } = useWeeklyPayments(worker.id);
-  const deleteMutation = useDeleteWeeklyPayment(worker.id);
 
   const [showModal, setShowModal] = useState(false);
   const [filterMethod, setFilterMethod] = useState<"ALL" | "CASH" | "PHONEPAY">(
     "ALL"
   );
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const payments = useMemo(() => data?.payments || [], [data?.payments]);
   const kpis = data?.kpis || {
@@ -97,29 +89,6 @@ export function WorkerWeeklyPaymentTab({
 
     return Array.from(map.values());
   }, [filteredPayments]);
-
-  // Handle delete payment
-  const handleDelete = async (paymentId: string) => {
-    if (
-      !confirm(
-        "हे साप्ताहिक पेमेंट खरोखर हटवायचे आहे का? / Are you sure you want to delete this weekly payment?"
-      )
-    ) {
-      return;
-    }
-
-    setDeletingId(paymentId);
-    try {
-      await deleteMutation.mutateAsync(paymentId);
-      toast.success("साप्ताहिक पेमेंट यशस्वीरीत्या हटवले (Payment deleted successfully)");
-    } catch (err: unknown) {
-      const errorMsg =
-        err instanceof Error ? err.message : "पेमेंट हटवण्यात त्रुटी आली";
-      toast.error(errorMsg);
-    } finally {
-      setDeletingId(null);
-    }
-  };
 
   // Configure the 4 KPIs required by user
   const kpiItems: KPICardItem[] = [
@@ -347,16 +316,10 @@ export function WorkerWeeklyPaymentTab({
                         <th className="py-2 px-3.5 whitespace-nowrap">पैसे देणारा (Paid By)</th>
                         <th className="py-2 px-3.5 whitespace-nowrap">पद्धत (Method)</th>
                         <th className="py-2 px-3.5">नोंद / टीप (Note)</th>
-                        {canWrite && (
-                          <th className="py-2 px-3.5 text-right whitespace-nowrap">
-                            कृती (Action)
-                          </th>
-                        )}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {group.payments.map((p) => {
-                        const isDeletingThis = deletingId === p.id;
                         return (
                           <tr
                             key={p.id}
@@ -390,24 +353,6 @@ export function WorkerWeeklyPaymentTab({
                             <td className="py-2.5 px-3.5 text-muted-foreground text-[11px] max-w-xs truncate">
                               {p.notes || "—"}
                             </td>
-                            {canWrite && (
-                              <td className="py-2.5 px-3.5 text-right whitespace-nowrap">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  disabled={isDeletingThis}
-                                  onClick={() => handleDelete(p.id)}
-                                  className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
-                                  title="पेमेंट हटवा (Delete payment)"
-                                >
-                                  {isDeletingThis ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  )}
-                                </Button>
-                              </td>
-                            )}
                           </tr>
                         );
                       })}
