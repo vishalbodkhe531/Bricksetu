@@ -96,8 +96,8 @@ export function WorkerWeeklyPaymentTab({
       id: "total_payment",
       label: "एकूण भरणा",
       icon: Banknote,
-      iconColor: "text-purple-500",
-      valueColor: "text-purple-600 dark:text-purple-400",
+      iconColor: "text-primary",
+      valueColor: "text-primary",
       value: `₹${kpis.total_payment.toLocaleString("en-IN")}`,
       subtext: `${payments.length} एकूण साप्ताहिक नोंदी`,
     },
@@ -137,7 +137,7 @@ export function WorkerWeeklyPaymentTab({
     return (
       <div className="flex h-48 items-center justify-center">
         <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-          <Clock className="h-4 w-4 animate-spin text-purple-500" />
+          <Clock className="h-4 w-4 animate-spin text-primary" />
           साप्ताहिक पेमेंट माहिती लोड होत आहे... (Loading weekly payments...)
         </div>
       </div>
@@ -169,7 +169,7 @@ export function WorkerWeeklyPaymentTab({
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-border pb-3">
           <div>
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Banknote className="h-4 w-4 text-purple-500" />
+              <Banknote className="h-4 w-4 text-primary" />
               साप्ताहिक पेमेंट यादी / Weekly Payments
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -182,7 +182,7 @@ export function WorkerWeeklyPaymentTab({
               <Button
                 size="sm"
                 onClick={() => setShowModal(true)}
-                className="gap-1.5 h-8 text-xs bg-purple-600 hover:bg-purple-700 text-white shadow-xs cursor-pointer"
+                className="gap-1.5 h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs cursor-pointer"
               >
                 <PlusCircle className="h-3.5 w-3.5" />
                 साप्ताहिक पेमेंट नोंदवा (Add Payment)
@@ -226,8 +226,8 @@ export function WorkerWeeklyPaymentTab({
                 onClick={() => setFilterMethod("PHONEPAY")}
                 className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors cursor-pointer ${
                   filterMethod === "PHONEPAY"
-                    ? "bg-purple-600 text-white"
-                    : "bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-500/20"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/20"
                 }`}
               >
                 फोनपे ({kpis.phonepay_count})
@@ -243,7 +243,7 @@ export function WorkerWeeklyPaymentTab({
         {/* 3. Empty State */}
         {payments.length === 0 ? (
           <div className="p-8 text-center border border-dashed border-border rounded-xl bg-muted/20 space-y-3">
-            <div className="h-12 w-12 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center mx-auto">
+            <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
               <Banknote className="h-6 w-6" />
             </div>
             <div>
@@ -258,7 +258,7 @@ export function WorkerWeeklyPaymentTab({
               <Button
                 size="sm"
                 onClick={() => setShowModal(true)}
-                className="gap-1.5 h-8 text-xs bg-purple-600 hover:bg-purple-700 text-white mt-1 cursor-pointer"
+                className="gap-1.5 h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground mt-1 cursor-pointer"
               >
                 <PlusCircle className="h-3.5 w-3.5" />
                 पहिले साप्ताहिक पेमेंट नोंदवा
@@ -278,9 +278,9 @@ export function WorkerWeeklyPaymentTab({
                 className="border border-border rounded-xl overflow-hidden shadow-2xs"
               >
                 {/* Week Header Banner */}
-                <div className="bg-purple-500/10 dark:bg-purple-950/30 border-b border-border px-3.5 py-2.5 flex items-center justify-between flex-wrap gap-2">
+                <div className="bg-primary/5 dark:bg-primary/10 border-b border-border px-3.5 py-2.5 flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    <Calendar className="h-4 w-4 text-primary" />
                     <span className="text-xs font-bold text-foreground">
                       {formatWeekLabel(
                         group.weekStartSaturday,
@@ -289,7 +289,7 @@ export function WorkerWeeklyPaymentTab({
                     </span>
                     <Badge
                       variant="outline"
-                      className="text-[10px] font-sans border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300"
+                      className="text-[10px] font-sans border-primary/20 bg-primary/10 text-primary font-bold"
                     >
                       {group.entriesCount} {group.entriesCount === 1 ? "नोंद" : "नोंदी"}
                     </Badge>
@@ -299,7 +299,7 @@ export function WorkerWeeklyPaymentTab({
                     <span className="text-[11px] font-semibold text-muted-foreground">
                       आठवड्याचा एकूण भरणा:
                     </span>
-                    <span className="text-sm font-bold font-mono text-purple-600 dark:text-purple-400">
+                    <span className="text-sm font-bold font-mono text-primary">
                       ₹{group.totalAmount.toLocaleString("en-IN")}
                     </span>
                   </div>
@@ -344,8 +344,8 @@ export function WorkerWeeklyPaymentTab({
                                   रोख (Cash)
                                 </Badge>
                               ) : (
-                                <Badge className="bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 text-[10px] gap-1 font-semibold">
-                                  <CreditCard className="h-3 w-3 text-purple-600" />
+                                <Badge className="bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 text-[10px] gap-1 font-semibold">
+                                  <CreditCard className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
                                   फोनपे (PhonePe)
                                 </Badge>
                               )}

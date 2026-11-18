@@ -28,15 +28,18 @@ export function WorkerDetailTabs({
   const isBhatkarOrAalyawale =
     workerCategory === "BHATKAR" || workerCategory === "AALYAWALE";
 
+  const getPrimaryTabClass = (isActive: boolean) =>
+    `px-4 cursor-pointer py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
+      isActive
+        ? "border-primary text-primary bg-primary/5 rounded-t-md"
+        : "border-transparent text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-t-md"
+    }`;
+
   return (
     <div className="flex border-b border-border bg-card rounded-t-lg px-2 pt-2 gap-1 overflow-x-auto">
       <button
         onClick={() => onSelectTab("profile")}
-        className={`px-4 cursor-pointer py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
-          activeTab === "profile"
-            ? "border-primary text-primary bg-primary/5 rounded-t-md"
-            : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30 rounded-t-md"
-        }`}
+        className={getPrimaryTabClass(activeTab === "profile")}
       >
         <User className="h-4 w-4" /> View Profile Details / प्रोफाइल माहिती
       </button>
@@ -44,41 +47,27 @@ export function WorkerDetailTabs({
       {canWrite && !hideRecordWork && (
         <button
           onClick={() => onSelectTab("record_work")}
-          className={`px-4 cursor-pointer py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
-            activeTab === "record_work"
-              ? "border-amber-500 text-amber-500 bg-amber-500/5 rounded-t-md"
-              : "border-transparent text-muted-foreground hover:text-amber-500 hover:bg-amber-500/5 rounded-t-md"
-          }`}
+          className={getPrimaryTabClass(activeTab === "record_work")}
         >
-          <PlusCircle className="h-4 w-4 text-amber-500" /> Record Daily Work /
-          काम नोंदवा
+          <PlusCircle className="h-4 w-4" /> Record Daily Work / काम नोंदवा
         </button>
       )}
 
       {isAalyawale && (
         <button
           onClick={() => onSelectTab("aalyawale_brick_logs")}
-          className={`px-4 cursor-pointer py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
-            activeTab === "aalyawale_brick_logs"
-              ? "border-amber-500 text-amber-500 bg-amber-500/5 rounded-t-md"
-              : "border-transparent text-muted-foreground hover:text-amber-500 hover:bg-amber-500/5 rounded-t-md"
-          }`}
+          className={getPrimaryTabClass(activeTab === "aalyawale_brick_logs")}
         >
-          <Hammer className="h-4 w-4 text-amber-500" /> Daily Brick Build Log /
-          आल्यावाले वीट नोंद
+          <Hammer className="h-4 w-4" /> Daily Brick Build Log / आल्यावाले वीट नोंद
         </button>
       )}
 
       {isBhatkarOrAalyawale && (
         <button
           onClick={() => onSelectTab("weekly_payment")}
-          className={`px-4 cursor-pointer py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
-            activeTab === "weekly_payment"
-              ? "border-purple-500 text-purple-600 dark:text-purple-400 bg-purple-500/5 rounded-t-md"
-              : "border-transparent text-muted-foreground hover:text-purple-600 hover:bg-purple-500/5 rounded-t-md"
-          }`}
+          className={getPrimaryTabClass(activeTab === "weekly_payment")}
         >
-          <Banknote className="h-4 w-4 text-purple-500" /> Weekly Payment / साप्ताहिक
+          <Banknote className="h-4 w-4" /> Weekly Payment / साप्ताहिक
         </button>
       )}
 

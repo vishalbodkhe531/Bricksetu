@@ -113,7 +113,7 @@ export function WeeklyPaymentModal({
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
               <Banknote className="h-5 w-5" />
             </div>
             <div>
@@ -215,7 +215,7 @@ export function WeeklyPaymentModal({
           {/* Row 4: Payment Method (पेमेंट पद्धत - cash, phonepay) */}
           <div>
             <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5 mb-1.5">
-              <CreditCard className="h-3.5 w-3.5 text-purple-500" /> पेमेंट पद्धत (Payment Method) *
+              <CreditCard className="h-3.5 w-3.5 text-indigo-500" /> पेमेंट पद्धत (Payment Method) *
             </label>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -236,11 +236,11 @@ export function WeeklyPaymentModal({
                 onClick={() => setPaymentMethod("PHONEPAY")}
                 className={`py-2 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                   paymentMethod === "PHONEPAY"
-                    ? "border-purple-500 bg-purple-500/15 text-purple-700 dark:text-purple-300 ring-1 ring-purple-500"
+                    ? "border-indigo-500 bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500"
                     : "border-border bg-card text-muted-foreground hover:bg-muted/40"
                 }`}
               >
-                <CreditCard className="h-4 w-4 text-purple-500" />
+                <CreditCard className="h-4 w-4 text-indigo-500" />
                 <span>फोनपे (PhonePe)</span>
               </button>
             </div>
@@ -276,7 +276,7 @@ export function WeeklyPaymentModal({
               type="submit"
               size="sm"
               disabled={recordPayment.isPending}
-              className="text-xs h-8 gap-1.5 bg-purple-600 hover:bg-purple-700 text-white"
+              className="text-xs h-8 gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               {recordPayment.isPending ? (
                 <>
