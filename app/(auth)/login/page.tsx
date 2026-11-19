@@ -19,11 +19,12 @@ import {
   Eye,
   EyeOff,
   Flame,
+  Loader2,
   ShieldCheck,
 } from "lucide-react";
 
 export default function LoginPage() {
-  const { form, error, isLoading, onSubmit } = useLoginForm();
+  const { form, error, isLoading, isNavigating, onSubmit } = useLoginForm();
   const [showPassword, setShowPassword] = useState(false);
 
   return (
@@ -70,6 +71,7 @@ export default function LoginPage() {
                     <Input
                       type="email"
                       placeholder="Enter email address"
+                      disabled={isLoading}
                       {...field}
                     />
                   </FormControl>
@@ -92,6 +94,7 @@ export default function LoginPage() {
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter password"
                         className="pr-10"
+                        disabled={isLoading}
                         {...field}
                       />
                       <button
@@ -118,11 +121,16 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full font-bold mt-2"
+              className="w-full font-bold mt-2 cursor-pointer"
               size="lg"
             >
               {isLoading ? (
-                "Authenticating..."
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {isNavigating
+                    ? "Redirecting to workspace..."
+                    : "Authenticating..."}
+                </span>
               ) : (
                 <>
                   Sign In to Workspace <ArrowRight className="h-4 w-4" />

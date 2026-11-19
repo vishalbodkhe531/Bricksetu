@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,6 +10,8 @@ import { loginSchema, LoginFormData } from "@/lib/validation/schemas";
 export function useLoginForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -34,6 +36,7 @@ export function useLoginForm() {
 
       if (!res.ok || data.error) {
         setError(data.error || "Invalid email or password.");
+        setIsNavigating(false);
         return;
       }
 
@@ -44,19 +47,24 @@ export function useLoginForm() {
           email: values.email,
           password: values.password,
         })
-        .catch(() => {});
-
-      router.push("/dashboard");
-      router.refresh();
+        .catch(() => {});  
+ 
+      setIsNavigating(true);
+      startTransition(() => {
+        router.push("/dashboard");
+        router.refresh();
+      });
     } catch {
       setError("Something went wrong. Please try again.");
+      setIsNavigating(false);
     }
   };
 
   return {
     form,
     error,
-    isLoading: form.formState.isSubmitting,
+    isLoading: form.formState.isSubmitting || isNavigating || isPending,
+    isNavigating,
     onSubmit: form.handleSubmit(onSubmit),
   };
 }
