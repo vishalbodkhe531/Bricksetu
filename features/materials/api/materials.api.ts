@@ -8,6 +8,7 @@ import type {
   MaterialDetail,
   MaterialCreateInput,
   MaterialUpdateInput,
+  PurchaseCreateInput,
   PurchaseRecord,
   ConsumptionRecord,
 } from "../types/materials.types";
@@ -35,6 +36,11 @@ export const materialsApi = {
 
   getMaterialPurchases: async (materialId: string): Promise<PurchaseRecord[]> => {
     const { data } = await api.get<PurchaseRecord[]>(`/materials/${materialId}/purchases`);
+    return data;
+  },
+
+  addPurchase: async (materialId: string, input: PurchaseCreateInput): Promise<PurchaseRecord> => {
+    const { data } = await api.post<PurchaseRecord>(`/materials/${materialId}/purchases`, input);
     return data;
   },
 

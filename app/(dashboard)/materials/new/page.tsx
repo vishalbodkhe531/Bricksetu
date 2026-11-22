@@ -2,10 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { MaterialForm } from "@/features/materials/components/MaterialForm";
-import {
-  useCreateRawMaterial,
-  useSuppliersList,
-} from "@/features/materials/hooks/useMaterials";
+import { useCreateRawMaterial } from "@/features/materials/hooks/useMaterials";
 import type { MaterialCreateInput } from "@/features/materials/types/materials.types";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -16,7 +13,6 @@ export default function NewMaterialPage() {
   const orgId = profile?.organization_id ?? "";
 
   const createMaterial = useCreateRawMaterial(orgId);
-  const { data: suppliers = [] } = useSuppliersList(orgId);
 
   const handleSubmit = async (data: any) => {
     try {
@@ -29,10 +25,9 @@ export default function NewMaterialPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-9xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <MaterialForm
         mode="create"
-        suppliers={suppliers}
         onSubmit={handleSubmit}
         onCancel={() => router.push("/materials")}
         isSubmitting={createMaterial.isPending}

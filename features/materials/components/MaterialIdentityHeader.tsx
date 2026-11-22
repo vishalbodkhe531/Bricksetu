@@ -22,6 +22,7 @@ interface MaterialIdentityHeaderProps {
   canWrite: boolean;
   activeTab: MaterialTabType;
   onSelectTab: (tab: MaterialTabType) => void;
+  onRecordPurchase?: () => void;
 }
 
 export function MaterialIdentityHeader({
@@ -29,6 +30,7 @@ export function MaterialIdentityHeader({
   canWrite,
   activeTab,
   onSelectTab,
+  onRecordPurchase,
 }: MaterialIdentityHeaderProps) {
   const isLowStock =
     material.reorder_level != null &&
@@ -96,11 +98,10 @@ export function MaterialIdentityHeader({
             <Button
               variant="outline"
               size="sm"
-              disabled
-              title="Record Purchase coming soon"
-              className="rounded-full h-8 px-3 text-[11px] font-semibold gap-1.5 opacity-60"
+              onClick={onRecordPurchase}
+              className="rounded-full h-8 px-3 text-[11px] font-semibold gap-1.5 cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors"
             >
-              <ShoppingCart className="h-3.5 w-3.5" /> Record Purchase
+              <ShoppingCart className="h-3.5 w-3.5" /> Record Purchase / खरेदी नोंदवा
             </Button>
           </div>
         )}

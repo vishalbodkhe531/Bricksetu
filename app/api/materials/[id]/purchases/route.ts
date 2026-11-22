@@ -17,3 +17,21 @@ export async function GET(
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await getSessionUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { id } = await params;
+    const body = await req.json();
+    const purchase = await MaterialsService.addPurchaseToMaterial(user.organization_id, id, body);
+    return NextResponse.json(purchase, { status: 201 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 400 });
+  }
+}
+

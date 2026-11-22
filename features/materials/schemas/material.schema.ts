@@ -3,17 +3,47 @@ import { z } from "zod";
 export const phoneRegex = /^[6-9]\d{9}$/;
 export const gstinRegex = /^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}$/;
 
-export const materialCreateSchema = z
+export const materialCreateSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Material name is required / कच्चा मालाचे नाव आवश्यक आहे")
+    .min(2, "Material name must be at least 2 characters")
+    .max(100, "Material name must be under 100 characters"),
+
+  unit: z.string().min(1, "Unit of measure is required / मोजमाप एकक आवश्यक आहे"),
+});
+
+export const materialUpdateSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Material name is required")
+    .min(2, "Material name must be at least 2 characters")
+    .max(100, "Material name must be under 100 characters")
+    .optional(),
+
+  unit: z.string().min(1, "Unit of measure is required").optional(),
+
+  reorder_level: z
+    .coerce
+    .number()
+    .min(0, "Reorder level must be a non-negative number")
+    .optional()
+    .nullable(),
+
+  description: z
+    .string()
+    .trim()
+    .max(255, "Description must be under 255 characters")
+    .optional()
+    .nullable(),
+
+  is_active: z.boolean().optional(),
+});
+
+export const purchaseCreateSchema = z
   .object({
-    name: z
-      .string()
-      .trim()
-      .min(1, "Material name is required")
-      .min(2, "Material name must be at least 2 characters")
-      .max(100, "Material name must be under 100 characters"),
-
-    unit: z.string().min(1, "Unit of measure is required"),
-
     quantity: z
       .coerce
       .number()
@@ -31,7 +61,7 @@ export const materialCreateSchema = z
       .optional()
       .nullable(),
 
-    material_date: z
+    purchase_date: z
       .string()
       .optional()
       .nullable(),
@@ -107,30 +137,3 @@ export const materialCreateSchema = z
     }
   });
 
-export const materialUpdateSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "Material name is required")
-    .min(2, "Material name must be at least 2 characters")
-    .max(100, "Material name must be under 100 characters")
-    .optional(),
-
-  unit: z.string().min(1, "Unit of measure is required").optional(),
-
-  reorder_level: z
-    .coerce
-    .number()
-    .min(0, "Reorder level must be a non-negative number")
-    .optional()
-    .nullable(),
-
-  description: z
-    .string()
-    .trim()
-    .max(255, "Description must be under 255 characters")
-    .optional()
-    .nullable(),
-
-  is_active: z.boolean().optional(),
-});

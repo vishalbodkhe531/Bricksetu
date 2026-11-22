@@ -9,9 +9,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { FormattedNumberInput } from "@/components/ui/formatted-number-input";
 import { Select } from "@/components/ui/select";
-import { Package, Scale, Layers, AlignLeft, IndianRupee, Coins, Calendar } from "lucide-react";
+import { Package, Scale } from "lucide-react";
 import { UseFormReturn, useWatch } from "react-hook-form";
 
 interface MaterialBasicInfoSectionProps {
@@ -63,18 +62,18 @@ export function MaterialBasicInfoSection({ form }: MaterialBasicInfoSectionProps
   return (
     <div className="space-y-3">
       <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-        <Package className="h-3.5 w-3.5 text-primary" /> 1. Basic Material Information / इंधन किंवा कच्चा माल
+        <Package className="h-3.5 w-3.5 text-primary" /> Basic Material Information / कच्चा माल माहिती
       </h3>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* Material Name Selector */}
         <FormField
           control={form.control}
           name="name"
           render={({ field }) => (
-            <FormItem className="space-y-1 md:col-span-1">
-              <FormLabel className="flex items-center gap-1">
-                <Package className="h-3 w-3 text-muted-foreground" /> Material Name{" "}
+            <FormItem className="space-y-1">
+              <FormLabel className="flex items-center gap-1 text-xs">
+                <Package className="h-3 w-3 text-muted-foreground" /> Material Name / नाव{" "}
                 <span className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
@@ -114,7 +113,7 @@ export function MaterialBasicInfoSection({ form }: MaterialBasicInfoSectionProps
           name="unit"
           render={({ field }) => (
             <FormItem className="space-y-1">
-              <FormLabel className="flex items-center gap-1">
+              <FormLabel className="flex items-center gap-1 text-xs">
                 <Scale className="h-3 w-3 text-muted-foreground" /> Unit of Measure / मोजमाप एकक{" "}
                 <span className="text-destructive">*</span>
               </FormLabel>
@@ -124,146 +123,6 @@ export function MaterialBasicInfoSection({ form }: MaterialBasicInfoSectionProps
                   onValueChange={field.onChange}
                   placeholder="Select Unit"
                   options={MATERIAL_UNIT_OPTIONS}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Material / Import Date */}
-        <FormField
-          control={form.control}
-          name="material_date"
-          render={({ field }) => (
-            <FormItem className="space-y-1">
-              <FormLabel className="flex items-center gap-1">
-                <Calendar className="h-3 w-3 text-muted-foreground" /> Import Date / नोंदणी तारीख
-              </FormLabel>
-              <FormControl>
-                <Input
-                  type="date"
-                  {...field}
-                  value={field.value || new Date().toISOString().split("T")[0]}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Quantity */}
-        <FormField
-          control={form.control}
-          name="quantity"
-          render={({ field }) => (
-            <FormItem className="space-y-1">
-              <FormLabel className="flex items-center gap-1">
-                <Layers className="h-3 w-3 text-muted-foreground" /> Quantity / प्रमाण{" "}
-                <span className="text-destructive">*</span>
-              </FormLabel>
-              <FormControl>
-                <FormattedNumberInput
-                  allowDecimal
-                  placeholder="e.g. 10"
-                  value={field.value ?? ""}
-                  onChange={(rawVal) => {
-                    const val = rawVal === "" ? "" : Number(rawVal);
-                    field.onChange(val);
-                    const currentRate = form.getValues("rate_per_unit");
-                    if (val !== "" && currentRate !== undefined && currentRate !== "" && !isNaN(Number(val)) && !isNaN(Number(currentRate))) {
-                      const computedTotal = Math.round(Number(val) * Number(currentRate) * 100) / 100;
-                      form.setValue("total_estimated_cost", computedTotal, { shouldValidate: true });
-                    } else {
-                      form.setValue("total_estimated_cost", undefined, { shouldValidate: true });
-                    }
-                  }}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Rate per Unit */}
-        <FormField
-          control={form.control}
-          name="rate_per_unit"
-          render={({ field }) => (
-            <FormItem className="space-y-1">
-              <FormLabel className="flex items-center gap-1">
-                <IndianRupee className="h-3 w-3 text-muted-foreground" /> Rate / दर (₹ per Unit){" "}
-                <span className="text-destructive">*</span>
-              </FormLabel>
-              <FormControl>
-                <FormattedNumberInput
-                  allowDecimal
-                  placeholder="e.g. 4,500 (₹ per Unit)"
-                  value={field.value ?? ""}
-                  onChange={(rawVal) => {
-                    const val = rawVal === "" ? "" : Number(rawVal);
-                    field.onChange(val);
-                    const qty = form.getValues("quantity");
-                    if (val !== "" && qty !== undefined && qty !== "" && !isNaN(Number(val)) && !isNaN(Number(qty))) {
-                      const computedTotal = Math.round(Number(val) * Number(qty) * 100) / 100;
-                      form.setValue("total_estimated_cost", computedTotal, { shouldValidate: true });
-                    } else {
-                      form.setValue("total_estimated_cost", undefined, { shouldValidate: true });
-                    }
-                  }}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Total Estimated Cost (Auto-calculated display card) */}
-        <FormField
-          control={form.control}
-          name="total_estimated_cost"
-          render={({ field }) => {
-            const formattedValue =
-              field.value !== undefined && field.value !== null && field.value !== "" && !isNaN(Number(field.value))
-                ? Number(field.value).toLocaleString("en-IN", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })
-                : "0.00";
-
-            return (
-              <FormItem className="space-y-1">
-                <FormLabel className="flex items-center gap-1">
-                  <Coins className="h-3 w-3 text-muted-foreground" /> Total Estimated Cost / एकूण खर्च (₹)
-                </FormLabel>
-                <FormControl>
-                  <div className="h-10 px-4 rounded-xl border border-amber-200/90 bg-[#FFF6EB] dark:bg-amber-950/20 dark:border-amber-800/50 flex items-center transition-all">
-                    <span className="font-semibold text-amber-600 dark:text-amber-400 text-sm">
-                      ₹ {formattedValue}
-                    </span>
-                  </div>
-                </FormControl>
-                <p className="text-[10px] text-muted-foreground">Quantity × Rate = Total / प्रमाण × दर = एकूण खर्च</p>
-                <FormMessage />
-              </FormItem>
-            );
-          }}
-        />
-
-        {/* Description / Notes */}
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem className="space-y-1 md:col-span-3">
-              <FormLabel className="flex items-center gap-1">
-                <AlignLeft className="h-3 w-3 text-muted-foreground" /> Description & Specifications / तपशील
-              </FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="e.g. Grade-A imported coal used for Bhatti firing stage"
-                  {...field}
-                  value={field.value || ""}
                 />
               </FormControl>
               <FormMessage />

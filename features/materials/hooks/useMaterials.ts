@@ -5,6 +5,7 @@ import { materialsApi } from '../api/materials.api';
 import type {
   MaterialCreateInput,
   MaterialUpdateInput,
+  PurchaseCreateInput,
   SupplierInput,
 } from '../types/materials.types';
 
@@ -40,6 +41,19 @@ export function useMaterialPurchases(materialId: string) {
     queryFn: () => materialsApi.getMaterialPurchases(materialId),
     staleTime: 0,
     enabled: !!materialId,
+  });
+}
+
+export function useAddPurchase(materialId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PurchaseCreateInput) => materialsApi.addPurchase(materialId, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: materialsKeys.all, refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: materialsKeys.detail(materialId), refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: materialsKeys.purchases(materialId), refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ['suppliers'], refetchType: 'all' });
+    },
   });
 }
 
