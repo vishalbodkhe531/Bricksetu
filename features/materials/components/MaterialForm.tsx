@@ -8,15 +8,13 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
-import { Supplier, MaterialCreateInput, MaterialUpdateInput, MaterialDetail } from "../types/materials.types";
+import { MaterialCreateInput, MaterialUpdateInput, MaterialDetail } from "../types/materials.types";
 import { materialCreateSchema, materialUpdateSchema } from "../schemas/material.schema";
 import { MaterialBasicInfoSection } from "./sections/MaterialBasicInfoSection";
-import { MaterialSupplierSection } from "./sections/MaterialSupplierSection";
 
 interface MaterialFormProps {
   mode: "create" | "edit";
   initialData?: MaterialDetail | null;
-  suppliers?: Supplier[];
   onSubmit: (data: MaterialCreateInput | MaterialUpdateInput) => Promise<void>;
   onCancel?: () => void;
   isSubmitting?: boolean;
@@ -25,7 +23,6 @@ interface MaterialFormProps {
 export function MaterialForm({
   mode,
   initialData,
-  suppliers = [],
   onSubmit,
   onCancel,
   isSubmitting = false,
@@ -37,20 +34,6 @@ export function MaterialForm({
     defaultValues: {
       name: initialData?.name || "",
       unit: initialData?.unit || "tons",
-      material_date: new Date().toISOString().split("T")[0],
-      quantity: undefined,
-      rate_per_unit: undefined,
-      total_estimated_cost: undefined,
-      description: initialData?.description || "",
-
-      // Supplier section (Create mode)
-      supplier_mode: "none",
-      supplier_id: "",
-      new_supplier_name: "",
-      new_supplier_contact_person: "",
-      new_supplier_phone: "",
-      new_supplier_address: "",
-      new_supplier_gst: "",
     },
   });
 
@@ -75,19 +58,14 @@ export function MaterialForm({
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {mode === "create"
-                  ? "Specify material parameters, unit of measurement, and optional supplier information."
+                  ? "Specify material name and unit of measurement."
                   : "Update material specifications, reorder threshold, or active status."}
               </p>
             </div>
           </div>
 
-          {/* Section 1: Basic Info */}
+          {/* Section: Material Name & Unit */}
           <MaterialBasicInfoSection form={form} />
-
-          {/* Section 2: Supplier Link (Create Mode Only) */}
-          {mode === "create" && (
-            <MaterialSupplierSection form={form} suppliers={suppliers} />
-          )}
 
           {/* Form Actions */}
           <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border">
@@ -114,7 +92,7 @@ export function MaterialForm({
               ) : (
                 <>
                   <CheckCircle2 className="h-4 w-4" />
-                  {mode === "create" ? "Register Material" : "Save Changes"}
+                  {mode === "create" ? "Register Material / माल नोंदवा" : "Save Changes"}
                 </>
               )}
             </Button>

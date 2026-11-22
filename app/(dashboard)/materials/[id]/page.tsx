@@ -34,6 +34,7 @@ export default function MaterialDetailPage({ params }: MaterialDetailPageProps) 
         ? "consumption"
         : "overview"
   );
+  const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -81,6 +82,10 @@ export default function MaterialDetailPage({ params }: MaterialDetailPageProps) 
         canWrite={canWrite}
         activeTab={activeTab}
         onSelectTab={setActiveTab}
+        onRecordPurchase={() => {
+          setActiveTab("purchases");
+          setShowPurchaseDialog(true);
+        }}
       />
 
       {/* Navigation Tabs */}
@@ -104,8 +109,12 @@ export default function MaterialDetailPage({ params }: MaterialDetailPageProps) 
       {activeTab === "purchases" && (
         <MaterialPurchasesTab
           materialId={material.id}
+          materialName={material.name}
           unit={material.unit}
           initialPurchases={material.recent_purchases}
+          canWrite={canWrite}
+          showAddDialog={showPurchaseDialog}
+          onAddDialogChange={setShowPurchaseDialog}
         />
       )}
 

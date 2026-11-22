@@ -8,6 +8,7 @@ import type {
   MaterialDetail,
   MaterialCreateInput,
   MaterialUpdateInput,
+  PurchaseCreateInput,
   PurchaseRecord,
   ConsumptionRecord,
   BatchConsumptionSummary,
@@ -50,7 +51,10 @@ export class MaterialsService {
         material_units: true,
         purchases: {
           include: { suppliers: true },
-          orderBy: { purchase_date: "desc" },
+          orderBy: [
+            { purchase_date: "desc" },
+            { created_at: "desc" },
+          ],
         },
         lots: true,
       },
@@ -61,13 +65,13 @@ export class MaterialsService {
       const unit =
         item.material_units?.name || item.material_units?.code || "units";
 
-      // Most recent supplier from purchases
+      // Most recent purchase entry (latest purchase date, latest created)
       const recentPurchase = item.purchases[0];
       const primarySupplierName = recentPurchase?.suppliers?.name || null;
       const primarySupplierPhone = recentPurchase?.suppliers?.phone || null;
       const materialDate = recentPurchase?.purchase_date
         ? recentPurchase.purchase_date.toISOString().split("T")[0]
-        : item.created_at.toISOString().split("T")[0];
+        : null;
 
       const totalPurchases = item.purchases.length;
       const totalQtyPurchased = item.purchases.reduce(
@@ -112,7 +116,10 @@ export class MaterialsService {
         material_units: true,
         purchases: {
           include: { suppliers: true },
-          orderBy: { purchase_date: "desc" },
+          orderBy: [
+            { purchase_date: "desc" },
+            { created_at: "desc" },
+          ],
           take: 10,
         },
         lots: {
@@ -151,12 +158,12 @@ export class MaterialsService {
     });
 
     const suppliersList = Array.from(supplierMap.values());
-    const primarySupplierName = suppliersList[0]?.name || null;
-    const primarySupplierPhone = suppliersList[0]?.phone || null;
     const latestPurchase = item.purchases[0];
+    const primarySupplierName = latestPurchase?.suppliers?.name || suppliersList[0]?.name || null;
+    const primarySupplierPhone = latestPurchase?.suppliers?.phone || suppliersList[0]?.phone || null;
     const materialDate = latestPurchase?.purchase_date
       ? latestPurchase.purchase_date.toISOString().split("T")[0]
-      : item.created_at.toISOString().split("T")[0];
+      : null;
 
     const totalPurchases = item.purchases.length;
     const totalQtyPurchased = item.purchases.reduce(
@@ -479,6 +486,126 @@ export class MaterialsService {
       total_amount: Number(p.total_amount_paise) / 100,
       notes: p.notes,
     }));
+  }
+
+  /**
+   * Record a new purchase for an existing material.
+   * Creates a purchase record and an inventory lot.
+   */
+  static async addPurchaseToMaterial(
+    orgId: string,
+    materialId: string,
+    input: PurchaseCreateInput,
+  ): Promise<PurchaseRecord> {
+    const material = await prisma.catalogue.findFirst({
+      where: { id: materialId, business_unit_id: orgId },
+    });
+
+    if (!material) {
+      throw new Error("Material record not found / कच्चा माल सापडला नाही");
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      let selectedSupplierId: string | null = null;
+
+      if (input.supplier_mode === "existing" && input.supplier_id) {
+        const supplier = await tx.suppliers.findFirst({
+          where: { id: input.supplier_id, business_unit_id: orgId },
+        });
+        if (!supplier) {
+          throw new Error("Selected supplier not found / पुरवठादार सापडला नाही");
+        }
+        selectedSupplierId = supplier.id;
+      } else if (input.supplier_mode === "new" && input.new_supplier_name) {
+        const supCode = `SUP-${Date.now()}`;
+        const newSup = await tx.suppliers.create({
+          data: {
+            business_unit_id: orgId,
+            code: supCode,
+            name: input.new_supplier_name,
+            contact_person: input.new_supplier_contact_person || null,
+            phone: input.new_supplier_phone || null,
+            address: input.new_supplier_address || null,
+          },
+        });
+        selectedSupplierId = newSup.id;
+      }
+
+      // If supplier_mode === "none" or no supplier selected, ensure a fallback direct purchase supplier exists
+      if (!selectedSupplierId) {
+        let directSupplier = await tx.suppliers.findFirst({
+          where: {
+            business_unit_id: orgId,
+            code: "SUP-DIRECT",
+          },
+        });
+
+        if (!directSupplier) {
+          directSupplier = await tx.suppliers.create({
+            data: {
+              business_unit_id: orgId,
+              code: "SUP-DIRECT",
+              name: "Direct Purchase / थेट खरेदी",
+            },
+          });
+        }
+        selectedSupplierId = directSupplier.id;
+      }
+
+      const qty = Number(input.quantity);
+      const ratePerUnit = Number(input.rate_per_unit);
+      const totalCost = input.total_estimated_cost
+        ? Number(input.total_estimated_cost)
+        : qty * ratePerUnit;
+
+      const ratePaise = BigInt(Math.round(ratePerUnit * 100));
+      const totalPaise = BigInt(Math.round(totalCost * 100));
+      const recordDate = input.purchase_date
+        ? new Date(input.purchase_date)
+        : new Date();
+
+      const purNum = `PUR-${Date.now()}`;
+      const purchase = await tx.purchases.create({
+        data: {
+          business_unit_id: orgId,
+          purchase_number: purNum,
+          supplier_id: selectedSupplierId,
+          material_id: materialId,
+          purchase_date: recordDate,
+          quantity: qty,
+          unit_price_paise: ratePaise,
+          total_amount_paise: totalPaise,
+          notes: input.description || null,
+        },
+        include: { suppliers: true },
+      });
+
+      const lotNum = `LOT-${Date.now()}`;
+      await tx.lots.create({
+        data: {
+          business_unit_id: orgId,
+          material_id: materialId,
+          purchase_id: purchase.id,
+          lot_number: lotNum,
+          initial_quantity: qty,
+          available_quantity: qty,
+          unit_cost_paise: ratePaise,
+          received_date: recordDate,
+        },
+      });
+
+      return {
+        id: purchase.id,
+        purchase_number: purchase.purchase_number,
+        supplier_name: purchase.suppliers?.name || "Direct Purchase / थेट खरेदी",
+        supplier_id: purchase.supplier_id,
+        purchase_date: purchase.purchase_date.toISOString().split("T")[0],
+        quantity: Number(purchase.quantity),
+        unit_price: Number(purchase.unit_price_paise) / 100,
+        total_amount: Number(purchase.total_amount_paise) / 100,
+        notes: purchase.notes,
+      };
+    });
   }
 
   /**

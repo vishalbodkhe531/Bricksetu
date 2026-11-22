@@ -92,8 +92,8 @@ export interface MaterialDetail extends MaterialListItem {
 export interface RawMaterialInput {
   name: string;
   unit: string;
-  quantity: number;
-  rate_per_unit: number;
+  quantity?: number;
+  rate_per_unit?: number;
   total_estimated_cost?: number | null;
   material_date?: string | null;
   description?: string | null;
@@ -110,12 +110,12 @@ export interface SupplierInput {
 export interface MaterialCreateInput {
   name: string;
   unit: string;
-  quantity: number;
-  rate_per_unit: number;
+  quantity?: number;
+  rate_per_unit?: number;
   total_estimated_cost?: number | null;
   material_date?: string | null;
   description?: string | null;
-  supplier_mode: "none" | "existing" | "new";
+  supplier_mode?: "none" | "existing" | "new";
   supplier_id?: string | null;
   new_supplier_name?: string | null;
   new_supplier_contact_person?: string | null;
@@ -131,3 +131,19 @@ export interface MaterialUpdateInput {
   description?: string | null;
   is_active?: boolean;
 }
+
+export interface PurchaseCreateInput {
+  quantity: number;
+  rate_per_unit: number;
+  total_estimated_cost?: number | null;
+  purchase_date?: string | null;
+  description?: string | null;
+  supplier_mode: "none" | "existing" | "new";
+  supplier_id?: string | null;
+  new_supplier_name?: string | null;
+  new_supplier_contact_person?: string | null;
+  new_supplier_phone?: string | null;
+  new_supplier_address?: string | null;
+  new_supplier_gst?: string | null;
+}
+

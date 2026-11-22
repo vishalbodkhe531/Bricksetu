@@ -1,19 +1,20 @@
 "use client";
 
-import React from "react";
-import Link from "next/link";
+import React, { useState } from "react";
 import { Package, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table/data-table";
 import { usePermissions } from "@/features/auth/hooks/usePermissions";
 import { materialColumns } from "@/features/materials/components/columns/material-columns";
 import { useRawMaterialsList } from "@/features/materials/hooks/useMaterials";
+import { AddMaterialDialog } from "@/features/materials/components/AddMaterialDialog";
 
 export default function MaterialsPage() {
   const { profile, canManageInventory: canWrite } = usePermissions();
   const orgId = profile?.organization_id ?? "";
 
   const { data: materials = [], isLoading } = useRawMaterialsList(orgId);
+  const [showAddDialog, setShowAddDialog] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -30,11 +31,14 @@ export default function MaterialsPage() {
 
         {canWrite && (
           <div className="flex items-center gap-2 shrink-0">
-            <Link href="/materials/new">
-              <Button variant="default" size="sm" className="gap-1.5">
-                <Plus className="h-4 w-4" /> Add Material / कच्चा माल नोंदवा
-              </Button>
-            </Link>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => setShowAddDialog(true)}
+              className="gap-1.5 cursor-pointer"
+            >
+              <Plus className="h-4 w-4" /> Add Material / कच्चा माल नोंदवा
+            </Button>
           </div>
         )}
       </div>
@@ -50,6 +54,12 @@ export default function MaterialsPage() {
           exportFileName="raw_materials.csv"
         />
       </div>
+
+      {/* Add Material Dialog */}
+      <AddMaterialDialog
+        open={showAddDialog}
+        onOpenChange={setShowAddDialog}
+      />
     </div>
   );
 }
