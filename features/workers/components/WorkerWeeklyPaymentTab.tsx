@@ -10,13 +10,17 @@ import {
   Clock,
   AlertCircle,
   Filter,
+  Receipt,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { KPIGrid, KPICardItem } from "./KPICard";
 import { WeeklyPaymentModal } from "./WeeklyPaymentModal";
+import { WeeklyPaymentStatementModal } from "./WeeklyPaymentStatementModal";
 import { useWeeklyPayments } from "../hooks/useWeeklyPayments";
 import { formatDateDdMmYyyy } from "../utils/date-utils";
+import { generateWeeklyPaymentPdfHtml } from "../utils/generateWeeklyPaymentPdfHtml";
 import {
   getWeekEndFriday,
   getWeekStartSaturday,
@@ -38,6 +42,7 @@ export function WorkerWeeklyPaymentTab({
   const { data, isLoading, error } = useWeeklyPayments(worker.id);
 
   const [showModal, setShowModal] = useState(false);
+  const [showStatementModal, setShowStatementModal] = useState(false);
   const [filterMethod, setFilterMethod] = useState<"ALL" | "CASH" | "PHONEPAY">(
     "ALL"
   );
@@ -51,6 +56,35 @@ export function WorkerWeeklyPaymentTab({
     cash_amount: 0,
     phonepay_amount: 0,
     remaining_amount: Number(worker.total_decided_advance_amount || 0),
+  };
+
+  // Open exact PDF format in a new browser tab for preview, download, and sharing
+  const handleOpenPdfInNewTab = () => {
+    if (payments.length === 0) {
+      toast.error("या कामगारासाठी कोणतीही साप्ताहिक पेमेंट नोंद उपलब्ध नाही");
+      return;
+    }
+
+    try {
+      const html = generateWeeklyPaymentPdfHtml({
+        worker,
+        payments,
+        kpis,
+      });
+
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      const blobUrl = URL.createObjectURL(blob);
+      const newTab = window.open(blobUrl, "_blank");
+
+      if (!newTab) {
+        toast.error("कृपया नवीन टॅब उघडण्यासाठी ब्राऊझरमध्ये पॉपअपला अनुमती द्या");
+      } else {
+        toast.success("साप्ताहिक पेमेंट पावती (PDF फॉरमॅट) नवीन टॅबमध्ये उघडली आहे!");
+      }
+    } catch (err) {
+      console.error("Error opening PDF in new tab:", err);
+      toast.error("PDF उघडताना त्रुटी आली");
+    }
   };
 
   // Filter payments by payment method if chosen
@@ -177,7 +211,24 @@ export function WorkerWeeklyPaymentTab({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleOpenPdfInNewTab}
+              disabled={payments.length === 0}
+              className="gap-1.5 h-8 text-xs border-primary/30 text-primary hover:bg-primary/5 shadow-xs cursor-pointer"
+              title={
+                payments.length === 0
+                  ? "पेमेंट नोंदी उपलब्ध नाहीत"
+                  : "पेमेंट हिस्ट्री PDF नवीन टॅबमध्ये उघडा"
+              }
+            >
+              <Receipt className="h-3.5 w-3.5" />
+              पेमेंट हिस्ट्री पाठवा (Send Payment History)
+            </Button>
+
             {canWrite && (
               <Button
                 size="sm"
@@ -371,6 +422,17 @@ export function WorkerWeeklyPaymentTab({
           open={showModal}
           onClose={() => setShowModal(false)}
           worker={worker}
+        />
+      )}
+
+      {/* 6. Modal for Weekly Payment Statement & PDF Download */}
+      {showStatementModal && (
+        <WeeklyPaymentStatementModal
+          open={showStatementModal}
+          onClose={() => setShowStatementModal(false)}
+          worker={worker}
+          payments={payments}
+          kpis={kpis}
         />
       )}
     </div>
