@@ -156,22 +156,24 @@ export function generateWeeklyPaymentPdfHtml({
               आठवडा भरणा: <span class="text-emerald font-bold">₹${weekTotalFmt}</span> (${group.entriesCount} नोंद)
             </div>
           </div>
-          <table class="payment-table">
-            <thead>
-              <tr>
-                <th style="width: 38px;" class="text-center">अ.क्र.</th>
-                <th style="width: 80px;">वार</th>
-                <th style="width: 85px;">दिनांक</th>
-                <th style="width: 100px;" class="text-right">रक्कम (₹)</th>
-                <th style="width: 130px;">पैसे देणारा</th>
-                <th style="width: 100px;">भरणा पद्धत</th>
-                <th>नोंद / शेरा</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-          </table>
+          <div class="table-wrapper">
+            <table class="payment-table">
+              <thead>
+                <tr>
+                  <th style="width: 38px;" class="text-center">अ.क्र.</th>
+                  <th style="width: 80px;">वार</th>
+                  <th style="width: 85px;">दिनांक</th>
+                  <th style="width: 100px;" class="text-right">रक्कम (₹)</th>
+                  <th style="width: 130px;">पैसे देणारा</th>
+                  <th style="width: 100px;">भरणा पद्धत</th>
+                  <th>नोंद / शेरा</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
+          </div>
         </div>
       `;
     })
@@ -183,7 +185,7 @@ export function generateWeeklyPaymentPdfHtml({
   <meta charset="utf-8" />
   <meta name="google" content="notranslate" />
   <meta name="googlebot" content="notranslate" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.25, maximum-scale=5.0, user-scalable=yes" />
   <title>साप्ताहिक_पेमेंट_पावती_${workerNameSafe}_${todayStr}.pdf</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js';"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -267,6 +269,81 @@ export function generateWeeklyPaymentPdfHtml({
       flex-wrap: wrap;
     }
 
+    /* Zoom Controls for Mobile & Desktop */
+    .zoom-toolbar-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #111417;
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid #374151;
+    }
+
+    .zoom-title {
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .btn-zoom {
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      line-height: 1;
+      user-select: none;
+      transition: background 0.15s ease;
+    }
+    .btn-zoom:hover {
+      background: #1d4ed8;
+    }
+
+    .zoom-display {
+      font-size: 11px;
+      font-weight: 700;
+      font-family: monospace;
+      color: #f1f5f9;
+      min-width: 44px;
+      text-align: center;
+    }
+
+    .btn-zoom-reset {
+      background: #374151;
+      color: #e2e8f0;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s ease;
+    }
+    .btn-zoom-reset:hover {
+      background: #4b5563;
+      color: #ffffff;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      width: 100%;
+    }
+
+    .mobile-scroll-hint {
+      display: none;
+    }
+
     .btn {
       display: inline-flex;
       align-items: center;
@@ -336,6 +413,8 @@ export function generateWeeklyPaymentPdfHtml({
       border-radius: 4px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
       padding: 32px 36px;
+      transform-origin: top center;
+      transition: transform 0.15s ease-out;
     }
 
     /* Official Document Header */
@@ -659,6 +738,199 @@ export function generateWeeklyPaymentPdfHtml({
       line-height: 1.5;
     }
 
+    /* Mobile Responsive Overrides */
+    @media screen and (max-width: 640px) {
+      body {
+        font-size: 11px;
+        background-color: #1e2226;
+      }
+
+      .pdf-toolbar {
+        padding: 8px 10px;
+        gap: 8px;
+      }
+
+      .toolbar-left {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .doc-name {
+        font-size: 12px;
+      }
+
+      .doc-sub {
+        font-size: 10px;
+      }
+
+      .zoom-toolbar-group {
+        width: 100%;
+        justify-content: center;
+        padding: 5px 8px;
+        order: 2;
+      }
+
+      .toolbar-actions {
+        width: 100%;
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        order: 3;
+      }
+
+      .toolbar-actions .btn {
+        flex: 1 1 calc(50% - 6px);
+        padding: 8px 6px;
+        font-size: 11px;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .toolbar-actions .btn-dark {
+        flex: 1 1 100%;
+        padding: 6px 10px;
+      }
+
+      .pdf-info-banner {
+        padding: 6px 10px;
+        font-size: 10px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+
+      .pdf-viewport {
+        padding: 10px 4px 60px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        display: block;
+      }
+
+      .a4-sheet {
+        padding: 16px 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        max-width: 100%;
+      }
+
+      .sheet-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding-bottom: 8px;
+        margin-bottom: 10px;
+      }
+
+      .company-title {
+        font-size: 15px;
+      }
+
+      .sheet-subtitle {
+        font-size: 12px;
+      }
+
+      .header-ref-box {
+        text-align: left;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 14px;
+        width: 100%;
+        border-top: 1px dashed #cbd5e1;
+        padding-top: 6px;
+      }
+
+      .worker-card {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px 10px;
+        padding: 8px 10px;
+        margin-bottom: 10px;
+      }
+
+      .kpi-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+
+      .kpi-amount {
+        font-size: 13px;
+      }
+
+      .week-block {
+        margin-bottom: 10px;
+      }
+
+      .week-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 3px;
+        padding: 6px 8px;
+        font-size: 10.5px;
+      }
+
+      .payment-table {
+        min-width: 520px;
+        font-size: 10px;
+      }
+
+      .payment-table th, .payment-table td {
+        padding: 4px 6px;
+      }
+
+      .mobile-scroll-hint {
+        display: block !important;
+        background: #eff6ff;
+        border: 1px dashed #93c5fd;
+        color: #1e40af;
+        font-size: 9.5px;
+        padding: 5px 8px;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        text-align: center;
+      }
+
+      .grand-total-card {
+        padding: 8px 10px;
+        margin-top: 10px;
+      }
+
+      .grand-total-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        font-size: 12px;
+      }
+
+      .grand-total-amount {
+        font-size: 15px;
+      }
+
+      .in-words-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        font-size: 10px;
+      }
+
+      .signatures-container {
+        gap: 6px;
+        margin-top: 22px;
+      }
+
+      .sig-box {
+        font-size: 8px;
+        padding-top: 4px;
+      }
+
+      .sig-spacer {
+        height: 22px !important;
+      }
+
+      .sig-sub {
+        font-size: 7.5px;
+      }
+    }
+
     /* Print Overrides */
     @page {
       size: A4 portrait;
@@ -706,6 +978,15 @@ export function generateWeeklyPaymentPdfHtml({
           कामगार: ${workerNameSafe} (${workerCategory}) • एकूण भरणा: ₹${totalPaymentFmt}
         </div>
       </div>
+    </div>
+
+    <!-- Zoom Controls for Mobile & Desktop -->
+    <div class="zoom-toolbar-group">
+      <span class="zoom-title">झूम:</span>
+      <button type="button" class="btn-zoom" onclick="zoomOut()" title="झूम कमी करा (−)">−</button>
+      <span class="zoom-display" id="zoomLevelDisplay">100%</span>
+      <button type="button" class="btn-zoom" onclick="zoomIn()" title="झूम वाढवा (+)">+</button>
+      <button type="button" class="btn-zoom-reset" onclick="zoomReset()" title="मूळ आकार (100%)">रीसेट</button>
     </div>
 
     <div class="toolbar-actions">
@@ -814,6 +1095,8 @@ export function generateWeeklyPaymentPdfHtml({
           </span>
         </div>
 
+        <div class="mobile-scroll-hint no-print">👉 मोबाईलवर संपूर्ण तक्ता पाहण्यासाठी डावीकडे/उजवीकडे सरकवा किंवा वरील (+ / −) बटनांनी झूम करा</div>
+
         ${weeklyTablesHtml}
 
         <!-- Grand Total Card -->
@@ -832,19 +1115,19 @@ export function generateWeeklyPaymentPdfHtml({
       <!-- 5. Signatures and Stamp Box -->
       <section class="signatures-container">
         <div class="sig-box">
-          <div style="height: 35px;"></div>
+          <div class="sig-spacer" style="height: 35px;"></div>
           कामगार / आल्यावाले स्वाक्षरी किंवा अंगठा
           <div class="sig-sub">(${workerNameSafe})</div>
         </div>
 
         <div class="sig-box">
-          <div style="height: 35px;"></div>
+          <div class="sig-spacer" style="height: 35px;"></div>
           मुकादम / हिशोब तपासणीस स्वाक्षरी
           <div class="sig-sub">(पैसे देणारा / पर्यवेक्षक)</div>
         </div>
 
         <div class="sig-box">
-          <div style="height: 35px;"></div>
+          <div class="sig-spacer" style="height: 35px;"></div>
           विटभट्टी मालक / अधिकृत शिक्का व सही
           <div class="sig-sub">(विशाल विटभट्टी उद्योजक)</div>
         </div>
@@ -860,6 +1143,36 @@ export function generateWeeklyPaymentPdfHtml({
 
   <script>
     const whatsappSummary = ${whatsappSummaryEscaped};
+    let currentZoom = 1.0;
+
+    function setZoom(val) {
+      currentZoom = Math.min(Math.max(Number(val.toFixed(2)), 0.35), 2.5);
+      const sheet = document.getElementById("pdf-sheet-content");
+      if (sheet) {
+        sheet.style.transform = "scale(" + currentZoom + ")";
+        sheet.style.transformOrigin = "top center";
+        const viewport = document.querySelector(".pdf-viewport");
+        if (viewport) {
+          viewport.style.minHeight = Math.ceil(sheet.scrollHeight * currentZoom + 80) + "px";
+        }
+      }
+      const disp = document.getElementById("zoomLevelDisplay");
+      if (disp) {
+        disp.innerText = Math.round(currentZoom * 100) + "%";
+      }
+    }
+
+    function zoomIn() {
+      setZoom(currentZoom + 0.15);
+    }
+
+    function zoomOut() {
+      setZoom(currentZoom - 0.15);
+    }
+
+    function zoomReset() {
+      setZoom(1.0);
+    }
 
     function copyWhatsAppSummary() {
       navigator.clipboard.writeText(whatsappSummary).then(() => {
@@ -887,6 +1200,9 @@ export function generateWeeklyPaymentPdfHtml({
           btn.disabled = true;
           btn.innerHTML = "⏳ PDF डाऊनलोड होत आहे...";
         }
+
+        const prevZoom = currentZoom;
+        setZoom(1.0);
 
         try {
           if (document.fonts && document.fonts.ready) {
@@ -921,6 +1237,7 @@ export function generateWeeklyPaymentPdfHtml({
           .from(element)
           .save()
           .then(() => {
+            setZoom(prevZoom);
             if (btn) {
               btn.disabled = false;
               btn.innerHTML = "✅ PDF डाऊनलोड झाली!";
@@ -932,6 +1249,7 @@ export function generateWeeklyPaymentPdfHtml({
             }
           })
           .catch((err) => {
+            setZoom(prevZoom);
             console.error("PDF generation error:", err);
             alert("PDF डाऊनलोड करताना त्रुटी आली: " + (err.message || err));
             if (btn) {

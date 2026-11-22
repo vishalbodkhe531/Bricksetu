@@ -211,32 +211,32 @@ export function WorkerWeeklyPaymentTab({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto sm:justify-end">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={handleOpenPdfInNewTab}
               disabled={payments.length === 0}
-              className="gap-1.5 h-8 text-xs border-primary/30 text-primary hover:bg-primary/5 shadow-xs cursor-pointer"
+              className="w-full sm:w-auto h-9 sm:h-8 px-3.5 text-xs font-semibold justify-center gap-1.5 border-primary/30 text-primary hover:bg-primary/5 shadow-xs cursor-pointer"
               title={
                 payments.length === 0
                   ? "पेमेंट नोंदी उपलब्ध नाहीत"
                   : "पेमेंट हिस्ट्री PDF नवीन टॅबमध्ये उघडा"
               }
             >
-              <Receipt className="h-3.5 w-3.5" />
-              पेमेंट हिस्ट्री पाठवा (Send Payment History)
+              <Receipt className="h-4 w-4 shrink-0 text-primary" />
+              <span>पेमेंट हिस्ट्री पाठवा (Send Payment History)</span>
             </Button>
 
             {canWrite && (
               <Button
                 size="sm"
                 onClick={() => setShowModal(true)}
-                className="gap-1.5 h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs cursor-pointer"
+                className="w-full sm:w-auto h-9 sm:h-8 px-3.5 text-xs font-semibold justify-center gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs cursor-pointer"
               >
-                <PlusCircle className="h-3.5 w-3.5" />
-                साप्ताहिक पेमेंट नोंदवा (Add Payment)
+                <PlusCircle className="h-4 w-4 shrink-0" />
+                <span>साप्ताहिक पेमेंट नोंदवा (Add Payment)</span>
               </Button>
             )}
           </div>
@@ -329,36 +329,39 @@ export function WorkerWeeklyPaymentTab({
                 className="border border-border rounded-xl overflow-hidden shadow-2xs"
               >
                 {/* Week Header Banner */}
-                <div className="bg-primary/5 dark:bg-primary/10 border-b border-border px-3.5 py-2.5 flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-primary" />
-                    <span className="text-xs font-bold text-foreground">
+                <div className="bg-primary/5 dark:bg-primary/10 border-b border-border px-3.5 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Calendar className="h-4 w-4 text-primary shrink-0" />
+                    <span className="text-xs font-bold text-foreground break-words leading-snug">
                       {formatWeekLabel(
                         group.weekStartSaturday,
                         group.weekEndFriday
                       )}
                     </span>
+                  </div>
+
+                  <div className="flex items-center justify-between sm:justify-end gap-3 pt-1.5 sm:pt-0 border-t sm:border-t-0 border-border/40 sm:border-transparent">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] font-semibold text-muted-foreground">
+                        आठवड्याचा एकूण भरणा:
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold font-mono text-primary">
+                        ₹{group.totalAmount.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+
                     <Badge
                       variant="outline"
-                      className="text-[10px] font-sans border-primary/20 bg-primary/10 text-primary font-bold"
+                      className="text-[10px] font-sans border-primary/20 bg-primary/10 text-primary font-bold shrink-0 whitespace-nowrap px-2 py-0.5"
                     >
                       {group.entriesCount} {group.entriesCount === 1 ? "नोंद" : "नोंदी"}
                     </Badge>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-semibold text-muted-foreground">
-                      आठवड्याचा एकूण भरणा:
-                    </span>
-                    <span className="text-sm font-bold font-mono text-primary">
-                      ₹{group.totalAmount.toLocaleString("en-IN")}
-                    </span>
                   </div>
                 </div>
 
                 {/* Payments Table within Week */}
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left">
+                  <table className="w-full text-xs text-left min-w-[520px]">
                     <thead className="bg-muted/40 border-b border-border text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                       <tr>
                         <th className="py-2 px-3.5 whitespace-nowrap">वार (Day)</th>
